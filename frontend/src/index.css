@@ -1,0 +1,84 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary: #7B2FFF;
+  --primary-soft: #A66FFF;
+  --gold: #F5A623;
+  --gold-soft: #FFD080;
+  --bg-dark: #0A0014;
+  --bg-card: #120020;
+  --muted: #9B8CB0;
+  --border: rgba(123, 47, 255, 0.25);
+  --glass: rgba(123, 47, 255, 0.08);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background-color: #0A0014;
+  color: #FFFFFF;
+  line-height: 1.6;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Playfair Display', serif;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0A0014;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #7B2FFF;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #A66FFF;
+}
+
+/* Glass effect */
+.glass {
+  background: rgba(123, 47, 255, 0.08);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(123, 47, 255, 0.25);
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, #7B2FFF 0%, #A66FFF 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Gold text */
+.gold-text {
+  color: #F5A623;
+}
+
+/* Button base styles */
+.btn-primary {
+  @apply bg-purple-glow text-white font-semibold px-6 py-3 rounded-lg hover:opacity-90 transition-opacity;
+}
+
+.btn-outline {
+  @apply border-2 border-primary text-primary font-semibold px-6 py-3 rounded-lg hover:bg-glass transition-colors;
+}
+
+/* Card hover effect */
+.card-hover {
+  @apply transition-all duration-300 hover:-translate-y-1 hover:border-primary hover:shadow-lg hover:shadow-primary/20;
+}

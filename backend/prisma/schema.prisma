@@ -1,0 +1,340 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Category {
+  influencer
+  actor
+  model
+  creator
+  public_figure
+}
+
+enum CreatorStatus {
+  active
+  suspended
+}
+
+enum InquiryStatus {
+  new
+  in_progress
+  completed
+  rejected
+}
+
+enum PackageType {
+  basic
+  growth
+  premium
+}
+
+enum PointsType {
+  earn
+  redeem
+}
+
+enum PointsReason {
+  signup
+  referral
+  referral_milestone
+  admin_grant
+  redemption
+}
+
+enum ReferralStatus {
+  pending
+  confirmed
+}
+
+enum RewardType {
+  featured
+  ig_promo
+  event_entry
+  collab_priority
+}
+
+enum RedemptionStatus {
+  pending
+  approved
+  rejected
+}
+
+enum CampaignStatus {
+  planning
+  active
+  completed
+}
+
+enum CampaignCreatorStatus {
+  invited
+  confirmed
+  completed
+}
+
+enum AdminRole {
+  super_admin
+  manager
+}
+
+model Creator {
+  id             String          @id @default(uuid())
+  name           String          @db.VarChar(100)
+  email          String          @db.VarChar(150) @unique
+  passwordHash   String          @db.VarChar(255)
+  mobile         String          @db.VarChar(15)
+  instagram      String          @db.VarChar(100)
+  category       Category
+  city           String          @db.VarChar(50)
+  bio            String?         @db.VarChar(200)
+  photoUrl       String?         @db.VarChar(500)
+  followerCount  String?         @db.VarChar(20)
+  isVerified     Boolean         @default(false)
+  isFeatured     Boolean         @default(false)
+  isApproved     Boolean         @default(false)
+  referralCode   String          @db.VarChar(20) @unique
+  referredBy     String?         @db.VarChar(36)
+  referrer       Creator?        @relation("ReferredCreators", fields: [referredBy], references: [id])
+  referrals      Creator[]       @relation("ReferredCreators")
+  pointsBalance  Int             @default(0)
+  status         CreatorStatus   @default(active)
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+
+  pointsTransactions PointsTransaction[]
+  referralsMade    Referral[]      @relation("Referrer")
+  referralsReceived Referral[]      @relation("ReferredUser")
+  redemptionRequests RedemptionRequest[]
+  campaignCreators CampaignCreator[]
+
+  @@map("creators")
+}
+
+model BrandInquiry {
+  id            String          @id @default(uuid())
+  brandName     String          @db.VarChar(150)
+  email         String          @db.VarChar(150)
+  mobile        String          @db.VarChar(15)
+  budgetRange   String          @db.VarChar(50)
+  categories    Json
+  message       String          @db.Text
+  status        InquiryStatus   @default(new)
+  assignedTo    String?         @db.VarChar(36)
+  assignedCreator Creator?      @relation(fields: [assignedTo], references: [id])
+  packageType   PackageType?
+  createdAt     DateTime        @default(now()) @map("created_at")
+  updatedAt     DateTime        @updatedAt @map("updated_at")
+
+  campaigns     Campaign[]
+
+  @@map("brand_inquiries")
+}
+
+model PointsTransaction {
+  id          String        @id @default(uuid())
+  creatorId   String        @db.VarChar(36)
+  creator     Creator       @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  type        PointsType
+  reason      PointsReason
+  points      Int
+  note        String?       @db.VarChar(255)
+  createdAt   DateTime      @default(now()) @map("created_at")
+
+  @@map("points_transactions")
+}
+
+model Referral {
+  id            String        @id @default(uuid())
+  referrerId    String        @db.VarChar(36)
+  referrer      Creator       @relation("Referrer", fields: [referrerId], references: [id], onDelete: Cascade)
+  referredId    String        @db.VarChar(36)
+  referredUser  Creator       @relation("ReferredUser", fields: [referredId], references: [id], onDelete: Cascade)
+  status        ReferralStatus @default(pending)
+  pointsCredited Boolean       @default(false)
+  createdAt     DateTime      @default(now()) @map("created_at")
+
+  @@map("referrals")
+}
+
+model RedemptionRequest {
+  id          String           @id @default(uuid())
+  creatorId   String           @db.VarChar(36)
+  creator     Creator          @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  rewardType  RewardType
+  pointsCost  Int
+  status      RedemptionStatus @default(pending)
+  adminNote   String?          @db.VarChar(255)
+  createdAt   DateTime         @default(now()) @map("created_at")
+
+  @@map("redemption_requests")
+}
+
+model Campaign {
+  id              String            @id @default(uuid())
+  brandInquiryId  String            @db.VarChar(36)
+  brandInquiry    BrandInquiry      @relation(fields: [brandInquiryId], references: [id], onDelete: Cascade)
+  title           String            @db.VarChar(200)
+  status          CampaignStatus    @default(planning)
+  startDate       DateTime?
+  endDate         DateTime?
+  notes           String?           @db.Text
+  createdAt       DateTime          @default(now()) @map("created_at")
+
+  campaignCreators CampaignCreator[]
+
+  @@map("campaigns")
+}
+
+model CampaignCreator {
+  id          String                @id @default(uuid())
+  campaignId  String                @db.VarChar(36)
+  campaign    Campaign              @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  creatorId   String                @db.VarChar(36)
+  creator     Creator               @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  status      CampaignCreatorStatus @default(invited)
+  deliverables String?              @db.Text
+
+  @@map("campaign_creators")
+}
+
+model Admin {
+  id            String      @id @default(uuid())
+  name          String      @db.VarChar(100)
+  email         String      @db.VarChar(150) @unique
+  passwordHash  String      @db.VarChar(255)
+  role          AdminRole   @default(manager)
+  createdAt     DateTime    @default(now()) @map("created_at")
+
+  @@map("admins")
+}
+
+model Payment {
+  id              String          @id @default(uuid())
+  brandInquiryId  String          @db.VarChar(36)
+  brandInquiry    BrandInquiry    @relation(fields: [brandInquiryId], references: [id], onDelete: Cascade)
+  creatorId       String          @db.VarChar(36)
+  creator         Creator         @relation(fields: [creatorId], references: [id])
+  amount          Decimal         @db.Decimal(10, 2)
+  platformFee     Decimal         @db.Decimal(10, 2)
+  creatorEarnings Decimal         @db.Decimal(10, 2)
+  status          PaymentStatus   @default(pending)
+  paymentMethod   String?         @db.VarChar(50)
+  razorpayOrderId String?         @db.VarChar(100)
+  razorpayPaymentId String?       @db.VarChar(100)
+  razorpaySignature String?       @db.VarChar(255)
+  gstAmount       Decimal         @db.Decimal(10, 2) @default(0)
+  tdsAmount       Decimal         @db.Decimal(10, 2) @default(0)
+  invoiceUrl      String?         @db.VarChar(500)
+  agreementUrl    String?         @db.VarChar(500)
+  paidAt          DateTime?
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+
+  @@map("payments")
+}
+
+model Payout {
+  id              String          @id @default(uuid())
+  creatorId       String          @db.VarChar(36)
+  creator         Creator         @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  amount          Decimal         @db.Decimal(10, 2)
+  status          PayoutStatus    @default(pending)
+  paymentMethod   String          @db.VarChar(50) // UPI, Bank Transfer, etc.
+  upiId           String?         @db.VarChar(100)
+  accountNumber   String?         @db.VarChar(50)
+  ifscCode        String?         @db.VarChar(20)
+  bankName        String?         @db.VarChar(100)
+  accountHolder   String?         @db.VarChar(100)
+  cashfreePayoutId String?        @db.VarChar(100)
+  processedAt     DateTime?
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+
+  @@map("payouts")
+}
+
+model CampaignAnalytics {
+  id              String          @id @default(uuid())
+  campaignId      String          @db.VarChar(36) @unique
+  campaign        Campaign        @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  totalReach      Int             @default(0)
+  totalImpressions Int            @default(0)
+  totalEngagement Int             @default(0)
+  totalClicks     Int             @default(0)
+  engagementRate  Decimal         @db.Decimal(5, 2) @default(0)
+  ctr             Decimal         @db.Decimal(5, 2) @default(0)
+  conversions     Int             @default(0)
+  roi             Decimal         @db.Decimal(5, 2) @default(0)
+  reportUrl       String?         @db.VarChar(500)
+  lastUpdated     DateTime        @updatedAt @map("updated_at")
+  createdAt       DateTime        @default(now()) @map("created_at")
+
+  @@map("campaign_analytics")
+}
+
+model CreatorAnalytics {
+  id              String          @id @default(uuid())
+  creatorId       String          @db.VarChar(36) @unique
+  creator         Creator         @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  profileViews    Int             @default(0)
+  totalEarnings   Decimal         @db.Decimal(10, 2) @default(0)
+  avgEngagementRate Decimal       @db.Decimal(5, 2) @default(0)
+  totalCollaborations Int         @default(0)
+  successRate     Decimal         @db.Decimal(5, 2) @default(0)
+  responseTime    Int             @default(0) // in hours
+  lastUpdated     DateTime        @updatedAt @map("updated_at")
+  createdAt       DateTime        @default(now()) @map("created_at")
+
+  @@map("creator_analytics")
+}
+
+model Message {
+  id              String          @id @default(uuid())
+  senderId        String          @db.VarChar(36)
+  senderType      String          @db.VarChar(20) // 'creator' or 'brand'
+  recipientId     String          @db.VarChar(36)
+  recipientType   String          @db.VarChar(20)
+  campaignId      String?         @db.VarChar(36)
+  content         String          @db.Text
+  attachments     Json?
+  isRead          Boolean         @default(false)
+  createdAt       DateTime        @default(now()) @map("created_at")
+
+  @@map("messages")
+}
+
+model Review {
+  id              String          @id @default(uuid())
+  campaignId      String          @db.VarChar(36) @unique
+  campaign        Campaign        @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  brandRating     Int             // 1-5
+  creatorRating   Int             // 1-5
+  brandReview     String?         @db.Text
+  creatorReview   String?         @db.Text
+  wouldWorkAgain  Boolean         @default(true)
+  createdAt       DateTime        @default(now()) @map("created_at")
+
+  @@map("reviews")
+}
+
+enum PaymentStatus {
+  pending
+  initiated
+  processing
+  completed
+  failed
+  refunded
+  disputed
+}
+
+enum PayoutStatus {
+  pending
+  processing
+  completed
+  failed
+  on_hold
+}
