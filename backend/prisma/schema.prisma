@@ -105,11 +105,15 @@ model Creator {
   createdAt      DateTime        @default(now()) @map("created_at")
   updatedAt      DateTime        @updatedAt @map("updated_at")
 
-  pointsTransactions PointsTransaction[]
-  referralsMade    Referral[]      @relation("Referrer")
-  referralsReceived Referral[]      @relation("ReferredUser")
-  redemptionRequests RedemptionRequest[]
-  campaignCreators CampaignCreator[]
+  pointsTransactions   PointsTransaction[]
+  referralsMade        Referral[]        @relation("Referrer")
+  referralsReceived    Referral[]        @relation("ReferredUser")
+  redemptionRequests   RedemptionRequest[]
+  campaignCreators     CampaignCreator[]
+  assignedInquiries    BrandInquiry[]    @relation("AssignedCreator")
+  payments             Payment[]
+  payouts              Payout[]
+  creatorAnalytics     CreatorAnalytics?
 
   @@map("creators")
 }
@@ -124,12 +128,13 @@ model BrandInquiry {
   message       String          @db.Text
   status        InquiryStatus   @default(new)
   assignedTo    String?         @db.VarChar(36)
-  assignedCreator Creator?      @relation(fields: [assignedTo], references: [id])
+  assignedCreator Creator?      @relation(fields: [assignedTo], references: [id], name: "AssignedCreator")
   packageType   PackageType?
   createdAt     DateTime        @default(now()) @map("created_at")
   updatedAt     DateTime        @updatedAt @map("updated_at")
 
   campaigns     Campaign[]
+  payments      Payment[]
 
   @@map("brand_inquiries")
 }
@@ -185,6 +190,7 @@ model Campaign {
   createdAt       DateTime          @default(now()) @map("created_at")
 
   campaignCreators CampaignCreator[]
+  analytics        CampaignAnalytics?
 
   @@map("campaigns")
 }
