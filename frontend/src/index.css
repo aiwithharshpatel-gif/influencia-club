@@ -148,6 +148,24 @@ h1, h2, h3, h4, h5, h6 {
   box-shadow: 0 0 20px rgba(212, 175, 55, 0.5);
 }
 
+/* Premium glow effects */
+.shadow-gold-glow {
+  box-shadow: 0 10px 40px rgba(212, 175, 55, 0.3);
+}
+
+.shadow-gold-sm {
+  box-shadow: 0 4px 20px rgba(212, 175, 55, 0.2);
+}
+
+/* Drop shadow for text */
+.drop-shadow-lg {
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.5));
+}
+
+.drop-shadow-xl {
+  filter: drop-shadow(0 10px 15px rgba(0, 0, 0, 0.6));
+}
+
 /* Luxury card style */
 .luxury-card {
   background: linear-gradient(145deg, #0A0A0A 0%, #111111 100%);
