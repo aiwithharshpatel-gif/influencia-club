@@ -14,6 +14,8 @@ import Join from './pages/Join';
 import Brands from './pages/Brands';
 import Contact from './pages/Contact';
 import Login from './pages/Login';
+import Privacy from './pages/Privacy';
+import Terms from './pages/Terms';
 
 // Dashboard Pages
 import DashboardLayout from './pages/dashboard/DashboardLayout';
@@ -57,6 +59,8 @@ function App() {
             <Route path="/brands" element={<Brands />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/terms" element={<Terms />} />
 
             {/* Dashboard Routes */}
             <Route path="/dashboard" element={<DashboardLayout />}>

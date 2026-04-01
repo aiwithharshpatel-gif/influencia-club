@@ -195,16 +195,16 @@ const Home = () => {
               <FadeIn key={category.name} delay={index * 100}>
                 <TiltCard>
                   <div className="luxury-card rounded-2xl p-8 text-center group hover:border-gold/50 transition-all duration-500 hover:-translate-y-3 hover:shadow-gold-glow">
-                  <div className="text-6xl mb-6 group-hover:scale-125 group-hover:rotate-12 transition-all duration-500">
-                    {category.icon}
+                    <div className="text-6xl mb-6 group-hover:scale-125 group-hover:rotate-12 transition-all duration-500">
+                      {category.icon}
+                    </div>
+                    <h3 className="font-display text-xl font-bold text-white mb-3 tracking-wide">
+                      {category.name}
+                    </h3>
+                    <p className="text-muted text-sm leading-relaxed">
+                      {category.description}
+                    </p>
                   </div>
-                  <h3 className="font-display text-xl font-bold text-white mb-3 tracking-wide">
-                    {category.name}
-                  </h3>
-                  <p className="text-muted text-sm leading-relaxed">
-                    {category.description}
-                  </p>
-                </div>
                 </TiltCard>
               </FadeIn>
             ))}
