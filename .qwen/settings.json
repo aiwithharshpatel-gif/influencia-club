@@ -8,7 +8,8 @@
       "Bash(git *)",
       "Bash(rm *)",
       "Bash(del *)",
-      "Bash(rmdir *)"
+      "Bash(rmdir *)",
+      "Bash(cat *)"
     ]
   },
   "$version": 3
