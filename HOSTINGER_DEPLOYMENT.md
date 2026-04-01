@@ -9,96 +9,27 @@
 
 ---
 
-## Step 1: Prepare Backend for Production
+## Quick Deploy (Automated via GitHub)
 
-### 1.1 Create Production Build
+### 1. Connect GitHub Repository
 
-```bash
-cd backend
-npm install --production
-npx prisma generate
-```
+1. In hPanel, go to **Node.js**
+2. Create new application
+3. Select **Deploy from Git** (if available)
+4. Connect your GitHub repository: `aiwithharshpatel-gif/influencia-club`
+5. Branch: `main`
 
-### 1.2 Create `.env.production`
+### 2. Configure Node.js App
 
-Create this file in the `backend` folder:
+- **Node.js Version:** 18.x or 20.x
+- **Application Root:** (leave empty for root deployment)
+- **Startup File:** `startup.js`
+- **Application Mode:** `production`
+- **Build Command:** `npm install && npm run build`
 
-```env
-NODE_ENV=production
-PORT=3000
-JWT_SECRET=your_super_secret_jwt_key_change_this_now
-JWT_REFRESH_SECRET=another_random_secret_change_this
-DATABASE_URL=mysql://username:password@localhost:3306/database_name
-CLOUDINARY_CLOUD_NAME=your_cloudinary_name
-CLOUDINARY_API_KEY=your_cloudinary_key
-CLOUDINARY_API_SECRET=your_cloudinary_secret
-SMTP_HOST=smtp-relay.brevo.com
-SMTP_PORT=587
-SMTP_USER=your_brevo_username
-SMTP_PASS=your_brevo_password
-EMAIL_FROM=hello@influenziaclub.in
-FRONTEND_URL=https://your-frontend.vercel.app
-```
+### 3. Set Environment Variables
 
----
-
-## Step 2: Create MySQL Database on Hostinger
-
-1. Login to **hPanel** (Hostinger control panel)
-2. Go to **Databases** → **MySQL Databases**
-3. Create new database:
-   - **Database Name:** `influenzia_club` (or similar)
-   - **Username:** Create new user
-   - **Password:** Generate strong password
-4. **Save these credentials** for DATABASE_URL
-
----
-
-## Step 3: Upload Files to Hostinger
-
-### Option A: Using File Manager (Easier)
-
-1. Login to hPanel
-2. Go to **Files** → **File Manager**
-3. Navigate to your domain folder (e.g., `public_html` or domain root)
-4. Create a folder named `backend`
-5. Upload ALL backend files:
-   - `package.json`
-   - `package-lock.json`
-   - `prisma/` folder
-   - `src/` folder
-   - `.env.production`
-
-### Option B: Using FTP
-
-1. Connect via FTP (FileZilla, etc.)
-2. Host: Your domain or FTP hostname
-3. Upload entire `backend` folder to your hosting directory
-
----
-
-## Step 4: Setup Node.js App in hPanel
-
-1. Go to **Advanced** → **Node.js**
-2. Click **Create Application**
-3. Configure:
-   - **Node.js Version:** 18.x or 20.x
-   - **Application Root:** `backend` (or wherever you uploaded)
-   - **Application URL:** Your domain/subdomain
-   - **Startup File:** `src/app.js`
-   - **Application Mode:** `production`
-
-4. Click **Create**
-
----
-
-## Step 5: Set Environment Variables
-
-In Node.js configuration:
-
-1. Go to **Node.js** → Your application
-2. Find **Environment Variables** section
-3. Add each variable from `.env.production`:
+In Node.js configuration, add these:
 
 | Variable | Value |
 |----------|-------|
