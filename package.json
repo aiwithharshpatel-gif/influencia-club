@@ -4,7 +4,7 @@
   "description": "India's Next-Gen Influencer Platform",
   "private": true,
   "type": "module",
-  "main": "unified-startup.cjs",
+  "main": "unified-startup.js",
   "scripts": {
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:backend": "cd backend && npm run dev",
@@ -14,7 +14,7 @@
     "build:backend": "cd backend && npm install && npx prisma generate",
     "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install",
     "postinstall": "npm run build",
-    "start": "node unified-startup.cjs"
+    "start": "node unified-startup.js"
   },
   "dependencies": {
     "vite": "^5.1.6",
