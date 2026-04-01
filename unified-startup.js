@@ -6,6 +6,7 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import { execSync } from 'child_process';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -14,6 +15,32 @@ const PORT = process.env.PORT || 3000;
 
 // Paths
 const DIST_DIR = path.join(__dirname, 'dist');
+const BACKEND_DIR = path.join(__dirname, 'backend');
+
+console.log('========================================');
+console.log('Influenzia Club Starting...');
+console.log('Port:', PORT);
+console.log('Frontend Dist:', DIST_DIR);
+console.log('========================================');
+
+// Generate Prisma client if not exists
+try {
+  const prismaClientPath = path.join(BACKEND_DIR, 'node_modules', '@prisma', 'client');
+  if (!fs.existsSync(prismaClientPath)) {
+    console.log('Generating Prisma client...');
+    execSync('npx prisma generate', { 
+      cwd: BACKEND_DIR, 
+      stdio: 'inherit' 
+    });
+    console.log('✓ Prisma client generated');
+  } else {
+    console.log('✓ Prisma client already exists');
+  }
+} catch (error) {
+  console.error('⚠ Prisma generation skipped (will retry on first DB call)');
+}
+
+// Import backend app
 const BACKEND_APP = (await import('./backend/src/app.js')).default;
 
 const app = express();
