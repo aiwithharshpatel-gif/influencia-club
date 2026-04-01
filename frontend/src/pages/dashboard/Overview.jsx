@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { TrendingUp, Users, Award, Eye, ArrowRight } from 'lucide-react';
+import { TrendingUp, Users, Award, Eye, ArrowRight, MessageSquare } from 'lucide-react';
 import api from '../../utils/api';
 
 const DashboardOverview = () => {
