@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
 import { useState } from 'react';
+import logo from '../assets/logo.png';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -17,13 +18,17 @@ const Navbar = () => {
   const isActive = (path) => location.pathname === path;
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 glass">
+    <nav className="fixed top-0 left-0 right-0 z-50 glass bg-bg/95 backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-20">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2">
-            <span className="font-display text-2xl font-bold text-white">
-              Influen<span className="gold-text italic">zia</span> Club
+          <Link to="/" className="flex items-center space-x-3 group">
+            <div className="relative">
+              <div className="absolute inset-0 bg-gold/20 blur-xl rounded-full group-hover:bg-gold/40 transition-all"></div>
+              <img src={logo} alt="IC" className="relative h-12 w-auto drop-shadow-lg" />
+            </div>
+            <span className="font-display text-xl font-bold gradient-text tracking-wider hidden sm:block">
+              INFLUENZIA CLUB
             </span>
           </Link>
 
@@ -33,10 +38,10 @@ const Navbar = () => {
               <Link
                 key={link.path}
                 to={link.path}
-                className={`text-sm font-medium transition-colors ${
+                className={`text-sm font-medium transition-all duration-300 tracking-wide ${
                   isActive(link.path)
-                    ? 'text-gold'
-                    : 'text-white hover:text-primary-soft'
+                    ? 'text-gold glow-gold'
+                    : 'text-white hover:text-gold'
                 }`}
               >
                 {link.label}
@@ -53,7 +58,7 @@ const Navbar = () => {
           {/* Mobile menu button */}
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className="md:hidden text-white p-2"
+            className="md:hidden text-gold p-2 hover:bg-gold/10 rounded-lg transition-colors"
           >
             {isOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
@@ -62,17 +67,17 @@ const Navbar = () => {
 
       {/* Mobile Navigation */}
       {isOpen && (
-        <div className="md:hidden bg-bg-card border-t border-border">
-          <div className="px-4 py-2 space-y-2">
+        <div className="md:hidden bg-bg-card/95 backdrop-blur-lg border-t border-gold/20">
+          <div className="px-4 py-4 space-y-3">
             {navLinks.map((link) => (
               <Link
                 key={link.path}
                 to={link.path}
                 onClick={() => setIsOpen(false)}
-                className={`block px-3 py-2 rounded-lg text-sm font-medium ${
+                className={`block px-4 py-3 rounded-lg text-sm font-medium transition-all ${
                   isActive(link.path)
-                    ? 'bg-glass text-gold'
-                    : 'text-white hover:bg-glass'
+                    ? 'bg-gold/10 text-gold border border-gold/30'
+                    : 'text-white hover:bg-gold/5 hover:text-gold'
                 }`}
               >
                 {link.label}

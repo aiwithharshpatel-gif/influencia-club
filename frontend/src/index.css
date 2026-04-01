@@ -3,15 +3,26 @@
 @tailwind utilities;
 
 :root {
-  --primary: #7B2FFF;
-  --primary-soft: #A66FFF;
-  --gold: #F5A623;
-  --gold-soft: #FFD080;
-  --bg-dark: #0A0014;
-  --bg-card: #120020;
-  --muted: #9B8CB0;
-  --border: rgba(123, 47, 255, 0.25);
-  --glass: rgba(123, 47, 255, 0.08);
+  /* Gold colors from logo */
+  --gold-primary: #D4AF37;
+  --gold-light: #F4D06F;
+  --gold-dark: #B8860B;
+  --gold-gradient: linear-gradient(135deg, #F4D06F 0%, #D4AF37 50%, #B8860B 100%);
+  
+  /* Black background */
+  --bg-dark: #000000;
+  --bg-card: #0A0A0A;
+  --bg-card-light: #111111;
+  
+  /* Text colors */
+  --text-primary: #FFFFFF;
+  --text-secondary: #D4AF37;
+  --text-muted: #888888;
+  
+  /* Borders & effects */
+  --border-gold: rgba(212, 175, 55, 0.3);
+  --glass-gold: rgba(212, 175, 55, 0.08);
+  --glow-gold: rgba(212, 175, 55, 0.5);
 }
 
 * {
@@ -22,63 +33,141 @@
 
 body {
   font-family: 'DM Sans', sans-serif;
-  background-color: #0A0014;
+  background-color: #000000;
   color: #FFFFFF;
   line-height: 1.6;
 }
 
 h1, h2, h3, h4, h5, h6 {
   font-family: 'Playfair Display', serif;
+  letter-spacing: 0.5px;
 }
 
-/* Custom scrollbar */
+/* Custom scrollbar - Gold */
 ::-webkit-scrollbar {
   width: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #0A0014;
+  background: #000000;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #7B2FFF;
+  background: #D4AF37;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #A66FFF;
+  background: #F4D06F;
 }
 
-/* Glass effect */
+/* Gold glass effect */
 .glass {
-  background: rgba(123, 47, 255, 0.08);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(123, 47, 255, 0.25);
+  background: var(--glass-gold);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border-gold);
 }
 
-/* Gradient text */
+/* Gold gradient text */
 .gradient-text {
-  background: linear-gradient(135deg, #7B2FFF 0%, #A66FFF 100%);
+  background: var(--gold-gradient);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
-/* Gold text */
+/* Gold text solid */
 .gold-text {
-  color: #F5A623;
+  color: #D4AF37;
 }
 
-/* Button base styles */
+/* Gold gradient text solid */
+.gold-gradient-text {
+  background: var(--gold-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Buttons */
 .btn-primary {
-  @apply bg-purple-glow text-white font-semibold px-6 py-3 rounded-lg hover:opacity-90 transition-opacity;
+  background: var(--gold-gradient);
+  color: #000000;
+  font-weight: 600;
+  padding: 12px 28px;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+  border: none;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px var(--glow-gold);
+  opacity: 1;
 }
 
 .btn-outline {
-  @apply border-2 border-primary text-primary font-semibold px-6 py-3 rounded-lg hover:bg-glass transition-colors;
+  background: transparent;
+  color: #D4AF37;
+  font-weight: 600;
+  padding: 12px 28px;
+  border-radius: 4px;
+  border: 2px solid #D4AF37;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
-/* Card hover effect */
+.btn-outline:hover {
+  background: var(--gold-gradient);
+  color: #000000;
+  border-color: transparent;
+  transform: translateY(-2px);
+}
+
+/* Card hover effect - Gold */
 .card-hover {
-  @apply transition-all duration-300 hover:-translate-y-1 hover:border-primary hover:shadow-lg hover:shadow-primary/20;
+  transition: all 0.3s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-4px);
+  border-color: #D4AF37;
+  box-shadow: 0 10px 40px rgba(212, 175, 55, 0.3);
+}
+
+/* Gold border */
+.border-gold {
+  border: 1px solid #D4AF37;
+}
+
+/* Gold glow effect */
+.glow-gold {
+  box-shadow: 0 0 20px rgba(212, 175, 55, 0.5);
+}
+
+/* Luxury card style */
+.luxury-card {
+  background: linear-gradient(145deg, #0A0A0A 0%, #111111 100%);
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  backdrop-filter: blur(10px);
+}
+
+/* Star/sparkle effect */
+.sparkle {
+  position: relative;
+}
+
+.sparkle::after {
+  content: '✦';
+  position: absolute;
+  color: #D4AF37;
+  animation: sparkle 2s ease-in-out infinite;
+}
+
+@keyframes sparkle {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.2); }
 }
