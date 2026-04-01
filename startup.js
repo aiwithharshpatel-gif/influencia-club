@@ -1,37 +1,26 @@
 // Hostinger startup file for Influenzia Club
-// This serves the built frontend
+// This serves the built frontend from root/dist
 
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
 const PORT = process.env.PORT || 3000;
+const DIST_DIR = path.join(__dirname, 'dist');
 
-// Try multiple possible dist locations
-const possibleDistPaths = [
-  path.join(__dirname, 'dist'),
-  path.join(__dirname, 'frontend', 'dist'),
-  path.join(__dirname, 'public'),
-  path.join(__dirname, 'public_html'),
-];
-
-let DIST_DIR = null;
-for (const distPath of possibleDistPaths) {
-  if (fs.existsSync(distPath)) {
-    DIST_DIR = distPath;
-    break;
-  }
+console.log('========================================');
+console.log('Influenzia Club Starting...');
+console.log('Port:', PORT);
+console.log('Dist Dir:', DIST_DIR);
+console.log('Dist Exists:', fs.existsSync(DIST_DIR));
+if (fs.existsSync(DIST_DIR)) {
+  console.log('Files in dist:', fs.readdirSync(DIST_DIR));
 }
-
-if (!DIST_DIR) {
-  console.error('No dist folder found! Checked:', possibleDistPaths);
-  DIST_DIR = path.join(__dirname, 'dist'); // fallback
-}
-
-console.log('Serving from:', DIST_DIR);
+console.log('========================================');
 
 const server = http.createServer((req, res) => {
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+  const logPrefix = `${new Date().toISOString()} - ${req.method} ${req.url}`;
+  console.log(logPrefix);
 
   // Handle API routes
   if (req.url.startsWith('/api')) {
@@ -42,7 +31,7 @@ const server = http.createServer((req, res) => {
     res.end(JSON.stringify({
       status: 'ok',
       message: 'Frontend is running. Backend API should be deployed separately.',
-      frontend: 'test.digiglowmarketing.in'
+      url: 'https://test.digiglowmarketing.in'
     }));
     return;
   }
@@ -76,13 +65,13 @@ const server = http.createServer((req, res) => {
 
   fs.readFile(filePath, (err, content) => {
     if (err) {
-      console.error('Error reading file:', filePath, err.code);
+      console.error('Error:', err.code, filePath);
       if (err.code === 'ENOENT') {
         res.writeHead(404, { 'Content-Type': 'text/html' });
-        res.end('<h1>404 - File Not Found</h1><p>The requested file was not found on this server.</p>');
+        res.end('<h1>404 - File Not Found</h1>');
       } else {
         res.writeHead(500, { 'Content-Type': 'text/html' });
-        res.end(`<h1>500 - Server Error</h1><p>Error code: ${err.code}</p>`);
+        res.end(`<h1>500 - Server Error</h1><p>${err.code}</p>`);
       }
     } else {
       res.writeHead(200, { 'Content-Type': contentType });
@@ -92,9 +81,6 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`========================================`);
-  console.log(`Influenzia Club running on port ${PORT}`);
-  console.log(`Serving from: ${DIST_DIR}`);
-  console.log(`URL: https://test.digiglowmarketing.in`);
-  console.log(`========================================`);
+  console.log('Server listening on port', PORT);
+  console.log('========================================');
 });
