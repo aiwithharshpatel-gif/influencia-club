@@ -1,20 +1,14 @@
-// Unified startup for Influenzia Club (ES Module version)
+// Unified startup for Influenzia Club (CommonJS version)
 // Serves both frontend (static) and backend (API) using Express
 
-import express from 'express';
-import cors from 'cors';
-import cookieParser from 'cookie-parser';
-import path from 'path';
-import fs from 'fs';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-import { execSync } from 'child_process';
-import dotenv from 'dotenv';
+const express = require('express');
+const cors = require('cors');
+const cookieParser = require('cookie-parser');
+const path = require('path');
+const fs = require('fs');
+const { execSync } = require('child_process');
 
-dotenv.config();
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+require('dotenv').config();
 
 const PORT = process.env.PORT || 3000;
 
@@ -45,14 +39,14 @@ try {
   console.error('⚠ Prisma generation skipped (will retry on first DB call)');
 }
 
-// Import backend routes directly
-const authRoutes = (await import('./backend/src/routes/auth.js')).default;
-const creatorRoutes = (await import('./backend/src/routes/creators.js')).default;
-const inquiryRoutes = (await import('./backend/src/routes/inquiries.js')).default;
-const dashboardRoutes = (await import('./backend/src/routes/dashboard.js')).default;
-const adminRoutes = (await import('./backend/src/routes/admin.js')).default;
-const contactRoutes = (await import('./backend/src/routes/contact.js')).default;
-const paymentRoutes = (await import('./backend/src/routes/payments.js')).default;
+// Import backend routes directly (CommonJS)
+const authRoutes = require('./backend/src/routes/auth.js');
+const creatorRoutes = require('./backend/src/routes/creators.js');
+const inquiryRoutes = require('./backend/src/routes/inquiries.js');
+const dashboardRoutes = require('./backend/src/routes/dashboard.js');
+const adminRoutes = require('./backend/src/routes/admin.js');
+const contactRoutes = require('./backend/src/routes/contact.js');
+const paymentRoutes = require('./backend/src/routes/payments.js');
 
 const app = express();
 
@@ -107,7 +101,7 @@ app.get('*', (req, res) => {
   if (fs.existsSync(indexPath)) {
     res.sendFile(indexPath);
   } else {
-    res.status(404).send('Frontend not found - run npm run build');
+    res.status(404).send('Frontend not found');
   }
 });
 
