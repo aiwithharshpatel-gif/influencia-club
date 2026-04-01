@@ -6,6 +6,11 @@ import Footer from '../components/Footer';
 import GoldenParticles from '../components/GoldenParticles';
 import FadeIn from '../components/FadeIn';
 import AnimatedCounter from '../components/AnimatedCounter';
+import VideoBackground from '../components/VideoBackground';
+import TestimonialsCarousel from '../components/TestimonialsCarousel';
+import BrandLogos from '../components/BrandLogos';
+import TiltCard from '../components/TiltCard';
+import ChatWidget from '../components/ChatWidget';
 import logo from '../assets/logo.png';
 
 const Home = () => {
@@ -100,8 +105,11 @@ const Home = () => {
       <GoldenParticles />
       <Navbar />
 
-      {/* Hero Section - Enhanced */}
+      {/* Hero Section - Enhanced with Video Background */}
       <section className="relative pt-32 pb-20 overflow-hidden min-h-screen flex items-center">
+        {/* Video Background */}
+        <VideoBackground />
+        
         {/* Background gradient */}
         <div className="absolute inset-0 bg-gradient-to-b from-gold/5 via-transparent to-transparent"></div>
         
@@ -185,7 +193,8 @@ const Home = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
             {categories.map((category, index) => (
               <FadeIn key={category.name} delay={index * 100}>
-                <div className="luxury-card rounded-2xl p-8 text-center group hover:border-gold/50 transition-all duration-500 hover:-translate-y-3 hover:shadow-gold-glow">
+                <TiltCard>
+                  <div className="luxury-card rounded-2xl p-8 text-center group hover:border-gold/50 transition-all duration-500 hover:-translate-y-3 hover:shadow-gold-glow">
                   <div className="text-6xl mb-6 group-hover:scale-125 group-hover:rotate-12 transition-all duration-500">
                     {category.icon}
                   </div>
@@ -196,6 +205,7 @@ const Home = () => {
                     {category.description}
                   </p>
                 </div>
+                </TiltCard>
               </FadeIn>
             ))}
           </div>
@@ -339,6 +349,12 @@ const Home = () => {
         </div>
       </section>
 
+      {/* Brand Logos Section */}
+      <BrandLogos />
+
+      {/* Testimonials Carousel */}
+      <TestimonialsCarousel />
+
       {/* CTA Section - Enhanced */}
       <section className="py-24 relative overflow-hidden">
         <div className="absolute inset-0 bg-gold/10"></div>
@@ -360,6 +376,9 @@ const Home = () => {
           </FadeIn>
         </div>
       </section>
+
+      {/* Chat Widget */}
+      <ChatWidget />
 
       <Footer />
     </div>

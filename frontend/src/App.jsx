@@ -1,5 +1,10 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { useState, useEffect } from 'react';
+
+// Components
+import LoadingScreen from './components/LoadingScreen';
+import PageTransition from './components/PageTransition';
 
 // Public Pages
 import Home from './pages/Home';
@@ -19,28 +24,50 @@ import Points from './pages/dashboard/Points';
 import Collaborations from './pages/dashboard/Collabs';
 
 function App() {
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // Preload critical assets
+    const preloadImages = () => {
+      const images = ['/logo.png'];
+      images.forEach(src => {
+        const img = new Image();
+        img.src = src;
+      });
+    };
+
+    preloadImages();
+    setIsLoading(false);
+  }, []);
+
+  if (isLoading) {
+    return <LoadingScreen />;
+  }
+
   return (
     <AuthProvider>
       <Router>
-        <Routes>
-          {/* Public Routes */}
-          <Route path="/" element={<Home />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/creators" element={<Creators />} />
-          <Route path="/join" element={<Join />} />
-          <Route path="/brands" element={<Brands />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path="/login" element={<Login />} />
+        <PageTransition>
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/" element={<Home />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/creators" element={<Creators />} />
+            <Route path="/join" element={<Join />} />
+            <Route path="/brands" element={<Brands />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/login" element={<Login />} />
 
-          {/* Dashboard Routes */}
-          <Route path="/dashboard" element={<DashboardLayout />}>
-            <Route index element={<DashboardOverview />} />
-            <Route path="profile" element={<Profile />} />
-            <Route path="referrals" element={<Referrals />} />
-            <Route path="points" element={<Points />} />
-            <Route path="collabs" element={<Collaborations />} />
-          </Route>
-        </Routes>
+            {/* Dashboard Routes */}
+            <Route path="/dashboard" element={<DashboardLayout />}>
+              <Route index element={<DashboardOverview />} />
+              <Route path="profile" element={<Profile />} />
+              <Route path="referrals" element={<Referrals />} />
+              <Route path="points" element={<Points />} />
+              <Route path="collabs" element={<Collaborations />} />
+            </Route>
+          </Routes>
+        </PageTransition>
       </Router>
     </AuthProvider>
   );
