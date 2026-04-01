@@ -34,3 +34,6 @@ coverage/
 
 # Prisma
 backend/prisma/migrations/
+
+.vercel
+.env*.local

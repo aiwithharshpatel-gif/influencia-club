@@ -1,9 +1,9 @@
 import { Link } from 'react-router-dom';
 import { LayoutDashboard, User, Users, Award, MessageSquare, LogOut, Star } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
+import Navbar from '../../components/Navbar';
+import Footer from '../../components/Footer';
 
 const DashboardLayout = () => {
   const { user, logout } = useAuth();

@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(railway *)",
+      "Bash(npm *)",
+      "Bash(vercel *)",
+      "Bash(git *)",
+      "Bash(rm *)",
+      "Bash(del *)",
+      "Bash(rmdir *)"
+    ]
+  },
+  "$version": 3
+}
