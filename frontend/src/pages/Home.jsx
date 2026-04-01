@@ -3,6 +3,7 @@ import { ArrowRight, Users, TrendingUp, DollarSign, Network, Star, Award, Zap, H
 import CreatorCard from '../components/CreatorCard';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
+import GoldenParticles from '../components/GoldenParticles';
 import logo from '../assets/logo.png';
 
 const Home = () => {
@@ -77,7 +78,8 @@ const Home = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-bg">
+    <div className="min-h-screen bg-bg relative">
+      <GoldenParticles />
       <Navbar />
 
       {/* Hero Section */}

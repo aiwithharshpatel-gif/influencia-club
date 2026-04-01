@@ -171,3 +171,31 @@ h1, h2, h3, h4, h5, h6 {
   0%, 100% { opacity: 0.5; transform: scale(1); }
   50% { opacity: 1; transform: scale(1.2); }
 }
+
+/* Golden dust particles */
+@golden-dust {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  background: #F4D06F;
+  border-radius: 50%;
+  pointer-events: none;
+  animation: goldenFloat 15s infinite;
+}
+
+@keyframes goldenFloat {
+  0%, 100% {
+    transform: translateY(0) translateX(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.8;
+  }
+  90% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(-200px) translateX(100px);
+    opacity: 0;
+  }
+}
