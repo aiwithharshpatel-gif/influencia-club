@@ -16,17 +16,18 @@ services:
     build: 
       context: ./backend
       args:
-        - CACHEBUST=20260427-1320
+        - CACHEBUST=20260427-1330
     restart: always
-    ports:
-      - "5000:5000"
+    # Removed host port 5000 to avoid conflict with web_ui
+    expose:
+      - "5000"
     environment:
       - DATABASE_URL=mysql://root:Influenzia@2026@database:3306/influenzia
       - NODE_ENV=production
       - JWT_SECRET=d51a97a37d7d619d6e544f023f4742873cadc2c7256de8b4ad807407b6538cfe
       - JWT_REFRESH_SECRET=73916bb17631920434fcf3387ea52df325042ea9df3fa107f2c207d0ff2347fb
       - PORT=5000
-      - FRONTEND_URL=http://187.127.157.111:81
+      - FRONTEND_URL=http://187.127.157.111:5000
     depends_on:
       - database
     networks:
@@ -37,10 +38,10 @@ services:
       context: ./frontend
       args:
         - VITE_API_URL=/api
-        - CACHEBUST=20260427-1320
+        - CACHEBUST=20260427-1330
     restart: always
     ports:
-      - "81:80"
+      - "5000:80" # Mapping the ONLY open port (5000) to our Frontend
     depends_on:
       - api_service
     networks:
