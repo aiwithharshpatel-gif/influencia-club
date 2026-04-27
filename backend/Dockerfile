@@ -16,7 +16,9 @@ EXPOSE 5000
 # 2. Generate Prisma Client
 # 3. Push migrations
 # 4. Start the app
-CMD until nc -z db 3306; do echo "Waiting for database..."; sleep 2; done && \
+CMD until nc -z db 3306; do echo "Waiting for database network..."; sleep 2; done && \
+    echo "Database network ready, waiting 5s for MySQL initialization..." && \
+    sleep 5 && \
     npx prisma generate && \
     npx prisma migrate deploy && \
     node src/app.js

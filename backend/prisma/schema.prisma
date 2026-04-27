@@ -193,6 +193,7 @@ model Campaign {
 
   campaignCreators CampaignCreator[]
   analytics        CampaignAnalytics?
+  review           Review?
 
   @@map("campaigns")
 }
