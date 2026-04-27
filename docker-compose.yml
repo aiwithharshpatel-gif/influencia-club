@@ -16,7 +16,7 @@ services:
     build: 
       context: ./backend
       args:
-        - CACHEBUST=20260427-1400
+        - CACHEBUST=20260427-1405
     restart: always
     expose:
       - "5000"
@@ -37,7 +37,7 @@ services:
       context: ./frontend
       args:
         - VITE_API_URL=/api
-        - CACHEBUST=20260427-1400
+        - CACHEBUST=20260427-1405
     restart: always
     ports:
       - "5000:80" # MOVED WEB TO 5000

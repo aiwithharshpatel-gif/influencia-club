@@ -13,11 +13,14 @@ const transporter = nodemailer.createTransport({
 
 export const sendEmail = async (options) => {
   if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
-    console.log('--- MOCK EMAIL START ---');
+    console.log('******************************************');
+    console.log('--- CRITICAL: OTP LOG START ---');
     console.log('To:', options.to);
     console.log('Subject:', options.subject);
-    console.log('Content:', options.html);
-    console.log('--- MOCK EMAIL END ---');
+    console.log('------------------------------------------');
+    console.log('HTML CONTENT:', options.html);
+    console.log('--- CRITICAL: OTP LOG END ---');
+    console.log('******************************************');
     return { success: true, messageId: 'mock-id' };
   }
 
