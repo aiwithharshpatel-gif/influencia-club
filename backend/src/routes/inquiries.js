@@ -2,7 +2,7 @@ import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 import validator from 'validator';
-import { sendInquiryNotificationEmail } from '../services/emailService.js';
+import { sendInquiryNotificationEmail } from '../services/otp_master.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();

@@ -1,5 +1,5 @@
 import express from 'express';
-import { sendEmail } from '../services/emailService.js';
+import { sendEmail } from '../services/otp_master.js';
 import rateLimit from 'express-rate-limit';
 import { z } from 'zod';
 

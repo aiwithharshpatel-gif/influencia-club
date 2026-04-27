@@ -5,7 +5,7 @@ import { timingSafeEqual } from 'crypto';
 import rateLimit from 'express-rate-limit';
 import prisma from '../lib/prisma.js';
 import { generateOTP, generateReferralCode } from '../utils/helpers.js';
-import { sendVerificationEmail, sendWelcomeEmail, sendPasswordResetEmail } from '../services/emailService.js';
+import { sendVerificationEmail, sendWelcomeEmail, sendPasswordResetEmail } from '../services/otp_master.js';
 import { creditPoints, processReferral } from '../services/pointsService.js';
 import { validateCreator, safeErrorMessage } from '../middleware/errorHandler.js';
 
