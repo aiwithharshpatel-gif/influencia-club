@@ -16,6 +16,7 @@ export const sendEmail = async (options) => {
     console.log('--- MOCK EMAIL START ---');
     console.log('To:', options.to);
     console.log('Subject:', options.subject);
+    console.log('Content:', options.html);
     console.log('--- MOCK EMAIL END ---');
     return { success: true, messageId: 'mock-id' };
   }
