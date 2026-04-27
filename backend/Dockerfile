@@ -20,6 +20,6 @@ EXPOSE 5000
 CMD until nc -z db 3306; do echo "Waiting for database network..."; sleep 2; done && \
     echo "Database network ready, waiting 10s for MySQL startup..." && \
     sleep 10 && \
-    npx prisma generate && \
-    npx prisma db push --accept-data-loss && \
+    npx prisma generate --schema=./prisma/schema_v2.prisma && \
+    npx prisma db push --accept-data-loss --schema=./prisma/schema_v2.prisma && \
     node src/app.js
