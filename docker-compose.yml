@@ -10,7 +10,7 @@ services:
     volumes:
       - db_data:/var/lib/mysql
 
-  backend-app: # RENAMED to force new service creation
+  backend:
     build: ./backend
     restart: always
     ports:
@@ -34,7 +34,7 @@ services:
     ports:
       - "80:80"
     depends_on:
-      - backend-app # UPDATED
+      - backend
 
 volumes:
   db_data:
