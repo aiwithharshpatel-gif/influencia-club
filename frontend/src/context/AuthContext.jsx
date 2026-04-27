@@ -13,25 +13,43 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [role, setRole] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is logged in on mount
-    const token = localStorage.getItem('accessToken');
-    const userData = localStorage.getItem('user');
-    
-    if (token && userData) {
-      setUser(JSON.parse(userData));
-    }
-    setLoading(false);
+    checkAuth();
   }, []);
+
+  const checkAuth = async () => {
+    try {
+      const response = await api.get('/auth/me');
+      if (response.data.success) {
+        setUser(response.data.user);
+        setRole(response.data.role);
+      }
+    } catch (error) {
+      setUser(null);
+      setRole(null);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const login = async (email, password) => {
     const response = await api.post('/auth/login', { email, password });
     if (response.data.success) {
-      localStorage.setItem('accessToken', response.data.creator.id);
-      localStorage.setItem('user', JSON.stringify(response.data.creator));
       setUser(response.data.creator);
+      setRole('creator');
+      return response.data;
+    }
+    return response.data;
+  };
+
+  const adminLogin = async (email, password) => {
+    const response = await api.post('/auth/admin-login', { email, password });
+    if (response.data.success) {
+      setUser(response.data.admin);
+      setRole('admin');
       return response.data;
     }
     return response.data;
@@ -53,20 +71,22 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('user');
       setUser(null);
+      setRole(null);
     }
   };
 
   const value = {
     user,
+    role,
     loading,
     login,
+    adminLogin,
     register,
     verifyOTP,
     logout,
-    isAuthenticated: !!user
+    isAuthenticated: !!user,
+    isAdmin: role === 'admin'
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

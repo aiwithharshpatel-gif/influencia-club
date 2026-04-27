@@ -101,6 +101,7 @@ model Creator {
   referrer       Creator?        @relation("ReferredCreators", fields: [referredBy], references: [id])
   referrals      Creator[]       @relation("ReferredCreators")
   pointsBalance  Int             @default(0)
+  passwordVersion Int            @default(0)
   status         CreatorStatus   @default(active)
   createdAt      DateTime        @default(now()) @map("created_at")
   updatedAt      DateTime        @updatedAt @map("updated_at")
@@ -212,6 +213,7 @@ model Admin {
   name          String      @db.VarChar(100)
   email         String      @db.VarChar(150) @unique
   passwordHash  String      @db.VarChar(255)
+  passwordVersion Int       @default(0)
   role          AdminRole   @default(manager)
   createdAt     DateTime    @default(now()) @map("created_at")
 

@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import { protect } from '../middleware/auth.js';
 import { createOrder, verifyPayment, initiatePayout, generateInvoice, generateAgreement } from '../services/paymentService.js';
 import { findMatchingCreators } from '../services/matchmakingService.js';
+import { debitPoints } from '../services/pointsService.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -164,7 +165,24 @@ router.post('/verify-payment', async (req, res) => {
  */
 router.post('/payout', async (req, res) => {
   try {
-    const { creatorId, amount, upiId } = req.body;
+    // Creator can only request payout for themselves
+    const creatorId = req.user.id;
+    const { amount, upiId } = req.body;
+
+    // Validate amount
+    if (!Number.isInteger(amount) || amount <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid amount'
+      });
+    }
+
+    if (amount < 100) {
+      return res.status(400).json({
+        success: false,
+        message: 'Minimum payout is 100 points'
+      });
+    }
 
     // Check creator balance
     const creator = await prisma.creator.findUnique({
@@ -178,10 +196,13 @@ router.post('/payout', async (req, res) => {
       });
     }
 
-    if (creator.pointsBalance < amount) {
+    // Debit points (atomic transaction)
+    try {
+      await debitPoints(creatorId, amount, 'redemption', `Payout request of ${amount} points to ${upiId}`);
+    } catch (error) {
       return res.status(400).json({
         success: false,
-        message: 'Insufficient balance'
+        message: error.message
       });
     }
 
@@ -288,9 +309,21 @@ router.get('/invoice/:paymentId', async (req, res) => {
       });
     }
 
+    // Ownership check: only the creator of this payment can download it
+    // If you have admin role in req.user, check for that too
+    if (payment.creatorId !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied'
+      });
+    }
+
+    const base64Content = payment.invoiceUrl.replace('data:text/html;base64,', '');
+    const htmlContent = Buffer.from(base64Content, 'base64').toString('utf-8');
+
     res.setHeader('Content-Type', 'text/html');
     res.setHeader('Content-Disposition', `attachment; filename="invoice-${payment.id}.html"`);
-    res.send(payment.invoiceUrl.replace('data:text/html;base64,', ''));
+    res.send(htmlContent);
   } catch (error) {
     res.status(500).json({
       success: false,

@@ -1,9 +1,9 @@
 import express from 'express';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../lib/prisma.js';
 import { adminProtect } from '../middleware/auth.js';
+import { safeErrorMessage } from '../middleware/errorHandler.js';
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 // All routes require admin authentication
 router.use(adminProtect);
@@ -57,7 +57,7 @@ router.get('/stats', async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: error.message
+      message: safeErrorMessage(error, process.env.NODE_ENV === 'production')
     });
   }
 });
@@ -122,7 +122,7 @@ router.get('/creators', async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: error.message
+      message: safeErrorMessage(error, process.env.NODE_ENV === 'production')
     });
   }
 });
@@ -163,7 +163,7 @@ router.put('/creators/:id', async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: error.message
+      message: safeErrorMessage(error, process.env.NODE_ENV === 'production')
     });
   }
 });
@@ -228,7 +228,7 @@ router.get('/inquiries', async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: error.message
+      message: safeErrorMessage(error, process.env.NODE_ENV === 'production')
     });
   }
 });
@@ -257,7 +257,7 @@ router.put('/inquiries/:id', async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: error.message
+      message: safeErrorMessage(error, process.env.NODE_ENV === 'production')
     });
   }
 });
@@ -293,7 +293,7 @@ router.get('/campaigns', async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: error.message
+      message: safeErrorMessage(error, process.env.NODE_ENV === 'production')
     });
   }
 });
@@ -355,7 +355,7 @@ router.get('/redemptions', async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: error.message
+      message: safeErrorMessage(error, process.env.NODE_ENV === 'production')
     });
   }
 });
@@ -379,12 +379,23 @@ router.put('/redemptions/:id', async (req, res) => {
     }
 
     if (status === 'approved') {
-      // Deduct points
-      await prisma.creator.update({
-        where: { id: redemption.creatorId },
-        data: {
-          pointsBalance: { decrement: redemption.pointsCost }
+      // Use transaction to prevent race condition
+      await prisma.$transaction(async (tx) => {
+        const creator = await tx.creator.findUnique({
+          where: { id: redemption.creatorId },
+          select: { pointsBalance: true }
+        });
+
+        if (!creator || creator.pointsBalance < redemption.pointsCost) {
+          throw new Error('Insufficient balance');
         }
+
+        await tx.creator.update({
+          where: { id: redemption.creatorId },
+          data: {
+            pointsBalance: { decrement: redemption.pointsCost }
+          }
+        });
       });
     }
 
@@ -401,7 +412,7 @@ router.put('/redemptions/:id', async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: error.message
+      message: safeErrorMessage(error, process.env.NODE_ENV === 'production')
     });
   }
 });
@@ -418,21 +429,26 @@ router.post('/points', async (req, res) => {
       });
     }
 
-    const creator = await prisma.creator.update({
-      where: { id: creatorId },
-      data: {
-        pointsBalance: { increment: points }
-      }
-    });
+    // Use transaction to prevent race condition
+    const creator = await prisma.$transaction(async (tx) => {
+      const updated = await tx.creator.update({
+        where: { id: creatorId },
+        data: {
+          pointsBalance: { increment: points }
+        }
+      });
 
-    await prisma.pointsTransaction.create({
-      data: {
-        creatorId,
-        type: 'earn',
-        reason: 'admin_grant',
-        points,
-        note: note || 'Manual grant by admin'
-      }
+      await tx.pointsTransaction.create({
+        data: {
+          creatorId,
+          type: 'earn',
+          reason: 'admin_grant',
+          points,
+          note: note || 'Manual grant by admin'
+        }
+      });
+
+      return updated;
     });
 
     res.json({
@@ -447,7 +463,7 @@ router.post('/points', async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: error.message
+      message: safeErrorMessage(error, process.env.NODE_ENV === 'production')
     });
   }
 });

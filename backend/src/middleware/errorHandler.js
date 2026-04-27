@@ -1,6 +1,12 @@
-import { PrismaClient } from '@prisma/client';
+import prisma from '../lib/prisma.js';
 
-const prisma = new PrismaClient();
+export const safeErrorMessage = (error, isProduction = false) => {
+  if (isProduction) {
+    console.error('Internal error:', error.message, error.stack);
+    return 'An unexpected error occurred';
+  }
+  return error.message;
+};
 
 export const errorHandler = (err, req, res, next) => {
   console.error('Error:', err);
@@ -21,9 +27,10 @@ export const errorHandler = (err, req, res, next) => {
   }
 
   // Default error
+  const isProduction = process.env.NODE_ENV === 'production';
   res.status(err.status || 500).json({
     success: false,
-    message: err.message || 'Internal server error'
+    message: isProduction ? 'An unexpected error occurred' : err.message
   });
 };
 

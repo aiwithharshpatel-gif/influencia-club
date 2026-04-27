@@ -10,18 +10,6 @@ const api = axios.create({
   }
 });
 
-// Request interceptor
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('accessToken');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
-
 // Response interceptor
 api.interceptors.response.use(
   (response) => response,
@@ -32,6 +20,7 @@ api.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
+        // Refresh token endpoint expects httpOnly cookie
         const response = await axios.post(`${API_URL}/auth/refresh`, null, {
           withCredentials: true
         });
@@ -40,8 +29,7 @@ api.interceptors.response.use(
           return api(originalRequest);
         }
       } catch (refreshError) {
-        localStorage.removeItem('accessToken');
-        window.location.href = '/login';
+        // Redirect to login handled by AuthContext or components
         return Promise.reject(refreshError);
       }
     }

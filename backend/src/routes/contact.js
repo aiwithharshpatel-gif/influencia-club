@@ -1,12 +1,28 @@
 import express from 'express';
 import { sendEmail } from '../services/emailService.js';
+import rateLimit from 'express-rate-limit';
+import { z } from 'zod';
 
 const router = express.Router();
 
+const contactLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 5, // 5 requests per hour
+  message: 'Too many contact requests, please try again after an hour'
+});
+
+const contactSchema = z.object({
+  name: z.string().min(2).max(100),
+  email: z.string().email(),
+  subject: z.string().min(2).max(200),
+  message: z.string().min(10).max(2000)
+});
+
 // Submit contact form
-router.post('/', async (req, res) => {
+router.post('/', contactLimiter, async (req, res) => {
   try {
-    const { name, email, subject, message } = req.body;
+    const validated = contactSchema.parse(req.body);
+    const { name, email, subject, message } = validated;
 
     // Forward to admin email
     await sendEmail({
@@ -28,6 +44,13 @@ router.post('/', async (req, res) => {
     });
   } catch (error) {
     console.error('Contact error:', error);
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: error.errors
+      });
+    }
     res.status(500).json({
       success: false,
       message: error.message

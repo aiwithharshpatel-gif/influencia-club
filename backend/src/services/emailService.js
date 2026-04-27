@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import validator from 'validator';
 
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
@@ -29,6 +30,7 @@ export const sendEmail = async (options) => {
 };
 
 export const sendVerificationEmail = async (email, otp, name) => {
+  const safeName = validator.escape(name);
   const html = `
     <!DOCTYPE html>
     <html>
@@ -58,7 +60,7 @@ export const sendVerificationEmail = async (email, otp, name) => {
           <div class="tagline">Influence. Inspire. Ignite.</div>
         </div>
         <div class="content">
-          <div class="greeting">Welcome, ${name}! 🎉</div>
+          <div class="greeting">Welcome, ${safeName}! 🎉</div>
           <div class="message">
             Thank you for joining Influenzia Club - India's Next-Gen Influencer Platform!<br><br>
             To complete your registration, please use the following One-Time Password (OTP):
@@ -91,7 +93,8 @@ export const sendVerificationEmail = async (email, otp, name) => {
 };
 
 export const sendWelcomeEmail = async (email, name, referralCode) => {
-  const referralLink = `${process.env.REFERRAL_BASE_URL || 'https://influenziaclub.in/join?ref='}${referralCode}`;
+  const safeName = validator.escape(name);
+  const referralLink = `${process.env.REFERRAL_BASE_URL || 'https://influenziaclub.in/join?ref='}${validator.escape(referralCode)}`;
   
   const html = `
     <!DOCTYPE html>
@@ -123,7 +126,7 @@ export const sendWelcomeEmail = async (email, name, referralCode) => {
           <div class="logo">Influen<span>zia</span> Club</div>
         </div>
         <div class="content">
-          <div class="greeting">Welcome to the Club, ${name}! 🌟</div>
+          <div class="greeting">Welcome to the Club, ${safeName}! 🌟</div>
           <div class="message">
             You're now part of India's fastest-growing creator community!<br><br>
             Your profile is being reviewed and will be live soon.
@@ -158,9 +161,98 @@ export const sendWelcomeEmail = async (email, name, referralCode) => {
     </html>
   `;
 
+export const sendPasswordResetEmail = async (email, token, name) => {
+  const safeName = validator.escape(name);
+  const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${token}`;
+  
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: 'DM Sans', Arial, sans-serif; background: #f5f5f5; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(123, 47, 255, 0.15); }
+        .header { background: linear-gradient(135deg, #7B2FFF 0%, #A66FFF 100%); padding: 40px 30px; text-align: center; }
+        .logo { color: #FFFFFF; font-family: 'Playfair Display', serif; font-size: 32px; font-weight: bold; }
+        .logo span { color: #F5A623; font-style: italic; }
+        .content { padding: 40px 30px; }
+        .greeting { font-size: 24px; color: #1a1a1a; margin-bottom: 16px; font-family: 'Playfair Display', serif; }
+        .message { color: #666; line-height: 1.6; margin-bottom: 24px; }
+        .btn-container { text-align: center; margin: 30px 0; }
+        .btn { background: #7B2FFF; color: #ffffff !important; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-block; }
+        .footer { background: #f9f9f9; padding: 24px 30px; text-align: center; }
+        .footer-text { color: #999; font-size: 12px; line-height: 1.6; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <div class="logo">Influen<span>zia</span> Club</div>
+        </div>
+        <div class="content">
+          <div class="greeting">Hi ${safeName},</div>
+          <div class="message">
+            We received a request to reset your password. Click the button below to choose a new one. This link will expire in 24 hours.
+          </div>
+          <div class="btn-container">
+            <a href="${resetLink}" class="btn">Reset Password</a>
+          </div>
+          <div class="message">
+            If you didn't request this, you can safely ignore this email.
+          </div>
+        </div>
+        <div class="footer">
+          <div class="footer-text">Powered by ZCAD Nexoraa Pvt. Ltd.</div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
   return sendEmail({
     to: email,
-    subject: 'Welcome to Influenzia Club! 🎉',
+    subject: 'Reset Your Password - Influenzia Club',
+    html
+  });
+};
+
+export const sendInquiryNotificationEmail = async (inquiryData) => {
+  const { brandName, email, mobile, budgetRange, categories, message } = inquiryData;
+  
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: sans-serif; padding: 20px; line-height: 1.6; }
+        .container { max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 20px; border-radius: 8px; }
+        .header { border-bottom: 2px solid #7B2FFF; padding-bottom: 10px; margin-bottom: 20px; }
+        .field { margin-bottom: 10px; }
+        .label { font-weight: bold; color: #7B2FFF; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h2>New Brand Inquiry</h2>
+        </div>
+        <div class="field"><span class="label">Brand:</span> ${brandName}</div>
+        <div class="field"><span class="label">Email:</span> ${email}</div>
+        <div class="field"><span class="label">Mobile:</span> ${mobile}</div>
+        <div class="field"><span class="label">Budget:</span> ${budgetRange}</div>
+        <div class="field"><span class="label">Categories:</span> ${categories}</div>
+        <div class="field">
+          <span class="label">Message:</span><br>
+          ${message}
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return sendEmail({
+    to: process.env.EMAIL_FROM || 'hello@influenziaclub.in',
+    subject: `New Brand Inquiry: ${brandName}`,
     html
   });
 };

@@ -1,22 +1,43 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { PrismaClient } from '@prisma/client';
+import { timingSafeEqual } from 'crypto';
+import rateLimit from 'express-rate-limit';
+import prisma from '../lib/prisma.js';
 import { generateOTP, generateReferralCode } from '../utils/helpers.js';
-import { sendVerificationEmail, sendWelcomeEmail } from '../services/emailService.js';
+import { sendVerificationEmail, sendWelcomeEmail, sendPasswordResetEmail } from '../services/emailService.js';
 import { creditPoints, processReferral } from '../services/pointsService.js';
-import { validateCreator } from '../middleware/errorHandler.js';
+import { validateCreator, safeErrorMessage } from '../middleware/errorHandler.js';
 
 const router = express.Router();
-const prisma = new PrismaClient();
+
+// Rate limiters
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: 'Too many login attempts, please try again after 15 minutes'
+});
+
+const otpLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 3,
+  message: 'Too many OTP requests, please try again after 15 minutes'
+});
 
 // Store OTPs temporarily (in production, use Redis)
 const otpStore = new Map();
 
 // Register - Send OTP
-router.post('/register', validateCreator, async (req, res) => {
+router.post('/register', otpLimiter, validateCreator, async (req, res) => {
   try {
-    const { name, email, mobile, instagram, category, city, referralCode } = req.body;
+    const { name, email, mobile, instagram, category, city, referralCode, password } = req.body;
+
+    if (!password || password.length < 8) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be at least 8 characters'
+      });
+    }
 
     // Generate OTP
     const otp = generateOTP();
@@ -37,13 +58,13 @@ router.post('/register', validateCreator, async (req, res) => {
     console.error('Register error:', error);
     res.status(500).json({
       success: false,
-      message: error.message || 'Registration failed'
+      message: safeErrorMessage(error, process.env.NODE_ENV === 'production')
     });
   }
 });
 
 // Verify OTP and Complete Registration
-router.post('/verify-otp', async (req, res) => {
+router.post('/verify-otp', otpLimiter, async (req, res) => {
   try {
     const { email, otp } = req.body;
 
@@ -64,7 +85,7 @@ router.post('/verify-otp', async (req, res) => {
       });
     }
 
-    if (storedOTP.otp !== otp) {
+    if (!timingSafeEqual(Buffer.from(storedOTP.otp), Buffer.from(otp))) {
       return res.status(400).json({
         success: false,
         message: 'Invalid verification code'
@@ -72,10 +93,10 @@ router.post('/verify-otp', async (req, res) => {
     }
 
     // OTP verified, create user
-    const { name, mobile, instagram, category, city, referralCode: inputReferralCode } = storedOTP.userData;
+    const { name, mobile, instagram, category, city, password, referralCode: inputReferralCode } = storedOTP.userData;
 
-    // Hash password (using mobile as initial password)
-    const passwordHash = await bcrypt.hash(mobile, 10);
+    // Hash password
+    const passwordHash = await bcrypt.hash(password, 10);
 
     // Generate unique referral code
     const referralCode = generateReferralCode(name);
@@ -133,13 +154,13 @@ router.post('/verify-otp', async (req, res) => {
     console.error('Verify OTP error:', error);
     res.status(500).json({
       success: false,
-      message: error.message || 'Verification failed'
+      message: safeErrorMessage(error, process.env.NODE_ENV === 'production')
     });
   }
 });
 
 // Login
-router.post('/login', async (req, res) => {
+router.post('/login', loginLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -149,6 +170,7 @@ router.post('/login', async (req, res) => {
     });
 
     if (!creator) {
+      console.warn(`[SECURITY] Failed login attempt for email: ${email} (User not found)`);
       return res.status(401).json({
         success: false,
         message: 'Invalid credentials'
@@ -159,6 +181,7 @@ router.post('/login', async (req, res) => {
     const isValidPassword = await bcrypt.compare(password, creator.passwordHash);
 
     if (!isValidPassword) {
+      console.warn(`[SECURITY] Failed login attempt for email: ${email} (Invalid password)`);
       return res.status(401).json({
         success: false,
         message: 'Invalid credentials'
@@ -175,30 +198,32 @@ router.post('/login', async (req, res) => {
 
     // Generate tokens
     const accessToken = jwt.sign(
-      { id: creator.id, email: creator.email },
+      { id: creator.id, email: creator.email, role: 'creator', version: creator.passwordVersion },
       process.env.JWT_SECRET,
       { expiresIn: '15m' }
     );
 
     const refreshToken = jwt.sign(
-      { id: creator.id },
+      { id: creator.id, version: creator.passwordVersion },
       process.env.JWT_REFRESH_SECRET,
       { expiresIn: '30d' }
     );
 
-    // Set cookies
+    // Set cookies with strict sameSite and path restriction
     res.cookie('accessToken', accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 15 * 60 * 1000
+      sameSite: 'strict',
+      maxAge: 15 * 60 * 1000,
+      path: '/api'
     });
 
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 30 * 24 * 60 * 60 * 1000
+      sameSite: 'strict',
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+      path: '/api'
     });
 
     res.json({
@@ -218,7 +243,7 @@ router.post('/login', async (req, res) => {
     console.error('Login error:', error);
     res.status(500).json({
       success: false,
-      message: error.message || 'Login failed'
+      message: safeErrorMessage(error, process.env.NODE_ENV === 'production')
     });
   }
 });
@@ -233,7 +258,8 @@ router.post('/logout', (req, res) => {
   });
 });
 
-// Refresh Token
+// Refresh Token - issues new access token
+// Note: Full refresh token rotation requires RefreshToken model in Prisma schema
 router.post('/refresh', async (req, res) => {
   try {
     const refreshToken = req.cookies.refreshToken;
@@ -246,20 +272,20 @@ router.post('/refresh', async (req, res) => {
     }
 
     const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
-    
+
     const creator = await prisma.creator.findUnique({
       where: { id: decoded.id }
     });
 
-    if (!creator) {
+    if (!creator || creator.passwordVersion !== decoded.version) {
       return res.status(401).json({
         success: false,
-        message: 'User not found'
+        message: 'Invalid refresh token'
       });
     }
 
     const accessToken = jwt.sign(
-      { id: creator.id, email: creator.email },
+      { id: creator.id, email: creator.email, role: 'creator', version: creator.passwordVersion },
       process.env.JWT_SECRET,
       { expiresIn: '15m' }
     );
@@ -267,8 +293,9 @@ router.post('/refresh', async (req, res) => {
     res.cookie('accessToken', accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 15 * 60 * 1000
+      sameSite: 'strict',
+      maxAge: 15 * 60 * 1000,
+      path: '/api'
     });
 
     res.json({
@@ -306,17 +333,17 @@ router.post('/forgot-password', async (req, res) => {
       { expiresIn: '24h' }
     );
 
-    // TODO: Send reset email with link
-    // For now, just return success
+    // Send reset email
+    await sendPasswordResetEmail(email, resetToken, creator.name);
+
     res.json({
       success: true,
-      message: 'Password reset link sent to your email',
-      resetToken // Remove in production, send via email
+      message: 'Password reset link sent to your email'
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: error.message
+      message: safeErrorMessage(error, process.env.NODE_ENV === 'production')
     });
   }
 });
@@ -332,7 +359,10 @@ router.post('/reset-password', async (req, res) => {
 
     await prisma.creator.update({
       where: { id: decoded.id },
-      data: { passwordHash }
+      data: { 
+        passwordHash,
+        passwordVersion: { increment: 1 }
+      }
     });
 
     res.json({
@@ -343,6 +373,154 @@ router.post('/reset-password', async (req, res) => {
     res.status(400).json({
       success: false,
       message: 'Invalid or expired reset token'
+    });
+  }
+});
+
+// Admin Login
+router.post('/admin-login', loginLimiter, async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    const admin = await prisma.admin.findUnique({
+      where: { email }
+    });
+
+    if (!admin) {
+      console.warn(`[SECURITY] Failed ADMIN login attempt for email: ${email} (Admin not found)`);
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid admin credentials'
+      });
+    }
+
+    const isValidPassword = await bcrypt.compare(password, admin.passwordHash);
+
+    if (!isValidPassword) {
+      console.warn(`[SECURITY] Failed ADMIN login attempt for email: ${email} (Invalid password)`);
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid admin credentials'
+      });
+    }
+
+    const adminSecret = process.env.JWT_ADMIN_SECRET || process.env.JWT_SECRET;
+
+    const adminToken = jwt.sign(
+      { id: admin.id, email: admin.email, role: 'admin', version: admin.passwordVersion },
+      adminSecret,
+      { expiresIn: '8h' }
+    );
+
+    res.cookie('adminToken', adminToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 8 * 60 * 60 * 1000,
+      path: '/api'
+    });
+
+    res.json({
+      success: true,
+      message: 'Admin login successful',
+      admin: {
+        id: admin.id,
+        name: admin.name,
+        email: admin.email,
+        role: admin.role
+      }
+    });
+  } catch (error) {
+    console.error('Admin login error:', error);
+    res.status(500).json({
+      success: false,
+      message: safeErrorMessage(error, process.env.NODE_ENV === 'production')
+    });
+  }
+});
+
+// Get Current User Info
+router.get('/me', async (req, res) => {
+  try {
+    const token = req.cookies.accessToken || req.cookies.adminToken;
+    
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: 'Not authenticated'
+      });
+    }
+
+    let decoded;
+    let user;
+
+    // Try verifying as creator
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+      if (decoded.role === 'creator') {
+        user = await prisma.creator.findUnique({
+          where: { id: decoded.id },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            instagram: true,
+            category: true,
+            city: true,
+            pointsBalance: true,
+            isApproved: true,
+            passwordVersion: true
+          }
+        });
+        
+        if (user && user.passwordVersion === decoded.version) {
+          return res.json({
+            success: true,
+            role: 'creator',
+            user
+          });
+        }
+      }
+    } catch (e) {
+      // Not a valid creator token, try admin
+    }
+
+    // Try verifying as admin
+    try {
+      const adminSecret = process.env.JWT_ADMIN_SECRET || process.env.JWT_SECRET;
+      decoded = jwt.verify(token, adminSecret);
+      if (decoded.role === 'admin') {
+        user = await prisma.admin.findUnique({
+          where: { id: decoded.id },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+            passwordVersion: true
+          }
+        });
+        
+        if (user && user.passwordVersion === decoded.version) {
+          return res.json({
+            success: true,
+            role: 'admin',
+            user
+          });
+        }
+      }
+    } catch (e) {
+      // Both failed
+    }
+
+    res.status(401).json({
+      success: false,
+      message: 'Invalid or expired session'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
     });
   }
 });

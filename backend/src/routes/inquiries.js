@@ -1,27 +1,47 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
+import { z } from 'zod';
+import validator from 'validator';
+import { sendInquiryNotificationEmail } from '../services/emailService.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();
 
+const inquirySchema = z.object({
+  brandName: z.string().min(1).max(200),
+  email: z.string().email(),
+  mobile: z.string().regex(/^\d{10}$/, 'Mobile must be 10 digits'),
+  budgetRange: z.enum(['10k-50k', '50k-1L', '1L-5L', '5L+']),
+  categories: z.array(z.string()).min(1),
+  message: z.string().min(1).max(2000)
+});
+
 // Submit brand inquiry
 router.post('/', async (req, res) => {
   try {
-    const { brandName, email, mobile, budgetRange, categories, message } = req.body;
+    const validated = inquirySchema.parse(req.body);
+    const { brandName, email, mobile, budgetRange, categories, message } = validated;
 
     const inquiry = await prisma.brandInquiry.create({
       data: {
-        brandName,
+        brandName: validator.escape(brandName),
         email,
         mobile,
         budgetRange,
         categories: JSON.stringify(categories),
-        message
+        message: validator.escape(message)
       }
     });
 
-    // TODO: Send email notification to admin
-    // TODO: Send WhatsApp alert to admin
+    // Send email notification to admin
+    await sendInquiryNotificationEmail({
+      brandName,
+      email,
+      mobile,
+      budgetRange,
+      categories: categories.join(', '),
+      message
+    });
 
     res.json({
       success: true,
@@ -34,6 +54,13 @@ router.post('/', async (req, res) => {
     });
   } catch (error) {
     console.error('Inquiry error:', error);
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: error.errors
+      });
+    }
     res.status(500).json({
       success: false,
       message: error.message

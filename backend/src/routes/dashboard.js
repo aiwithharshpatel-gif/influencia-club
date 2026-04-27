@@ -193,4 +193,66 @@ router.post('/redeem', async (req, res) => {
   }
 });
 
+import { z } from 'zod';
+
+const profileUpdateSchema = z.object({
+  name: z.string().min(2).max(100).optional(),
+  bio: z.string().max(200).optional(),
+  city: z.string().max(50).optional(),
+  category: z.enum(['influencer', 'actor', 'model', 'creator', 'public_figure']).optional(),
+  instagram: z.string().max(100).optional(),
+  mobile: z.string().regex(/^\d{10}$/).optional(),
+  photoUrl: z.string().url().optional().or(z.literal(''))
+});
+
+// Update profile
+router.put('/profile', async (req, res) => {
+  try {
+    const validated = profileUpdateSchema.parse(req.body);
+    
+    // Explicitly exclude admin-only fields to be safe
+    // But we only use validated data anyway
+    const updateData = {};
+    Object.keys(validated).forEach(key => {
+      if (validated[key] !== undefined) {
+        updateData[key] = validated[key];
+      }
+    });
+
+    const creator = await prisma.creator.update({
+      where: { id: req.user.id },
+      data: updateData,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        instagram: true,
+        category: true,
+        city: true,
+        bio: true,
+        photoUrl: true,
+        mobile: true
+      }
+    });
+
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      creator
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: error.errors
+      });
+    }
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
 export default router;
