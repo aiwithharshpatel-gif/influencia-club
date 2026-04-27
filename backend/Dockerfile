@@ -4,22 +4,16 @@ RUN apt-get update -y && apt-get install -y openssl ca-certificates netcat-tradi
 
 WORKDIR /app
 
+# Copy dependency files
 COPY package*.json ./
 RUN npm install --legacy-peer-deps --ignore-scripts
 
+# Copy the rest of the application
 COPY . .
+
+# Make the entrypoint executable
+RUN chmod +x entrypoint.sh
 
 EXPOSE 5000
 
-# STARTUP STRATEGY:
-# 1. Wait for DB network
-# 2. Wait extra for MySQL startup
-# 3. Generate Client
-# 4. FORCE Sync Schema (db push) - More reliable for first-time VPS
-# 5. Start app
-CMD until nc -z db 3306; do echo "Waiting for database network..."; sleep 2; done && \
-    echo "Database network ready, waiting 10s for MySQL startup..." && \
-    sleep 10 && \
-    npx prisma generate --schema=./prisma/schema_v2.prisma && \
-    npx prisma db push --accept-data-loss --schema=./prisma/schema_v2.prisma && \
-    node src/app.js
+ENTRYPOINT ["./entrypoint.sh"]
