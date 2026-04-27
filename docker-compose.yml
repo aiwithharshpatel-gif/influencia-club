@@ -16,7 +16,7 @@ services:
     build: 
       context: ./backend
       args:
-        - CACHEBUST=LAUNCH-FINAL-VER-100
+        - CACHEBUST=LAUNCH-FINAL-VER-101
     restart: always
     expose:
       - "5000"
@@ -37,7 +37,7 @@ services:
       context: ./frontend
       args:
         - VITE_API_URL=/api
-        - CACHEBUST=LAUNCH-FINAL-VER-100
+        - CACHEBUST=LAUNCH-FINAL-VER-101
     restart: always
     ports:
       - "5000:80"

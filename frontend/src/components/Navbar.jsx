@@ -47,18 +47,18 @@ const Navbar = () => {
                 {link.label}
               </Link>
             ))}
-            <div className="flex items-center space-x-6 border-l border-gold/20 pl-8">
+            <div className="flex items-center space-x-4 border-l border-gold/20 pl-6 ml-4">
               <Link
                 to="/login"
-                className="text-sm font-bold text-gold hover:text-white transition-all uppercase tracking-widest"
+                className="px-5 py-2 rounded-full border border-gold text-gold hover:bg-gold hover:text-black transition-all text-xs font-bold uppercase tracking-widest"
               >
                 Sign In
               </Link>
               <Link
                 to="/join"
-                className="btn-primary text-sm px-6 py-2"
+                className="btn-primary text-xs px-6 py-2 uppercase tracking-widest font-bold"
               >
-                JOIN NOW
+                Join Now
               </Link>
             </div>
           </div>
