@@ -83,6 +83,9 @@ const Login = () => {
                   className="w-full bg-bg border border-border rounded-lg px-4 py-3 text-white focus:outline-none focus:border-primary"
                   placeholder="••••••••"
                 />
+                <p className="text-xs text-primary/60 mt-2 italic">
+                  Hint: Your default password is your registered mobile number.
+                </p>
                 {errors.password && (
                   <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>
                 )}

@@ -1,15 +1,19 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { Gift, DollarSign, Users, TrendingUp, CheckCircle } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 
 const Join = () => {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { verifyOTP } = useAuth();
   const [step, setStep] = useState('form'); // form, otp, success
   const [email, setEmail] = useState('');
+  const [userMobile, setUserMobile] = useState('');
   const [referralCodeFromUrl] = useState(searchParams.get('ref') || '');
   
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
@@ -47,6 +51,7 @@ const Join = () => {
       const response = await api.post('/auth/register', payload);
       if (response.data.success) {
         setEmail(data.email);
+        setUserMobile(data.mobile);
         setStep('otp');
       }
     } catch (error) {
@@ -261,11 +266,16 @@ const Join = () => {
               )}
 
               {step === 'otp' && (
-                <OTPVerification email={email} onSuccess={() => setStep('success')} onBack={() => setStep('form')} />
+                <OTPVerification 
+                  email={email} 
+                  verifyOTP={verifyOTP}
+                  onSuccess={() => setStep('success')} 
+                  onBack={() => setStep('form')} 
+                />
               )}
 
               {step === 'success' && (
-                <SuccessMessage />
+                <SuccessMessage mobile={userMobile} />
               )}
             </div>
           </div>
@@ -277,7 +287,7 @@ const Join = () => {
   );
 };
 
-const OTPVerification = ({ email, onSuccess, onBack }) => {
+const OTPVerification = ({ email, verifyOTP, onSuccess, onBack }) => {
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -288,9 +298,11 @@ const OTPVerification = ({ email, onSuccess, onBack }) => {
     setError('');
 
     try {
-      const response = await api.post('/auth/verify-otp', { email, otp });
-      if (response.data.success) {
+      const response = await verifyOTP(email, otp);
+      if (response.success) {
         onSuccess();
+      } else {
+        setError(response.message || 'Invalid OTP');
       }
     } catch (error) {
       setError(error.response?.data?.message || 'Invalid OTP');
@@ -347,7 +359,7 @@ const OTPVerification = ({ email, onSuccess, onBack }) => {
   );
 };
 
-const SuccessMessage = () => {
+const SuccessMessage = ({ mobile }) => {
   return (
     <div className="text-center py-12">
       <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -356,13 +368,25 @@ const SuccessMessage = () => {
       <h2 className="font-display text-3xl font-bold text-white mb-4">
         Welcome to Influenzia Club! 🎉
       </h2>
-      <p className="text-muted mb-6">
-        Your account has been created successfully.<br />
-        Check your email for your referral link and next steps.
+      <div className="bg-primary/10 border border-primary/20 rounded-xl p-6 mb-8">
+        <p className="text-white font-medium mb-2">Registration Successful!</p>
+        <p className="text-muted text-sm leading-relaxed">
+          Your default password is your registered mobile number:
+          <br />
+          <span className="text-primary font-bold text-lg">{mobile}</span>
+        </p>
+      </div>
+      <p className="text-muted mb-8">
+        You are now logged in. Access your dashboard to complete your profile.
       </p>
-      <a href="/login" className="btn-primary inline-block">
-        Go to Login
-      </a>
+      <div className="space-y-4">
+        <a href="/dashboard" className="w-full btn-primary block text-center py-4">
+          Go to Dashboard
+        </a>
+        <p className="text-xs text-muted">
+          Note: You can change your password in profile settings later.
+        </p>
+      </div>
     </div>
   );
 };

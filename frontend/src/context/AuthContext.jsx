@@ -62,6 +62,10 @@ export const AuthProvider = ({ children }) => {
 
   const verifyOTP = async (email, otp) => {
     const response = await api.post('/auth/verify-otp', { email, otp });
+    if (response.data.success) {
+      setUser(response.data.creator);
+      setRole('creator');
+    }
     return response.data;
   };
 

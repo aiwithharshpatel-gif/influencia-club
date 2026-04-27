@@ -145,10 +145,46 @@ router.post('/verify-otp', otpLimiter, async (req, res) => {
     // Send welcome email
     await sendWelcomeEmail(email, name, referralCode);
 
+    // Auto-login: Generate tokens
+    const accessToken = jwt.sign(
+      { id: creator.id, email: creator.email, role: 'creator', version: 1 },
+      process.env.JWT_SECRET,
+      { expiresIn: '15m' }
+    );
+
+    const refreshToken = jwt.sign(
+      { id: creator.id, version: 1 },
+      process.env.JWT_REFRESH_SECRET,
+      { expiresIn: '30d' }
+    );
+
+    // Set cookies
+    res.cookie('accessToken', accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 15 * 60 * 1000,
+      path: '/api'
+    });
+
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+      path: '/api'
+    });
+
     res.json({
       success: true,
       message: 'Registration successful! Welcome to Influenzia Club',
-      creator
+      creator: {
+        id: creator.id,
+        name: creator.name,
+        email: creator.email,
+        referralCode: creator.referralCode,
+        pointsBalance: 10
+      }
     });
   } catch (error) {
     console.error('Verify OTP error:', error);
