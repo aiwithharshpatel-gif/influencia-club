@@ -43,7 +43,8 @@ const Join = () => {
 
   const onSubmit = async (data) => {
     try {
-      const response = await api.post('/auth/register', data);
+      const payload = { ...data, password: data.mobile };
+      const response = await api.post('/auth/register', payload);
       if (response.data.success) {
         setEmail(data.email);
         setStep('otp');
