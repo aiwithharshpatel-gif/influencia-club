@@ -12,6 +12,11 @@ const transporter = nodemailer.createTransport({
 });
 
 export const sendEmail = async (options) => {
+  if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    console.log('Mock Email (SMTP credentials missing):', options.subject, 'to', options.to);
+    return { success: true, messageId: 'mock-id' };
+  }
+
   const mailOptions = {
     from: process.env.EMAIL_FROM || 'Influenzia Club <hello@influenziaclub.in>',
     to: options.to,

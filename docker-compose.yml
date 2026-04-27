@@ -14,7 +14,7 @@ services:
     build: 
       context: ./backend
       args:
-        - CACHEBUST=20260427-1200
+        - CACHEBUST=20260427-1215
     restart: always
     ports:
       - "5000:5000"
@@ -24,7 +24,7 @@ services:
       - JWT_SECRET=d51a97a37d7d619d6e544f023f4742873cadc2c7256de8b4ad807407b6538cfe
       - JWT_REFRESH_SECRET=73916bb17631920434fcf3387ea52df325042ea9df3fa107f2c207d0ff2347fb
       - PORT=5000
-      - FRONTEND_URL=http://localhost
+      - FRONTEND_URL=http://187.127.157.111
     depends_on:
       - database
 
@@ -33,7 +33,7 @@ services:
       context: ./frontend
       args:
         - VITE_API_URL=http://187.127.157.111/api
-        - CACHEBUST=20260427-1200
+        - CACHEBUST=20260427-1215
     restart: always
     ports:
       - "80:80"
