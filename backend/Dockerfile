@@ -4,14 +4,14 @@ RUN apt-get update -y && apt-get install -y openssl ca-certificates netcat-tradi
 
 WORKDIR /app
 
-# Copy dependency files
 COPY package*.json ./
 RUN npm install --legacy-peer-deps --ignore-scripts
 
-# Copy the rest of the application
 COPY . .
 
-# Make the entrypoint executable
+# CRITICAL: Delete any old cached prisma folder to force use of backend/schema.prisma
+RUN rm -rf ./prisma
+
 RUN chmod +x entrypoint.sh
 
 EXPOSE 5000
