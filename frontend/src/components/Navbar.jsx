@@ -47,12 +47,20 @@ const Navbar = () => {
                 {link.label}
               </Link>
             ))}
-            <Link
-              to="/join"
-              className="btn-primary text-sm"
-            >
-              Join Now
-            </Link>
+            <div className="flex items-center space-x-4 border-l border-gold/20 pl-8">
+              <Link
+                to="/login"
+                className="text-sm font-medium text-white hover:text-gold transition-colors"
+              >
+                Sign In
+              </Link>
+              <Link
+                to="/join"
+                className="btn-primary text-sm"
+              >
+                Join Now
+              </Link>
+            </div>
           </div>
 
           {/* Mobile menu button */}
@@ -83,13 +91,22 @@ const Navbar = () => {
                 {link.label}
               </Link>
             ))}
-            <Link
-              to="/join"
-              onClick={() => setIsOpen(false)}
-              className="block btn-primary text-center mt-4"
-            >
-              Join Now
-            </Link>
+            <div className="pt-4 space-y-3 border-t border-gold/20">
+              <Link
+                to="/login"
+                onClick={() => setIsOpen(false)}
+                className="block px-4 py-3 rounded-lg text-sm font-medium text-white hover:bg-gold/5 hover:text-gold transition-all text-center"
+              >
+                Sign In
+              </Link>
+              <Link
+                to="/join"
+                onClick={() => setIsOpen(false)}
+                className="block btn-primary text-center"
+              >
+                Join Now
+              </Link>
+            </div>
           </div>
         </div>
       )}

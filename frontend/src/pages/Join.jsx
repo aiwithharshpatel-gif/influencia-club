@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { Gift, DollarSign, Users, TrendingUp, CheckCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -261,6 +261,13 @@ const Join = () => {
                     >
                       {isSubmitting ? 'Sending Code...' : 'Send Verification Code'}
                     </button>
+
+                    <p className="text-center text-muted text-sm mt-6">
+                      Already have an account?{' '}
+                      <Link to="/login" className="text-primary hover:text-primary-soft font-medium">
+                        Sign In
+                      </Link>
+                    </p>
                   </form>
                 </>
               )}
