@@ -1,5 +1,7 @@
 FROM node:20-bookworm
 
+ARG CACHEBUST=1
+
 # Install network tools and openssl
 RUN apt-get update -y && apt-get install -y openssl ca-certificates netcat-traditional
 
