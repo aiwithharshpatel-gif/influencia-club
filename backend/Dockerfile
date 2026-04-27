@@ -1,20 +1,23 @@
 FROM node:20-slim
 
-# Install OpenSSL for Prisma
-RUN apt-get update -y && apt-get install -y openssl
+# Install OpenSSL and CA Certificates
+RUN apt-get update -y && apt-get install -y openssl ca-certificates
 
 WORKDIR /app
 
-# Copy ALL files first to ensure schema and package files are present
-COPY . .
+# Copy only package files first
+COPY package*.json ./
+COPY prisma ./prisma/
 
-# Install dependencies
+# Install dependencies (including devDependencies like prisma)
 RUN npm install --legacy-peer-deps
 
-# Generate Prisma Client explicitly pointing to the schema
-RUN npx prisma generate --schema=./prisma/schema.prisma
+# Generate Prisma Client
+RUN npx prisma generate
+
+# NOW copy the rest of the source code
+COPY . .
 
 EXPOSE 5000
 
-# Start the application
 CMD ["node", "src/app.js"]
