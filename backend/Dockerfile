@@ -1,31 +1,22 @@
-FROM node:20
+FROM node:20-bookworm
 
-# Install system dependencies
+# Install necessary system libraries
 RUN apt-get update -y && apt-get install -y openssl ca-certificates
 
 WORKDIR /app
 
-# Install Prisma CLI globally so it's always available
-RUN npm install -g prisma@5.10.0 --legacy-peer-deps
-
-# Copy only package files
+# Copy package files
 COPY package*.json ./
 
-# Install project dependencies
-RUN npm install --legacy-peer-deps
+# Install dependencies (ignoring scripts to avoid build-time generation)
+RUN npm install --legacy-peer-deps --ignore-scripts
 
-# Copy prisma schema
-COPY prisma ./prisma/
-
-# Use a dummy URL for generation
-ENV DATABASE_URL="mysql://root:root@localhost:3306/db"
-
-# Generate with verbose logging to catch the exact error
-RUN prisma generate --schema=./prisma/schema.prisma
-
-# Copy remaining source code
+# Copy the entire project
 COPY . .
 
 EXPOSE 5000
 
-CMD ["node", "src/app.js"]
+# RUNTIME GENERATION: 
+# We generate the client when the container starts on the VPS.
+# This bypasses all build-time restrictions and memory limits.
+CMD npx prisma generate && npx prisma migrate deploy && node src/app.js
