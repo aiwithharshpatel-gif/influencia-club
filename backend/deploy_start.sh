@@ -4,8 +4,8 @@ set -e
 echo "--- SENIOR DEPLOYMENT STARTING ---"
 
 # 1. Wait for Database
-until nc -z db 3306; do
-  echo "Waiting for MySQL (db:3306)..."
+until nc -z database 3306; do
+  echo "Waiting for MySQL (database:3306)..."
   sleep 3
 done
 

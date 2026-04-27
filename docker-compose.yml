@@ -1,5 +1,5 @@
 services:
-  db:
+  database:
     image: mysql:8.0
     restart: always
     environment:
@@ -8,37 +8,37 @@ services:
     ports:
       - "3306:3306"
     volumes:
-      - db_data:/var/lib/mysql
+      - db_data_v2:/var/lib/mysql
 
-  backend:
+  api_service:
     build: 
       context: ./backend
       args:
-        - CACHEBUST=20260427-1035
+        - CACHEBUST=20260427-1045
     restart: always
     ports:
       - "5000:5000"
     environment:
-      - DATABASE_URL=mysql://root:Influenzia@2026@db:3306/influenzia
+      - DATABASE_URL=mysql://root:Influenzia@2026@database:3306/influenzia
       - NODE_ENV=production
       - JWT_SECRET=d51a97a37d7d619d6e544f023f4742873cadc2c7256de8b4ad807407b6538cfe
       - JWT_REFRESH_SECRET=73916bb17631920434fcf3387ea52df325042ea9df3fa107f2c207d0ff2347fb
       - PORT=5000
       - FRONTEND_URL=http://localhost
     depends_on:
-      - db
+      - database
 
-  frontend:
+  web_ui:
     build: 
       context: ./frontend
       args:
         - VITE_API_URL=/api
-        - CACHEBUST=20260427-1035
+        - CACHEBUST=20260427-1045
     restart: always
     ports:
       - "80:80"
     depends_on:
-      - backend
+      - api_service
 
 volumes:
-  db_data:
+  db_data_v2:
