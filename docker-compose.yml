@@ -10,7 +10,7 @@ services:
     volumes:
       - db_data:/var/lib/mysql
 
-  backend:
+  backend-app: # RENAMED to force new service creation
     build: ./backend
     restart: always
     ports:
@@ -21,7 +21,7 @@ services:
       - JWT_SECRET=d51a97a37d7d619d6e544f023f4742873cadc2c7256de8b4ad807407b6538cfe
       - JWT_REFRESH_SECRET=73916bb17631920434fcf3387ea52df325042ea9df3fa107f2c207d0ff2347fb
       - PORT=5000
-      - FRONTEND_URL=http://localhost # Change to your domain in production
+      - FRONTEND_URL=http://localhost
     depends_on:
       - db
 
@@ -34,7 +34,7 @@ services:
     ports:
       - "80:80"
     depends_on:
-      - backend
+      - backend-app # UPDATED
 
 volumes:
   db_data:

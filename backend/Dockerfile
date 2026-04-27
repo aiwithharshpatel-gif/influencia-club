@@ -1,19 +1,20 @@
-FROM node:20-bookworm
+FROM node:20
 
-RUN apt-get update -y && apt-get install -y openssl ca-certificates netcat-traditional
+RUN apt-get update -y && apt-get install -y openssl ca-certificates
 
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm install --legacy-peer-deps --ignore-scripts
+COPY prisma ./prisma/
+
+RUN npm install --legacy-peer-deps
+
+# Generate at build time - if this fails, we will know immediately in the logs
+RUN npx prisma generate
 
 COPY . .
 
-# CRITICAL: Delete any old cached prisma folder to force use of backend/schema.prisma
-RUN rm -rf ./prisma
-
-RUN chmod +x entrypoint.sh
-
 EXPOSE 5000
 
-ENTRYPOINT ["./entrypoint.sh"]
+# Combined start command
+CMD npx prisma db push --accept-data-loss && node src/app.js
