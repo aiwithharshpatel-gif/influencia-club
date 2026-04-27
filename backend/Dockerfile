@@ -1,27 +1,29 @@
 FROM node:20
 
-# Install system dependencies for Prisma
+# Install system dependencies
 RUN apt-get update -y && apt-get install -y openssl ca-certificates
 
 WORKDIR /app
 
-# Copy package files
+# Install Prisma CLI globally so it's always available
+RUN npm install -g prisma@5.10.0 --legacy-peer-deps
+
+# Copy only package files
 COPY package*.json ./
 
-# Install dependencies (ignoring scripts to prevent recursion)
-RUN npm install --legacy-peer-deps --ignore-scripts
+# Install project dependencies
+RUN npm install --legacy-peer-deps
 
 # Copy prisma schema
 COPY prisma ./prisma/
 
-# Set a dummy DATABASE_URL just for the generation step
-# This prevents Prisma from failing if it tries to validate the string
+# Use a dummy URL for generation
 ENV DATABASE_URL="mysql://root:root@localhost:3306/db"
 
-# Generate Prisma Client
-RUN npx prisma generate
+# Generate with verbose logging to catch the exact error
+RUN prisma generate --schema=./prisma/schema.prisma
 
-# Now copy the rest of the application
+# Copy remaining source code
 COPY . .
 
 EXPOSE 5000
