@@ -11,14 +11,15 @@ COPY . .
 
 EXPOSE 5000
 
-# SENIOR STARTUP SCRIPT:
-# 1. Wait for the 'db' container to be reachable on port 3306
-# 2. Generate Prisma Client
-# 3. Push migrations
-# 4. Start the app
+# STARTUP STRATEGY:
+# 1. Wait for DB network
+# 2. Wait extra for MySQL startup
+# 3. Generate Client
+# 4. FORCE Sync Schema (db push) - More reliable for first-time VPS
+# 5. Start app
 CMD until nc -z db 3306; do echo "Waiting for database network..."; sleep 2; done && \
-    echo "Database network ready, waiting 5s for MySQL initialization..." && \
-    sleep 5 && \
+    echo "Database network ready, waiting 10s for MySQL startup..." && \
+    sleep 10 && \
     npx prisma generate && \
-    npx prisma migrate deploy && \
+    npx prisma db push --accept-data-loss && \
     node src/app.js
