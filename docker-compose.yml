@@ -8,13 +8,15 @@ services:
     ports:
       - "3306:3306"
     volumes:
-      - db_data_v2:/var/lib/mysql
+      - db_data_v3:/var/lib/mysql
+    networks:
+      - app-network
 
   api_service:
     build: 
       context: ./backend
       args:
-        - CACHEBUST=20260427-1215
+        - CACHEBUST=20260427-1230
     restart: always
     ports:
       - "5000:5000"
@@ -27,18 +29,26 @@ services:
       - FRONTEND_URL=http://187.127.157.111
     depends_on:
       - database
+    networks:
+      - app-network
 
   web_ui:
     build: 
       context: ./frontend
       args:
-        - VITE_API_URL=http://187.127.157.111/api
-        - CACHEBUST=20260427-1245
+        - VITE_API_URL=/api
+        - CACHEBUST=20260427-1230
     restart: always
     ports:
       - "80:80"
     depends_on:
       - api_service
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
 
 volumes:
-  db_data_v2:
+  db_data_v3:
