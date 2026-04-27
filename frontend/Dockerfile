@@ -6,7 +6,7 @@ COPY package*.json ./
 RUN npm install --legacy-peer-deps
 COPY . .
 # Vite requires env vars at build time
-ARG VITE_API_URL=/api
+ARG VITE_API_URL=http://187.127.157.111/api
 ENV VITE_API_URL=$VITE_API_URL
 RUN npm run build
 
