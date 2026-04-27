@@ -161,6 +161,13 @@ export const sendWelcomeEmail = async (email, name, referralCode) => {
     </html>
   `;
 
+  return sendEmail({
+    to: email,
+    subject: 'Welcome to Influenzia Club! 🚀',
+    html
+  });
+};
+
 export const sendPasswordResetEmail = async (email, token, name) => {
   const safeName = validator.escape(name);
   const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${token}`;
