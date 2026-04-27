@@ -117,8 +117,8 @@ app.use((err, req, res, next) => {
 });
 
 // Start server
-app.listen(PORT, () => {
-  console.log(`🚀 Influenzia Club API running on port ${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Influenzia Club API running on port ${PORT} at 0.0.0.0`);
   console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
 });
 
