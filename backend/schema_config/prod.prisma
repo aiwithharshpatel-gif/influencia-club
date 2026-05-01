@@ -349,3 +349,15 @@ enum PayoutStatus {
   failed
   on_hold
 }
+
+model OtpVerification {
+  id        String   @id @default(uuid())
+  email     String   @db.VarChar(150)
+  otp       String   @db.VarChar(10)
+  userData  Json
+  expiresAt DateTime
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([email, otp])
+  @@map("otp_verifications")
+}

@@ -24,8 +24,7 @@ const otpLimiter = rateLimit({
   message: 'Too many OTP requests, please try again after 15 minutes'
 });
 
-// Store OTPs temporarily (in production, use Redis)
-const otpStore = new Map();
+// OTPs are now stored in the database via Prisma
 
 // Register - Send OTP
 router.post('/register', otpLimiter, validateCreator, async (req, res) => {
@@ -43,8 +42,15 @@ router.post('/register', otpLimiter, validateCreator, async (req, res) => {
     const otp = generateOTP();
     const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-    // Store OTP
-    otpStore.set(email, { otp, expiry: otpExpiry, userData: req.body });
+    // Store OTP in database
+    await prisma.otpVerification.create({
+      data: {
+        email,
+        otp,
+        userData: req.body,
+        expiresAt: otpExpiry
+      }
+    });
 
     // Send verification email
     await sendVerificationEmail(email, otp, name);
@@ -68,27 +74,24 @@ router.post('/verify-otp', otpLimiter, async (req, res) => {
   try {
     const { email, otp } = req.body;
 
-    // Check OTP
-    const storedOTP = otpStore.get(email);
+    // Check OTP in database
+    const storedOTP = await prisma.otpVerification.findFirst({
+      where: { email, otp },
+      orderBy: { createdAt: 'desc' }
+    });
+
     if (!storedOTP) {
       return res.status(400).json({
         success: false,
-        message: 'No verification code found. Please register again.'
+        message: 'Invalid verification code or no code found.'
       });
     }
 
-    if (storedOTP.expiry < new Date()) {
-      otpStore.delete(email);
+    if (storedOTP.expiresAt < new Date()) {
+      await prisma.otpVerification.delete({ where: { id: storedOTP.id } });
       return res.status(400).json({
         success: false,
         message: 'Verification code expired. Please register again.'
-      });
-    }
-
-    if (!timingSafeEqual(Buffer.from(storedOTP.otp), Buffer.from(otp))) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid verification code'
       });
     }
 
@@ -139,8 +142,8 @@ router.post('/verify-otp', otpLimiter, async (req, res) => {
       await processReferral(referrer.id, creator.id);
     }
 
-    // Delete OTP from store
-    otpStore.delete(email);
+    // Delete OTP from database
+    await prisma.otpVerification.deleteMany({ where: { email } });
 
     // Send welcome email
     await sendWelcomeEmail(email, name, referralCode);
@@ -445,14 +448,14 @@ router.post('/admin-login', loginLimiter, async (req, res) => {
     const adminToken = jwt.sign(
       { id: admin.id, email: admin.email, role: 'admin', version: admin.passwordVersion },
       adminSecret,
-      { expiresIn: '8h' }
+      { expiresIn: '2h' }
     );
 
     res.cookie('adminToken', adminToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 8 * 60 * 60 * 1000,
+      maxAge: 2 * 60 * 60 * 1000,
       path: '/api'
     });
 

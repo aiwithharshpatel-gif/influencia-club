@@ -5,24 +5,24 @@ import { useAuth } from '../context/AuthContext';
 import { LogIn } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
+import toast from 'react-hot-toast';
 
 const Login = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
-  const [error, setError] = useState('');
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm();
 
   const onSubmit = async (data) => {
     try {
-      setError('');
       const response = await login(data.email, data.password);
       if (response.success) {
+        toast.success('Login successful!');
         navigate('/dashboard');
       } else {
-        setError(response.message || 'Login failed');
+        toast.error(response.message || 'Login failed');
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed. Please try again.');
+      toast.error(err.response?.data?.message || 'Login failed. Please try again.');
     }
   };
 
@@ -46,11 +46,7 @@ const Login = () => {
             </div>
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-              {error && (
-                <div className="bg-red-500/10 border border-red-500 text-red-500 px-4 py-3 rounded-lg text-sm">
-                  {error}
-                </div>
-              )}
+
 
               <div>
                 <label className="block text-sm font-medium text-muted mb-2">

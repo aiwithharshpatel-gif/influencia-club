@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
+import { Toaster } from 'react-hot-toast';
 
 // Components
 import LoadingScreen from './components/LoadingScreen';
@@ -18,12 +19,12 @@ import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
 
 // Dashboard Pages
-import DashboardLayout from './pages/dashboard/DashboardLayout';
-import DashboardOverview from './pages/dashboard/Overview';
-import Profile from './pages/dashboard/Profile';
-import Referrals from './pages/dashboard/Referrals';
-import Points from './pages/dashboard/Points';
-import Collaborations from './pages/dashboard/Collabs';
+const DashboardLayout = lazy(() => import('./pages/dashboard/DashboardLayout'));
+const DashboardOverview = lazy(() => import('./pages/dashboard/Overview'));
+const Profile = lazy(() => import('./pages/dashboard/Profile'));
+const Referrals = lazy(() => import('./pages/dashboard/Referrals'));
+const Points = lazy(() => import('./pages/dashboard/Points'));
+const Collaborations = lazy(() => import('./pages/dashboard/Collabs'));
 
 function App() {
   const [isLoading, setIsLoading] = useState(true);
@@ -48,6 +49,13 @@ function App() {
 
   return (
     <AuthProvider>
+      <Toaster 
+        position="top-center" 
+        toastOptions={{ 
+          className: 'bg-bg-cardLight text-white border border-gold/20',
+          style: { background: '#111', color: '#fff', border: '1px solid rgba(212, 175, 55, 0.2)' }
+        }} 
+      />
       <Router future={{
         v7_startTransition: true,
         v7_relativeSplatPath: true
@@ -66,7 +74,11 @@ function App() {
             <Route path="/terms" element={<Terms />} />
 
             {/* Dashboard Routes */}
-            <Route path="/dashboard" element={<DashboardLayout />}>
+            <Route path="/dashboard" element={
+              <Suspense fallback={<LoadingScreen />}>
+                <DashboardLayout />
+              </Suspense>
+            }>
               <Route index element={<DashboardOverview />} />
               <Route path="profile" element={<Profile />} />
               <Route path="referrals" element={<Referrals />} />

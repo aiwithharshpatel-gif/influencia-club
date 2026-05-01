@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { Gift, DollarSign, Users, TrendingUp, CheckCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import toast from 'react-hot-toast';
 import api from '../utils/api';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -50,12 +51,13 @@ const Join = () => {
       const payload = { ...data, password: data.mobile };
       const response = await api.post('/auth/register', payload);
       if (response.data.success) {
+        toast.success('Verification code sent to your email!');
         setEmail(data.email);
         setUserMobile(data.mobile);
         setStep('otp');
       }
     } catch (error) {
-      alert(error.response?.data?.message || 'Registration failed. Please try again.');
+      toast.error(error.response?.data?.message || 'Registration failed. Please try again.');
     }
   };
 
@@ -307,6 +309,7 @@ const OTPVerification = ({ email, verifyOTP, onSuccess, onBack }) => {
     try {
       const response = await verifyOTP(email, otp);
       if (response.success) {
+        toast.success('Registration successful!');
         onSuccess();
       } else {
         setError(response.message || 'Invalid OTP');
@@ -389,6 +392,9 @@ const SuccessMessage = ({ mobile }) => {
       <div className="space-y-4">
         <a href="/dashboard" className="w-full btn-primary block text-center py-4">
           Go to Dashboard
+        </a>
+        <a href="/login" className="w-full btn-outline block text-center py-4">
+          Login to your Account
         </a>
         <p className="text-xs text-muted">
           Note: You can change your password in profile settings later.

@@ -153,7 +153,10 @@ const Home = () => {
                 </span>
                 <div className="absolute inset-0 bg-white/20 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
               </Link>
-              <Link to="/creators" className="btn-outline inline-flex items-center px-8 py-4 text-lg group">
+              <Link to="/login" className="btn-outline inline-flex items-center px-8 py-4 text-lg group">
+                Sign In
+              </Link>
+              <Link to="/creators" className="text-white hover:text-gold transition-colors inline-flex items-center px-4 py-4 text-lg group">
                 <Play className="mr-2 fill-gold text-gold" size={18} />
                 Explore Creators
               </Link>
