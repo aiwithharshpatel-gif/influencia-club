@@ -291,7 +291,7 @@ const Brands = () => {
                 <CheckCircle size={40} className="text-green-500" />
               </div>
               <h2 className="font-display text-3xl font-bold text-white mb-4">
-                Inquiry Submitted! 🎉
+                Inquiry Submitted!
               </h2>
               <p className="text-muted mb-6">
                 Thank you for your interest! Our team will review your requirements<br />

@@ -171,19 +171,19 @@ export const generateInvoice = async (paymentData) => {
           <tbody>
             <tr>
               <td>Campaign Management Services</td>
-              <td>₹${amount.toLocaleString('en-IN')}</td>
+              <td>Rs. ${amount.toLocaleString('en-IN')}</td>
             </tr>
             <tr>
               <td>Platform Fee (${(platformFee / amount * 100).toFixed(0)}%)</td>
-              <td>₹${platformFee.toLocaleString('en-IN')}</td>
+              <td>Rs. ${platformFee.toLocaleString('en-IN')}</td>
             </tr>
             <tr>
               <td>GST (${gstRate}%)</td>
-              <td>₹${gstAmount.toLocaleString('en-IN')}</td>
+              <td>Rs. ${gstAmount.toLocaleString('en-IN')}</td>
             </tr>
             <tr class="total">
               <td>Total</td>
-              <td>₹${totalAmount.toLocaleString('en-IN')}</td>
+              <td>Rs. ${totalAmount.toLocaleString('en-IN')}</td>
             </tr>
           </tbody>
         </table>
@@ -270,10 +270,10 @@ export const generateAgreement = async (campaignData) => {
         
         <div class="section">
           <div class="section-title">PAYMENT TERMS</div>
-          <p>Total Amount: ₹${paymentAmount.toLocaleString('en-IN')}</p>
+          <p>Total Amount: Rs. ${paymentAmount.toLocaleString('en-IN')}</p>
           <p>Terms: ${paymentTerms}</p>
-          <p>Platform Fee (10%): ₹${(paymentAmount * 0.1).toLocaleString('en-IN')}</p>
-          <p>Creator Earnings: ₹${(paymentAmount * 0.9).toLocaleString('en-IN')}</p>
+          <p>Platform Fee (10%): Rs. ${(paymentAmount * 0.1).toLocaleString('en-IN')}</p>
+          <p>Creator Earnings: Rs. ${(paymentAmount * 0.9).toLocaleString('en-IN')}</p>
         </div>
         
         <div class="section">

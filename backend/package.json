@@ -8,9 +8,9 @@
     "dev": "nodemon src/app.js",
     "start": "node src/app.js",
     "build": "echo 'Backend build complete'",
-    "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev",
-    "prisma:studio": "prisma studio"
+    "prisma:generate": "prisma generate --schema=./schema_config/prod.prisma",
+    "prisma:migrate": "prisma migrate dev --schema=./schema_config/prod.prisma",
+    "prisma:studio": "prisma studio --schema=./schema_config/prod.prisma"
   },
   "dependencies": {
     "@prisma/client": "^5.10.0",

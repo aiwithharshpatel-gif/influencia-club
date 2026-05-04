@@ -289,8 +289,16 @@ router.post('/login', loginLimiter, async (req, res) => {
 
 // Logout
 router.post('/logout', (req, res) => {
-  res.clearCookie('accessToken');
-  res.clearCookie('refreshToken');
+  const cookieOptions = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    path: '/api'
+  };
+
+  res.clearCookie('accessToken', cookieOptions);
+  res.clearCookie('refreshToken', cookieOptions);
+  res.clearCookie('adminToken', cookieOptions);
   res.json({
     success: true,
     message: 'Logout successful'

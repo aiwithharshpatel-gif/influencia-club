@@ -207,6 +207,7 @@ model CampaignCreator {
   creator     Creator               @relation(fields: [creatorId], references: [id], onDelete: Cascade)
   status      CampaignCreatorStatus @default(invited)
   deliverables String?              @db.Text
+  createdAt   DateTime              @default(now()) @map("created_at")
 
   @@map("campaign_creators")
 }

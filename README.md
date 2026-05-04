@@ -35,9 +35,9 @@ npm run dev
 
 ```
 influenzia-club/
-├── frontend/          # React application
-├── backend/           # Express API server
-└── README.md
+|-- frontend/          # React application
+|-- backend/           # Express API server
+`-- README.md
 ```
 
 ## Environment Setup
@@ -77,4 +77,4 @@ VITE_API_URL=http://localhost:5000/api
 
 ## License
 
-© 2026 ZCAD Nexoraa Pvt. Ltd.
+Copyright 2026 ZCAD Nexoraa Pvt. Ltd.

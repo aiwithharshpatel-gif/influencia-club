@@ -197,7 +197,7 @@ const Contact = () => {
                     <CheckCircle size={40} className="text-green-500" />
                   </div>
                   <h2 className="font-display text-3xl font-bold text-white mb-4">
-                    Message Sent! 🎉
+                    Message Sent!
                   </h2>
                   <p className="text-muted">
                     Thank you for reaching out. We'll get back to you within 24 hours.

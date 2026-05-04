@@ -3,18 +3,18 @@
   "version": "1.0.0",
   "description": "India's Next-Gen Influencer Platform",
   "private": true,
-  "main": "unified-startup.cjs",
+  "main": "backend/src/app.js",
   "scripts": {
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:backend": "cd backend && npm run dev",
     "dev:frontend": "cd frontend && npm run dev",
-    "build": "npm run build:frontend",
-    "build:frontend": "cd frontend && npm install && npm run build && node ../copy-dist.js",
-    "build:backend": "cd backend && npm install",
+    "build": "npm run build:frontend && npm run build:backend",
+    "build:frontend": "cd frontend && npm install && npm run build",
+    "build:backend": "cd backend && npm install && npm run build",
     "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install",
     "postinstall": "npm run build",
-    "start": "node unified-startup.cjs",
-    "prisma:generate": "cd backend && npx prisma generate"
+    "start": "cd backend && npm start",
+    "prisma:generate": "cd backend && npx prisma generate --schema=./schema_config/prod.prisma"
   },
   "dependencies": {
     "vite": "^5.1.6",

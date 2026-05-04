@@ -11,7 +11,7 @@ const inquirySchema = z.object({
   brandName: z.string().min(1).max(200),
   email: z.string().email(),
   mobile: z.string().regex(/^\d{10}$/, 'Mobile must be 10 digits'),
-  budgetRange: z.enum(['10k-50k', '50k-1L', '1L-5L', '5L+']),
+  budgetRange: z.enum(['<5000', '5000-15000', '15000-30000', '30000-50000', '50000+']),
   categories: z.array(z.string()).min(1),
   message: z.string().min(1).max(2000)
 });
@@ -28,7 +28,7 @@ router.post('/', async (req, res) => {
         email,
         mobile,
         budgetRange,
-        categories: JSON.stringify(categories),
+        categories,
         message: validator.escape(message)
       }
     });
@@ -58,7 +58,7 @@ router.post('/', async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'Validation failed',
-        errors: error.errors
+        errors: error.issues
       });
     }
     res.status(500).json({

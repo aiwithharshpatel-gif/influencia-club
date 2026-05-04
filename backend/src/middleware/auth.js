@@ -144,7 +144,7 @@ export const anyProtect = async (req, res, next) => {
       if (decoded.role === 'creator') {
         const user = await prisma.creator.findUnique({
           where: { id: decoded.id },
-          select: { id: true, email: true, name: true, role: true, passwordVersion: true }
+          select: { id: true, email: true, name: true, passwordVersion: true }
         });
         if (user && user.passwordVersion === decoded.version) {
           req.user = { ...user, role: 'creator' };

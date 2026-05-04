@@ -96,7 +96,7 @@ const Join = () => {
               {/* Refer & Earn Section */}
               <div className="mt-12 bg-glass rounded-xl p-6 border border-border">
                 <h3 className="font-display text-2xl font-bold text-white mb-4">
-                  🎁 Refer & Earn
+                  Refer & Earn
                 </h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-bg-card rounded-lg p-4 text-center">
@@ -376,7 +376,7 @@ const SuccessMessage = ({ mobile }) => {
         <CheckCircle size={40} className="text-green-500" />
       </div>
       <h2 className="font-display text-3xl font-bold text-white mb-4">
-        Welcome to Influenzia Club! 🎉
+        Welcome to Influenzia Club!
       </h2>
       <div className="bg-primary/10 border border-primary/20 rounded-xl p-6 mb-8">
         <p className="text-white font-medium mb-2">Registration Successful!</p>

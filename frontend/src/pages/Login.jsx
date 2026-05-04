@@ -77,7 +77,7 @@ const Login = () => {
                   type="password"
                   {...register('password', { required: 'Password is required' })}
                   className="w-full bg-bg border border-border rounded-lg px-4 py-3 text-white focus:outline-none focus:border-primary"
-                  placeholder="••••••••"
+                  placeholder="********"
                 />
                 <p className="text-xs text-primary/60 mt-2 italic">
                   Hint: Your default password is your registered mobile number.

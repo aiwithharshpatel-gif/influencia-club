@@ -38,7 +38,7 @@ export const findMatchingCreators = async (brandInquiry, limit = 10) => {
     const creators = await prisma.creator.findMany({
       where,
       include: {
-        analytics: true,
+        creatorAnalytics: true,
         campaignCreators: {
           where: { status: 'completed' },
           include: {
@@ -123,7 +123,7 @@ const calculateMatchScore = (creator, budgetRange, brandInquiry) => {
   score += performanceScore;
 
   // 7. Response Time (5 points)
-  if (creator.analytics && creator.analytics.responseTime < 24) {
+  if (creator.creatorAnalytics && creator.creatorAnalytics.responseTime < 24) {
     score += 5;
   }
 
