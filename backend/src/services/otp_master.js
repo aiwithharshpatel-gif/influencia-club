@@ -14,14 +14,22 @@ const transporter = nodemailer.createTransport({
 export const sendEmail = async (options) => {
   if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
     console.log('******************************************');
-    console.log('--- CRITICAL: OTP LOG START ---');
+    console.log('--- WARNING: SMTP NOT CONFIGURED ---');
     console.log('To:', options.to);
     console.log('Subject:', options.subject);
     console.log('------------------------------------------');
-    console.log('HTML CONTENT:', options.html);
-    console.log('--- CRITICAL: OTP LOG END ---');
+    console.log('OTP CODE (from HTML):', options.html.match(/\d{6}/)?.[0] || 'Not found');
     console.log('******************************************');
-    return { success: true, messageId: 'mock-id' };
+    
+    // In production, we should probably fail if SMTP is missing
+    if (process.env.NODE_ENV === 'production') {
+      return { 
+        success: false, 
+        error: 'Email service not configured. Please contact support.' 
+      };
+    }
+    
+    return { success: true, messageId: 'mock-id-dev', note: 'Logged to console' };
   }
 
   const mailOptions = {
@@ -33,9 +41,15 @@ export const sendEmail = async (options) => {
 
   try {
     const info = await transporter.sendMail(mailOptions);
+    console.log(`Email sent successfully to ${options.to}: ${info.messageId}`);
     return { success: true, messageId: info.messageId };
   } catch (error) {
-    console.error('Email error:', error);
+    console.error('--- NODEMAILER ERROR ---');
+    console.error('To:', options.to);
+    console.error('Error Code:', error.code);
+    console.error('Error Message:', error.message);
+    if (error.response) console.error('SMTP Response:', error.response);
+    console.error('------------------------');
     return { success: false, error: error.message };
   }
 };

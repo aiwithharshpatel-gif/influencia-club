@@ -53,7 +53,17 @@ router.post('/register', otpLimiter, validateCreator, async (req, res) => {
     });
 
     // Send verification email
-    await sendVerificationEmail(email, otp, name);
+    const emailResult = await sendVerificationEmail(email, otp, name);
+    
+    if (!emailResult.success) {
+      // In production, we might want to fail the request if email sending fails
+      // However, for debugging, we'll return the error message
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to send verification email. Please check your email configuration.',
+        error: process.env.NODE_ENV === 'development' ? emailResult.error : undefined
+      });
+    }
 
     res.json({
       success: true,
@@ -381,7 +391,14 @@ router.post('/forgot-password', async (req, res) => {
     );
 
     // Send reset email
-    await sendPasswordResetEmail(email, resetToken, creator.name);
+    const emailResult = await sendPasswordResetEmail(email, resetToken, creator.name);
+
+    if (!emailResult.success) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to send reset email. Please try again later.'
+      });
+    }
 
     res.json({
       success: true,
