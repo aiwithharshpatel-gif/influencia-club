@@ -26,7 +26,7 @@ router.post('/', contactLimiter, async (req, res) => {
 
     // Forward to admin email
     await sendEmail({
-      to: process.env.EMAIL_FROM || 'hello@influenziaclub.in',
+      to: process.env.EMAIL_FROM || 'hello@influenziaclub.com',
       subject: `Contact Form: ${subject}`,
       html: `
         <h2>New Contact Form Submission</h2>

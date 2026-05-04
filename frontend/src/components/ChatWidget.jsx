@@ -25,8 +25,8 @@ const ChatWidget = () => {
     'join': 'To join Influenzia Club, click on "Join Now" and fill out the registration form. Our team will review your application within 24 hours! ✨',
     'pricing': 'Our Founding Member offer is ₹4,999 (50% off regular price of ₹9,999). This includes lifetime VIP access! 💎',
     'brand': 'We partner with 50+ luxury brands including Gucci, Louis Vuitton, Chanel, and more. You\'ll get exclusive campaign access! ',
-    'support': 'Our team is available 24/7. For immediate assistance, email us at hello@influenziaclub.in 📧',
-    'default': 'Thank you for your message! Our team will respond within 24 hours. For urgent queries, email hello@influenziaclub.in',
+    'support': 'Our team is available 24/7. For immediate assistance, email us at hello@influenziaclub.com 📧',
+    'default': 'Thank you for your message! Our team will respond within 24 hours. For urgent queries, email hello@influenziaclub.com',
   };
 
   const getBotResponse = (userMessage) => {

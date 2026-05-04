@@ -101,7 +101,7 @@ const Footer = () => {
               Contact
             </h3>
             <ul className="space-y-2 text-sm">
-              <li className="text-muted">hello@influenziaclub.in</li>
+              <li className="text-muted">hello@influenziaclub.com</li>
               <li className="text-muted">Ahmedabad, Gujarat, India</li>
               <li className="text-gold font-medium">✦ Response within 24 hours</li>
             </ul>

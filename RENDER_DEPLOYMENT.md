@@ -45,7 +45,7 @@ Click **"Advanced"** → **"Add Environment Variable"** for each:
 NODE_ENV=production
 JWT_SECRET=influenzia_super_secret_jwt_key_2026_change_this
 JWT_REFRESH_SECRET=influenzia_refresh_secret_2026_change_this
-EMAIL_FROM=hello@influenziaclub.in
+EMAIL_FROM=hello@influenziaclub.com
 FRONTEND_URL=http://localhost:5173
 SMTP_HOST=smtp-relay.brevo.com
 SMTP_PORT=587
@@ -133,7 +133,7 @@ Should return: `{"status": "OK"}`
 | `CLOUDINARY_CLOUD_NAME` | (from Cloudinary) |
 | `CLOUDINARY_API_KEY` | (from Cloudinary) |
 | `CLOUDINARY_API_SECRET` | (from Cloudinary) |
-| `EMAIL_FROM` | `hello@influenziaclub.in` |
+| `EMAIL_FROM` | `hello@influenziaclub.com` |
 | `FRONTEND_URL` | (your Vercel URL later) |
 
 ---

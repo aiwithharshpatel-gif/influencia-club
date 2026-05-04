@@ -299,7 +299,7 @@ const Terms = () => {
                 For questions about these Terms, please contact us:
               </p>
               <div className="bg-gold/10 border border-gold/30 rounded-xl p-6">
-                <p className="text-white mb-2"><span className="text-gold">Email:</span> hello@influenziaclub.in</p>
+                <p className="text-white mb-2"><span className="text-gold">Email:</span> hello@influenziaclub.com</p>
                 <p className="text-white mb-2"><span className="text-gold">Address:</span> Ahmedabad, Gujarat, India</p>
                 <p className="text-white"><span className="text-gold">Parent Company:</span> ZCAD Nexoraa Pvt. Ltd.</p>
               </div>

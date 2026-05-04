@@ -20,7 +20,7 @@
 - [ ] Cloudinary account (https://cloudinary.com)
 - [ ] Brevo account (https://brevo.com)
 - [ ] Razorpay account (https://razorpay.com)
-- [ ] Domain purchased (influenziaclub.in)
+- [ ] Domain purchased (influenziaclub.com)
 
 ### ✅ Environment Variables Ready
 ```
@@ -129,7 +129,7 @@ git push -u origin main
    SMTP_PORT=587
    SMTP_USER=your_brevo_username
    SMTP_PASS=your_brevo_password
-   EMAIL_FROM=hello@influenziaclub.in
+   EMAIL_FROM=hello@influenziaclub.com
    
    # Razorpay
    RAZORPAY_KEY_ID=rzp_live_your_key_id
@@ -140,8 +140,8 @@ git push -u origin main
    CASHFREE_SECRET_KEY=your_secret_key
    
    # App URLs
-   FRONTEND_URL=https://influenziaclub.in
-   REFERRAL_BASE_URL=https://influenziaclub.in/join?ref=
+   FRONTEND_URL=https://influenziaclub.com
+   REFERRAL_BASE_URL=https://influenziaclub.com/join?ref=
    ```
 
 4. **Add Build Command**
@@ -222,13 +222,13 @@ npx prisma generate
 
 1. **Buy Domain** (if not already)
    - Namecheap, GoDaddy, or Google Domains
-   - Recommended: `influenziaclub.in`
+   - Recommended: `influenziaclub.com`
 
 2. **Add Domain to Vercel**
    - Vercel Dashboard → Your Project
    - Settings → Domains
-   - Add: `influenziaclub.in`
-   - Add: `www.influenziaclub.in`
+   - Add: `influenziaclub.com`
+   - Add: `www.influenziaclub.com`
 
 3. **Update DNS at Domain Registrar**
    ```
@@ -251,7 +251,7 @@ npx prisma generate
 1. **Add Custom Domain**
    - Railway Dashboard → Your Service
    - Settings → Domains
-   - Add: `api.influenziaclub.in`
+   - Add: `api.influenziaclub.com`
 
 2. **Update DNS**
    ```
@@ -263,11 +263,11 @@ npx prisma generate
 3. **Update Environment Variables**
    ```env
    # In Railway
-   FRONTEND_URL=https://influenziaclub.in
-   REFERRAL_BASE_URL=https://influenziaclub.in/join?ref=
+   FRONTEND_URL=https://influenziaclub.com
+   REFERRAL_BASE_URL=https://influenziaclub.com/join?ref=
    
    # In Vercel
-   VITE_API_URL=https://api.influenziaclub.in/api
+   VITE_API_URL=https://api.influenziaclub.com/api
    ```
 
 ---
@@ -297,7 +297,7 @@ INSERT INTO admins (id, name, email, password_hash, role)
 VALUES (
   UUID(),
   'Admin',
-  'admin@influenziaclub.in',
+  'admin@influenziaclub.com',
   '$2a$10$YourHashedPasswordHere',
   'super_admin'
 );
@@ -310,7 +310,7 @@ VALUES (
 #### Test Checklist:
 
 ```
-□ Visit https://influenziaclub.in
+□ Visit https://influenziaclub.com
   → Homepage loads correctly
   → All images load
   → No console errors
@@ -338,7 +338,7 @@ VALUES (
   → Check if admin email receives notification
 
 □ Test API Health
-  → Visit: https://api.influenziaclub.in/api/health
+  → Visit: https://api.influenziaclub.com/api/health
   → Should return: {"status": "ok"}
 ```
 
@@ -351,8 +351,8 @@ VALUES (
 1. Go to uptimerobot.com
 2. Create account
 3. Add 2 monitors:
-   - https://influenziaclub.in
-   - https://api.influenziaclub.in/api/health
+   - https://influenziaclub.com
+   - https://api.influenziaclub.com/api/health
 4. Set interval: 5 minutes
 5. Get email alerts when down
 ```
@@ -470,7 +470,7 @@ nano /etc/nginx/sites-available/influenzia
 ```nginx
 server {
     listen 80;
-    server_name influenziaclub.in www.influenziaclub.in;
+    server_name influenziaclub.com www.influenziaclub.com;
 
     # Frontend
     location / {
@@ -517,7 +517,7 @@ pm2 startup
 
 ```bash
 apt install -y certbot python3-certbot-nginx
-certbot --nginx -d influenziaclub.in -d www.influenziaclub.in
+certbot --nginx -d influenziaclub.com -d www.influenziaclub.com
 ```
 
 **Auto-renewal:**

@@ -20,7 +20,7 @@ This guide covers deploying Influenzia Club to production using recommended serv
 
 ## Step 1: Domain Setup
 
-1. Purchase domain: `influenziaclub.in`
+1. Purchase domain: `influenziaclub.com`
 2. Configure DNS later after deployment
 
 ---
@@ -70,9 +70,9 @@ This guide covers deploying Influenzia Club to production using recommended serv
    SMTP_PORT=587
    SMTP_USER=your_brevo_login
    SMTP_PASS=your_brevo_smtp_key
-   EMAIL_FROM=hello@influenziaclub.in
-   FRONTEND_URL=https://influenziaclub.in
-   REFERRAL_BASE_URL=https://influenziaclub.in/join?ref=
+   EMAIL_FROM=hello@influenziaclub.com
+   FRONTEND_URL=https://influenziaclub.com
+   REFERRAL_BASE_URL=https://influenziaclub.com/join?ref=
    ```
 
 3. **Deploy**
@@ -151,7 +151,7 @@ This guide covers deploying Influenzia Club to production using recommended serv
    - Copy SMTP username and password
 
 3. **Verify Sender Email**
-   - Add `hello@influenziaclub.in` as sender
+   - Add `hello@influenziaclub.com` as sender
    - Verify domain or email
 
 4. **Add to Railway**
@@ -165,7 +165,7 @@ This guide covers deploying Influenzia Club to production using recommended serv
 1. Go to Vercel Dashboard
 2. Select your project
 3. Settings → Domains
-4. Add: `influenziaclub.in` and `www.influenziaclub.in`
+4. Add: `influenziaclub.com` and `www.influenziaclub.com`
 5. Update DNS at your domain registrar:
    ```
    Type: CNAME
@@ -182,7 +182,7 @@ This guide covers deploying Influenzia Club to production using recommended serv
 1. Go to Railway Dashboard
 2. Select your project
 3. Settings → Domains
-4. Add: `api.influenziaclub.in`
+4. Add: `api.influenziaclub.com`
 5. Update DNS:
    ```
    Type: CNAME
@@ -198,13 +198,13 @@ After domain setup, update:
 
 ### Railway (Backend)
 ```env
-FRONTEND_URL=https://influenziaclub.in
-REFERRAL_BASE_URL=https://influenziaclub.in/join?ref=
+FRONTEND_URL=https://influenziaclub.com
+REFERRAL_BASE_URL=https://influenziaclub.com/join?ref=
 ```
 
 ### Vercel (Frontend)
 ```env
-VITE_API_URL=https://api.influenziaclub.in/api
+VITE_API_URL=https://api.influenziaclub.com/api
 ```
 
 ---
@@ -225,7 +225,7 @@ After deployment, create admin user in Railway MySQL:
    VALUES (
      UUID(),
      'Admin',
-     'admin@influenziaclub.in',
+     'admin@influenziaclub.com',
      '$2a$10$YourHashedPasswordHere',
      'super_admin'
    );
@@ -236,7 +236,7 @@ After deployment, create admin user in Railway MySQL:
 ## Step 10: Test Production
 
 1. **Visit Homepage**
-   - `https://influenziaclub.in`
+   - `https://influenziaclub.com`
 
 2. **Test Registration**
    - Go to `/join`
@@ -320,7 +320,7 @@ pm2 startup
 ```nginx
 server {
     listen 80;
-    server_name influenziaclub.in www.influenziaclub.in;
+    server_name influenziaclub.com www.influenziaclub.com;
 
     location / {
         root /var/www/influenzia-club/frontend/dist;
@@ -347,7 +347,7 @@ sudo systemctl restart nginx
 ### 9. Setup SSL
 ```bash
 sudo apt install certbot python3-certbot-nginx
-sudo certbot --nginx -d influenziaclub.in -d www.influenziaclub.in
+sudo certbot --nginx -d influenziaclub.com -d www.influenziaclub.com
 ```
 
 ---
@@ -365,8 +365,8 @@ sudo certbot --nginx -d influenziaclub.in -d www.influenziaclub.in
 
 ### Uptime Monitoring
 - Use UptimeRobot (free) to monitor:
-  - `https://influenziaclub.in`
-  - `https://api.influenziaclub.in/api/health`
+  - `https://influenziaclub.com`
+  - `https://api.influenziaclub.com/api/health`
 
 ---
 

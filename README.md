@@ -56,7 +56,7 @@ SMTP_HOST=smtp-relay.brevo.com
 SMTP_PORT=587
 SMTP_USER=your_brevo_login
 SMTP_PASS=your_brevo_smtp_key
-EMAIL_FROM=hello@influenziaclub.in
+EMAIL_FROM=hello@influenziaclub.com
 FRONTEND_URL=http://localhost:5173
 ```
 

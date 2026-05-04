@@ -13,8 +13,8 @@ const Contact = () => {
     {
       icon: Mail,
       label: 'Email',
-      value: 'hello@influenziaclub.in',
-      href: 'mailto:hello@influenziaclub.in'
+      value: 'hello@influenziaclub.com',
+      href: 'mailto:hello@influenziaclub.com'
     },
     {
       icon: Phone,
