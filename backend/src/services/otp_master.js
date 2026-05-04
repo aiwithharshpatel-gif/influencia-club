@@ -32,7 +32,7 @@ export const sendEmail = async (options) => {
   }
 
   const mailOptions = {
-    from: process.env.EMAIL_FROM || 'Influenzia Club <hello@influenziaclub.com>',
+    from: process.env.EMAIL_FROM || 'Influenzia Club <no-reply@influenziaclub.com>',
     to: options.to,
     subject: options.subject,
     html: options.html
