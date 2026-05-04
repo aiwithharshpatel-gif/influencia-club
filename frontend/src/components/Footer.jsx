@@ -20,7 +20,7 @@ const Footer = () => {
   ];
 
   const socialLinks = [
-    { icon: Instagram, href: 'https://instagram.com/influenziaclub', label: 'Instagram' },
+    { icon: Instagram, href: 'https://www.instagram.com/influenzia_club/', label: 'Instagram' },
     { icon: Youtube, href: 'https://youtube.com/@influenziaclub', label: 'YouTube' },
     { icon: Linkedin, href: 'https://linkedin.com/company/influenziaclub', label: 'LinkedIn' },
     { icon: Twitter, href: 'https://twitter.com/influenziaclub', label: 'Twitter' },
