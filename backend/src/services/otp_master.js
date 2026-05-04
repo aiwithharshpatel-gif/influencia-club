@@ -2,26 +2,25 @@ import nodemailer from 'nodemailer';
 import validator from 'validator';
 
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: parseInt(process.env.SMTP_PORT) || 587,
-  secure: false,
+  host: process.env.SMTP_HOST || 'smtp.resend.com',
+  port: parseInt(process.env.SMTP_PORT) || 465,
+  secure: (parseInt(process.env.SMTP_PORT) === 465 || !process.env.SMTP_PORT), // True for 465, default to true for Resend
   auth: {
-    user: process.env.SMTP_USER,
+    user: process.env.SMTP_USER || 'resend',
     pass: process.env.SMTP_PASS
   }
 });
 
 export const sendEmail = async (options) => {
-  if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
+  if (!process.env.SMTP_PASS) {
     console.log('******************************************');
-    console.log('--- WARNING: SMTP NOT CONFIGURED ---');
+    console.log('--- WARNING: RESEND API KEY (SMTP_PASS) MISSING ---');
     console.log('To:', options.to);
     console.log('Subject:', options.subject);
     console.log('------------------------------------------');
     console.log('OTP CODE (from HTML):', options.html.match(/\d{6}/)?.[0] || 'Not found');
     console.log('******************************************');
     
-    // In production, we should probably fail if SMTP is missing
     if (process.env.NODE_ENV === 'production') {
       return { 
         success: false, 
@@ -33,7 +32,7 @@ export const sendEmail = async (options) => {
   }
 
   const mailOptions = {
-    from: process.env.EMAIL_FROM || 'Influenzia Club <hello@influenziaclub.in>',
+    from: process.env.EMAIL_FROM || 'Influenzia Club <hello@influenziaclub.com>',
     to: options.to,
     subject: options.subject,
     html: options.html
@@ -74,7 +73,7 @@ export const sendVerificationEmail = async (email, otp, name) => {
 
 export const sendWelcomeEmail = async (email, name, referralCode) => {
   const safeName = validator.escape(name);
-  const referralLink = `${process.env.REFERRAL_BASE_URL || 'https://influenziaclub.in/join?ref='}${validator.escape(referralCode)}`;
+  const referralLink = `${process.env.REFERRAL_BASE_URL || 'https://influenziaclub.com/join?ref='}${validator.escape(referralCode)}`;
   
   const html = `
     <div style="font-family: sans-serif; padding: 20px;">
@@ -93,7 +92,7 @@ export const sendWelcomeEmail = async (email, name, referralCode) => {
 
 export const sendPasswordResetEmail = async (email, token, name) => {
   const safeName = validator.escape(name);
-  const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${token}`;
+  const resetLink = `${process.env.FRONTEND_URL || 'https://influenziaclub.com'}/reset-password?token=${token}`;
   
   const html = `
     <div style="font-family: sans-serif; padding: 20px;">
@@ -115,7 +114,7 @@ export const sendInquiryNotificationEmail = async (inquiryData) => {
   const html = `<p>New inquiry from ${brandName} (${email})</p>`;
 
   return sendEmail({
-    to: process.env.EMAIL_FROM || 'hello@influenziaclub.in',
+    to: process.env.EMAIL_FROM || 'hello@influenziaclub.com',
     subject: 'New Brand Inquiry',
     html
   });
