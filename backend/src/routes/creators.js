@@ -1,14 +1,27 @@
 import express from 'express';
-import { PrismaClient } from '@prisma/client';
-import { protect } from '../middleware/auth.js';
+import { z } from 'zod';
+import prisma from '../lib/prisma.js';
+import { safeErrorMessage } from '../middleware/errorHandler.js';
+import { env } from '../config/env.js';
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 // Get all creators (public)
 router.get('/', async (req, res) => {
   try {
-    const { category, city, search, featured } = req.query;
+    const filters = z
+      .object({
+        category: z
+          .enum(['all', 'influencer', 'actor', 'model', 'creator', 'public_figure'])
+          .optional(),
+        city: z.string().max(50).optional(),
+        search: z.string().max(100).optional(),
+        featured: z.enum(['true', 'false']).optional(),
+        page: z.coerce.number().int().min(1).default(1),
+        limit: z.coerce.number().int().min(1).max(48).default(24)
+      })
+      .parse(req.query);
+    const { category, city, search, featured, page, limit } = filters;
 
     const where = {
       isApproved: true,
@@ -36,6 +49,8 @@ router.get('/', async (req, res) => {
 
     const creators = await prisma.creator.findMany({
       where,
+      skip: (page - 1) * limit,
+      take: limit,
       select: {
         id: true,
         name: true,
@@ -58,13 +73,14 @@ router.get('/', async (req, res) => {
     res.json({
       success: true,
       count: creators.length,
+      page,
       creators
     });
   } catch (error) {
     console.error('Get creators error:', error);
-    res.status(500).json({
+    res.status(error instanceof z.ZodError ? 400 : 500).json({
       success: false,
-      message: error.message
+      message: error instanceof z.ZodError ? 'Invalid creator filters' : 'Unable to load creators'
     });
   }
 });
@@ -72,8 +88,12 @@ router.get('/', async (req, res) => {
 // Get single creator (public)
 router.get('/:id', async (req, res) => {
   try {
-    const creator = await prisma.creator.findUnique({
-      where: { id: req.params.id },
+    const creator = await prisma.creator.findFirst({
+      where: {
+        id: req.params.id,
+        isApproved: true,
+        status: 'active'
+      },
       select: {
         id: true,
         name: true,
@@ -103,7 +123,7 @@ router.get('/:id', async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: error.message
+      message: safeErrorMessage(error, env.isProduction)
     });
   }
 });

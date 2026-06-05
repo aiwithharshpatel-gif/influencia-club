@@ -1,46 +1,59 @@
 import express from 'express';
-import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
-import validator from 'validator';
+import rateLimit from 'express-rate-limit';
 import { sendInquiryNotificationEmail } from '../services/otp_master.js';
+import prisma from '../lib/prisma.js';
+import { safeErrorMessage } from '../middleware/errorHandler.js';
+import { env } from '../config/env.js';
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
-const inquirySchema = z.object({
-  brandName: z.string().min(1).max(200),
-  email: z.string().email(),
-  mobile: z.string().regex(/^\d{10}$/, 'Mobile must be 10 digits'),
-  budgetRange: z.enum(['<5000', '5000-15000', '15000-30000', '30000-50000', '50000+']),
-  categories: z.array(z.string()).min(1),
-  message: z.string().min(1).max(2000)
+const inquiryLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Too many inquiries. Please try again later.' }
 });
 
+const inquirySchema = z.object({
+  brandName: z.string().min(2).max(150),
+  email: z.string().email().max(150),
+  mobile: z.string().regex(/^\d{10}$/, 'Mobile must be 10 digits'),
+  budgetRange: z.enum(['<5000', '5000-15000', '15000-30000', '30000-50000', '50000+']),
+  categories: z
+    .array(z.enum(['influencer', 'actor', 'model', 'creator', 'public_figure']))
+    .min(1)
+    .max(5),
+  message: z.string().min(10).max(2000)
+}).strict();
+
 // Submit brand inquiry
-router.post('/', async (req, res) => {
+router.post('/', inquiryLimiter, async (req, res) => {
   try {
     const validated = inquirySchema.parse(req.body);
     const { brandName, email, mobile, budgetRange, categories, message } = validated;
 
     const inquiry = await prisma.brandInquiry.create({
       data: {
-        brandName: validator.escape(brandName),
-        email,
+        brandName,
+        email: email.toLowerCase(),
         mobile,
         budgetRange,
         categories,
-        message: validator.escape(message)
+        message
       }
     });
 
-    // Send email notification to admin
-    await sendInquiryNotificationEmail({
+    sendInquiryNotificationEmail({
       brandName,
       email,
       mobile,
       budgetRange,
       categories: categories.join(', '),
       message
+    }).catch((error) => {
+      console.error(`Inquiry notification failed for ${inquiry.id}: ${error.message}`);
     });
 
     res.json({
@@ -63,40 +76,7 @@ router.post('/', async (req, res) => {
     }
     res.status(500).json({
       success: false,
-      message: error.message
-    });
-  }
-});
-
-// Get inquiry status (optional, for future)
-router.get('/:id', async (req, res) => {
-  try {
-    const inquiry = await prisma.brandInquiry.findUnique({
-      where: { id: req.params.id },
-      select: {
-        id: true,
-        brandName: true,
-        email: true,
-        status: true,
-        createdAt: true
-      }
-    });
-
-    if (!inquiry) {
-      return res.status(404).json({
-        success: false,
-        message: 'Inquiry not found'
-      });
-    }
-
-    res.json({
-      success: true,
-      inquiry
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message
+      message: safeErrorMessage(error, env.isProduction)
     });
   }
 });

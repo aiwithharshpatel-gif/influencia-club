@@ -6,7 +6,7 @@ export const generateOTP = () => {
 
 export const generateReferralCode = (name) => {
   const cleanName = name.replace(/[^a-zA-Z]/g, '').toUpperCase();
-  const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+  const randomSuffix = crypto.randomBytes(3).toString('hex').slice(0, 4).toUpperCase();
   return `${cleanName.substring(0, 6)}${randomSuffix}`;
 };
 

@@ -1,17 +1,24 @@
-import validator from 'validator';
-
 /**
- * Middleware to sanitize all string values in req.body, req.query, and req.params
- * to prevent XSS by escaping HTML entities.
+ * Normalizes request strings and removes prototype-pollution keys.
+ * HTML is escaped at output sinks so stored data remains canonical.
  */
 export const sanitizeRequest = (req, res, next) => {
+  const preserveWhitespace = new Set(['password', 'newPassword', 'token']);
+
   const sanitize = (obj) => {
     if (!obj || typeof obj !== 'object') return obj;
 
-    for (const key in obj) {
+    for (const key of Object.keys(obj)) {
+      if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+        delete obj[key];
+        continue;
+      }
+
       if (typeof obj[key] === 'string') {
-        obj[key] = validator.escape(obj[key].trim());
-      } else if (typeof obj[key] === 'object') {
+        if (!preserveWhitespace.has(key)) {
+          obj[key] = obj[key].trim();
+        }
+      } else if (obj[key] && typeof obj[key] === 'object') {
         sanitize(obj[key]);
       }
     }

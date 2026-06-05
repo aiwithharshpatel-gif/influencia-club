@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { Upload, CheckCircle } from 'lucide-react';
+import { CheckCircle, Star } from 'lucide-react';
 import api from '../../utils/api';
+import toast from 'react-hot-toast';
 
 const Profile = () => {
   const [profile, setProfile] = useState(null);
@@ -41,13 +42,14 @@ const Profile = () => {
       setSaving(true);
       setSuccess(false);
       
-      const response = await api.put('/me', data);
+      const response = await api.put('/dashboard/profile', data);
       if (response.data.success) {
         setSuccess(true);
         setTimeout(() => setSuccess(false), 3000);
       }
     } catch (error) {
       console.error('Error updating profile:', error);
+      toast.error(error.response?.data?.message || 'Profile update failed');
     } finally {
       setSaving(false);
     }
@@ -91,18 +93,9 @@ const Profile = () => {
                 </span>
               )}
             </div>
-            <div>
-              <button
-                type="button"
-                className="btn-outline text-sm py-2 px-4"
-              >
-                <Upload size={16} className="inline mr-2" />
-                Change Photo
-              </button>
-              <p className="text-muted text-sm mt-2">
-                JPG, PNG or GIF. Max size 2MB.
-              </p>
-            </div>
+            <p className="text-muted text-sm">
+              Use a secure HTTPS image URL below for your profile photo.
+            </p>
           </div>
 
           <div className="grid md:grid-cols-2 gap-6">
@@ -118,6 +111,18 @@ const Profile = () => {
               {errors.name && (
                 <p className="text-red-500 text-sm mt-1">{errors.name.message}</p>
               )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-muted mb-2">
+                Profile Photo URL
+              </label>
+              <input
+                type="url"
+                {...register('photoUrl')}
+                className="w-full bg-bg border border-border rounded-lg px-4 py-3 text-white focus:outline-none focus:border-primary"
+                placeholder="https://..."
+              />
             </div>
 
             <div>

@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate, Link } from 'react-router-dom';
+import { useState } from 'react';
+import { useSearchParams, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { Gift, DollarSign, Users, TrendingUp, CheckCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -10,14 +10,12 @@ import Footer from '../components/Footer';
 
 const Join = () => {
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
   const { verifyOTP } = useAuth();
   const [step, setStep] = useState('form'); // form, otp, success
   const [email, setEmail] = useState('');
-  const [userMobile, setUserMobile] = useState('');
   const [referralCodeFromUrl] = useState(searchParams.get('ref') || '');
   
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
+  const { register, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm({
     defaultValues: {
       referralCode: referralCodeFromUrl
     }
@@ -48,12 +46,11 @@ const Join = () => {
 
   const onSubmit = async (data) => {
     try {
-      const payload = { ...data, password: data.mobile };
+      const { confirmPassword, ...payload } = data;
       const response = await api.post('/auth/register', payload);
       if (response.data.success) {
         toast.success('Verification code sent to your email!');
         setEmail(data.email);
-        setUserMobile(data.mobile);
         setStep('otp');
       }
     } catch (error) {
@@ -74,7 +71,7 @@ const Join = () => {
                 Become a Part of <span className="gradient-text">Influenzia Club</span>
               </h1>
               <p className="text-muted text-lg mb-12">
-                Join India's fastest-growing creator community and unlock exclusive opportunities
+                Apply to join our creator community and build your platform profile
               </p>
 
               <div className="space-y-6">
@@ -137,6 +134,50 @@ const Join = () => {
                       {errors.name && (
                         <p className="text-red-500 text-sm mt-1">{errors.name.message}</p>
                       )}
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-muted mb-2">
+                          Password *
+                        </label>
+                        <input
+                          type="password"
+                          autoComplete="new-password"
+                          {...register('password', {
+                            required: 'Password is required',
+                            minLength: {
+                              value: 8,
+                              message: 'Use at least 8 characters'
+                            },
+                            pattern: {
+                              value: /^(?=.*[A-Za-z])(?=.*\d).+$/,
+                              message: 'Include at least one letter and one number'
+                            }
+                          })}
+                          className="w-full bg-bg border border-border rounded-lg px-4 py-3 text-white focus:outline-none focus:border-primary"
+                        />
+                        {errors.password && (
+                          <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-muted mb-2">
+                          Confirm Password *
+                        </label>
+                        <input
+                          type="password"
+                          autoComplete="new-password"
+                          {...register('confirmPassword', {
+                            required: 'Confirm your password',
+                            validate: (value) => value === watch('password') || 'Passwords do not match'
+                          })}
+                          className="w-full bg-bg border border-border rounded-lg px-4 py-3 text-white focus:outline-none focus:border-primary"
+                        />
+                        {errors.confirmPassword && (
+                          <p className="text-red-500 text-sm mt-1">{errors.confirmPassword.message}</p>
+                        )}
+                      </div>
                     </div>
 
                     <div>
@@ -284,7 +325,7 @@ const Join = () => {
               )}
 
               {step === 'success' && (
-                <SuccessMessage mobile={userMobile} />
+                <SuccessMessage />
               )}
             </div>
           </div>
@@ -369,7 +410,7 @@ const OTPVerification = ({ email, verifyOTP, onSuccess, onBack }) => {
   );
 };
 
-const SuccessMessage = ({ mobile }) => {
+const SuccessMessage = () => {
   return (
     <div className="text-center py-12">
       <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -378,14 +419,6 @@ const SuccessMessage = ({ mobile }) => {
       <h2 className="font-display text-3xl font-bold text-white mb-4">
         Welcome to Influenzia Club!
       </h2>
-      <div className="bg-primary/10 border border-primary/20 rounded-xl p-6 mb-8">
-        <p className="text-white font-medium mb-2">Registration Successful!</p>
-        <p className="text-muted text-sm leading-relaxed">
-          Your default password is your registered mobile number:
-          <br />
-          <span className="text-primary font-bold text-lg">{mobile}</span>
-        </p>
-      </div>
       <p className="text-muted mb-8">
         You are now logged in. Access your dashboard to complete your profile.
       </p>
@@ -396,9 +429,6 @@ const SuccessMessage = ({ mobile }) => {
         <a href="/login" className="w-full btn-outline block text-center py-4">
           Login to your Account
         </a>
-        <p className="text-xs text-muted">
-          Note: You can change your password in profile settings later.
-        </p>
       </div>
     </div>
   );

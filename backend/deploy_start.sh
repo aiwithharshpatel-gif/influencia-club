@@ -1,25 +1,13 @@
 #!/bin/sh
-set -e
+set -eu
 
-echo "--- SENIOR DEPLOYMENT STARTING ---"
-
-# 1. Wait for Database
+echo "Waiting for MySQL..."
 until nc -z database 3306; do
-  echo "Waiting for MySQL (database:3306)..."
-  sleep 3
+  sleep 2
 done
 
-echo "Database detected! Waiting 10s for initialization..."
-sleep 10
+echo "Applying database migrations..."
+npx prisma migrate deploy --schema=./schema_config/prod.prisma
 
-# 2. Generate Prisma Client (Doing it here bypasses build-time limits)
-echo "Generating Prisma Client from /schema_config/prod.prisma..."
-npx prisma generate --schema=./schema_config/prod.prisma
-
-# 3. Sync Database
-echo "Syncing database schema..."
-npx prisma db push --accept-data-loss --schema=./schema_config/prod.prisma
-
-# 4. Start Server
-echo "Launching Influenzia API..."
+echo "Starting Influenzia Club API..."
 exec node src/app.js

@@ -1,6 +1,4 @@
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import prisma from '../lib/prisma.js';
 
 const POINTS = {
   SIGNUP: 10,
@@ -143,7 +141,6 @@ export const getReferralStats = async (creatorId) => {
         select: {
           id: true,
           name: true,
-          email: true,
           createdAt: true
         }
       }

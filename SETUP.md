@@ -76,12 +76,13 @@ CLOUDINARY_CLOUD_NAME=your_cloud_name
 CLOUDINARY_API_KEY=your_api_key
 CLOUDINARY_API_SECRET=your_api_secret
 
-# Brevo SMTP (Get from https://brevo.com)
-SMTP_HOST=smtp-relay.brevo.com
-SMTP_PORT=587
-SMTP_USER=your_brevo_login
-SMTP_PASS=your_brevo_smtp_key
-EMAIL_FROM=hello@influenziaclub.com
+# Hostinger SMTP
+SMTP_HOST=smtp.hostinger.com
+SMTP_PORT=465
+SMTP_SECURE=true
+SMTP_USER=no-reply@influenziaclub.com
+SMTP_PASS=your_hostinger_mailbox_password
+EMAIL_FROM=Influenzia Club <no-reply@influenziaclub.com>
 
 # App
 FRONTEND_URL=http://localhost:5173
@@ -184,7 +185,7 @@ npm run dev
 
 3. **Test Login:**
    - Navigate to `/login`
-   - Use your registered email and password (mobile number)
+   - Use your registered email and chosen password
    - You'll be redirected to the dashboard
 
 4. **Test Dashboard:**
@@ -202,7 +203,7 @@ npm run dev
 
 After registration, you can test with your own accounts.
 
-**Password:** Your mobile number (10 digits)
+Use the password selected during registration.
 
 ---
 
@@ -218,7 +219,7 @@ After registration, you can test with your own accounts.
 - Frontend: Change port in `frontend/vite.config.js`
 
 ### Email Not Sending
-- Verify Brevo SMTP credentials
+- Verify Hostinger SMTP credentials in hPanel
 - Check if `EMAIL_FROM` is configured
 - For development, emails are logged to console if SMTP is not configured
 
@@ -237,7 +238,8 @@ npx prisma migrate dev
 influenzia-club/
 ├── backend/
 │   ├── prisma/
-│   │   └── schema.prisma       # Database schema
+│   ├── schema_config/
+│   │   └── prod.prisma         # Database schema
 │   ├── src/
 │   │   ├── routes/             # API routes
 │   │   ├── middleware/         # Auth & error handlers
@@ -277,8 +279,8 @@ influenzia-club/
 - `POST /api/contact` - Submit contact form
 
 ### Protected Endpoints (Require Auth)
-- `GET /api/me` - Get own profile
-- `PUT /api/me` - Update profile
+- `GET /api/auth/me` - Get current authenticated user
+- `PUT /api/dashboard/profile` - Update creator profile
 - `GET /api/dashboard/overview` - Dashboard overview
 - `GET /api/dashboard/points` - Points history
 - `GET /api/dashboard/referrals` - Referral stats
@@ -300,7 +302,7 @@ influenzia-club/
    - Add logo in `frontend/public/`
 
 2. **Configure Email:**
-   - Set up Brevo account at https://brevo.com
+   - Create Hostinger mailboxes and configure SPF/DKIM
    - Update SMTP credentials in `backend/.env`
 
 3. **Configure Cloudinary:**
@@ -316,7 +318,7 @@ influenzia-club/
 
 For issues or questions:
 - Check the blueprint documentation
-- Review Prisma schema in `backend/prisma/schema.prisma`
+- Review Prisma schema in `backend/schema_config/prod.prisma`
 - Check API routes in `backend/src/routes/`
 
 ---

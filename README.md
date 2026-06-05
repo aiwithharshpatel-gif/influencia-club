@@ -1,79 +1,58 @@
-# INFLUENZIA CLUB
+# Influenzia Club
 
-> Influence. Inspire. Ignite.
+Creator and brand collaboration platform built with React, Express, Prisma, and MySQL.
 
-India's Next-Gen Influencer Platform - Connecting creators with brands.
+## Production Stack
 
-## Tech Stack
+- React 18 and Vite 7
+- Express API with secure HTTP-only JWT cookies
+- Prisma ORM and MySQL 8.4
+- Hostinger SMTP through Nodemailer
+- Docker Compose behind host Nginx and Let's Encrypt
 
-### Frontend
-- React 18 + Vite
-- Tailwind CSS
-- React Router v6
-- React Hook Form
-- Axios
+## Local Development
 
-### Backend
-- Node.js + Express.js
-- Prisma ORM
-- MySQL Database
-- JWT Authentication
-- Cloudinary (file storage)
-- Brevo (email)
-
-## Quick Start
+Requirements: Node.js 20.19+ and MySQL 8.
 
 ```bash
-# Install all dependencies
 npm run install:all
-
-# Run both frontend and backend in development
+cp backend/.env.example backend/.env
+npm run prisma:generate
 npm run dev
 ```
 
-## Project Structure
+The frontend runs at `http://localhost:5173` and proxies `/api` to the backend.
 
-```
-influenzia-club/
-|-- frontend/          # React application
-|-- backend/           # Express API server
-`-- README.md
-```
+## Production Deployment
 
-## Environment Setup
+Use [PROD_VPS_CONFIG.md](./PROD_VPS_CONFIG.md) as the canonical Hostinger VPS guide.
 
-### Backend (.env)
-```env
-PORT=5000
-NODE_ENV=development
-JWT_SECRET=your_jwt_secret_here
-JWT_REFRESH_SECRET=your_refresh_secret_here
-DATABASE_URL=mysql://user:pass@localhost:3306/influenzia
-CLOUDINARY_CLOUD_NAME=
-CLOUDINARY_API_KEY=
-CLOUDINARY_API_SECRET=
-SMTP_HOST=smtp-relay.brevo.com
-SMTP_PORT=587
-SMTP_USER=your_brevo_login
-SMTP_PASS=your_brevo_smtp_key
-EMAIL_FROM=hello@influenziaclub.com
-FRONTEND_URL=http://localhost:5173
+Important production behavior:
+
+- Startup runs `prisma migrate deploy`; it never uses `db push --accept-data-loss`.
+- The API refuses to start when required production secrets or SMTP settings are missing.
+- Hostinger SMTP is verified before the API starts accepting traffic.
+- Refresh sessions are stored as one-way hashes and rotated on every refresh.
+- `/api/ready` checks database connectivity for deployment health checks.
+- Payments and payouts are disabled by default.
+- Financial routes do not use mock provider responses.
+
+## Verification
+
+```bash
+npm run check
+docker compose config
 ```
 
-### Frontend (.env)
-```env
-VITE_API_URL=http://localhost:5000/api
+## Environment
+
+Copy `.env.example` to `.env` only on the server. Never commit `.env`.
+
+Generate independent secrets:
+
+```bash
+openssl rand -hex 32
 ```
-
-## Features
-
-- Creator registration with email verification
-- Brand inquiry and matching
-- Refer & Earn points system
-- Creator dashboard
-- Admin panel
-- Cloudinary image upload
-- JWT authentication
 
 ## License
 

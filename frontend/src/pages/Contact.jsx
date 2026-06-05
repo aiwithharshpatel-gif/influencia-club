@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { Mail, Phone, MapPin, Clock, CheckCircle } from 'lucide-react';
+import { Mail, MapPin, CheckCircle } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import api from '../utils/api';
@@ -17,21 +17,9 @@ const Contact = () => {
       href: 'mailto:hello@influenziaclub.com'
     },
     {
-      icon: Phone,
-      label: 'WhatsApp',
-      value: '+91 XXXXX XXXXX',
-      href: 'https://wa.me/91XXXXX XXXXX'
-    },
-    {
       icon: MapPin,
       label: 'Location',
       value: 'Ahmedabad, Gujarat, India'
-    },
-    {
-      icon: Clock,
-      label: 'Response Time',
-      value: 'Within 24 hours',
-      highlight: true
     },
   ];
 
@@ -200,7 +188,7 @@ const Contact = () => {
                     Message Sent!
                   </h2>
                   <p className="text-muted">
-                    Thank you for reaching out. We'll get back to you within 24 hours.
+                    Thank you for reaching out. Your message has been received.
                   </p>
                 </div>
               )}

@@ -39,7 +39,7 @@ const Footer = () => {
               </span>
             </div>
             <p className="text-muted text-sm leading-relaxed">
-              India's most exclusive influencer community. Connecting elite creators with luxury brands.
+              A creator collaboration platform for profiles, campaign inquiries, referrals, and account management.
             </p>
             <div className="flex space-x-4">
               {socialLinks.map((social) => (
@@ -103,7 +103,7 @@ const Footer = () => {
             <ul className="space-y-2 text-sm">
               <li className="text-muted">hello@influenziaclub.com</li>
               <li className="text-muted">Ahmedabad, Gujarat, India</li>
-              <li className="text-gold font-medium">✦ Response within 24 hours</li>
+              <li className="text-gold font-medium">Email support</li>
             </ul>
           </div>
         </div>

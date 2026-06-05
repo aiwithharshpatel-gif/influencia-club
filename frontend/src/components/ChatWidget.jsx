@@ -7,7 +7,7 @@ const ChatWidget = () => {
     {
       id: 1,
       type: 'bot',
-      content: 'Welcome to Influenzia Club! ✨ How can we help you today?',
+      content: 'Welcome to Influenzia Club. I can help with common platform questions.',
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     },
   ]);
@@ -22,11 +22,11 @@ const ChatWidget = () => {
   ];
 
   const botResponses = {
-    'join': 'To join Influenzia Club, click on "Join Now" and fill out the registration form. Our team will review your application within 24 hours! ✨',
-    'pricing': 'Our Founding Member offer is ₹4,999 (50% off regular price of ₹9,999). This includes lifetime VIP access! 💎',
-    'brand': 'We partner with 50+ luxury brands including Gucci, Louis Vuitton, Chanel, and more. You\'ll get exclusive campaign access! ',
-    'support': 'Our team is available 24/7. For immediate assistance, email us at hello@influenziaclub.com 📧',
-    'default': 'Thank you for your message! Our team will respond within 24 hours. For urgent queries, email hello@influenziaclub.com',
+    'join': 'Select "Join Now", complete the application, and verify your email. Approved creators can then use the dashboard.',
+    'pricing': 'Current membership and campaign terms are provided during the application or campaign process. Contact hello@influenziaclub.com for details.',
+    'brand': 'Brands can submit a campaign inquiry with their goals, categories, and budget range for review.',
+    'support': 'For account or platform support, email hello@influenziaclub.com.',
+    'default': 'This automated helper answers common questions. For direct assistance, email hello@influenziaclub.com.',
   };
 
   const getBotResponse = (userMessage) => {
@@ -57,7 +57,6 @@ const ChatWidget = () => {
     setInputValue('');
     setIsTyping(true);
 
-    // Simulate bot response
     setTimeout(() => {
       const botMessage = {
         id: messages.length + 2,
@@ -104,7 +103,7 @@ const ChatWidget = () => {
               </div>
               <div>
                 <h3 className="font-bold text-black">Influenzia Club</h3>
-                <p className="text-xs text-black/80">VIP Support • Online</p>
+                <p className="text-xs text-black/80">Automated help</p>
               </div>
             </div>
           </div>

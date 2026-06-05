@@ -1,13 +1,10 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, Users, TrendingUp, DollarSign, Network, Star, Award, Zap, Heart, CheckCircle, Play } from 'lucide-react';
-import CreatorCard from '../components/CreatorCard';
+import { ArrowRight, TrendingUp, DollarSign, Network, Award, CheckCircle, Play } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import GoldenParticles from '../components/GoldenParticles';
 import FadeIn from '../components/FadeIn';
-import AnimatedCounter from '../components/AnimatedCounter';
 import VideoBackground from '../components/VideoBackground';
-import TestimonialsCarousel from '../components/TestimonialsCarousel';
 import BrandLogos from '../components/BrandLogos';
 import TiltCard from '../components/TiltCard';
 import ChatWidget from '../components/ChatWidget';
@@ -26,7 +23,7 @@ const Home = () => {
     {
       icon: TrendingUp,
       title: 'Growth Opportunities',
-      description: 'Get discovered by top brands and grow your influence exponentially.'
+      description: 'Build a searchable profile and be considered for relevant opportunities.'
     },
     {
       icon: DollarSign,
@@ -45,59 +42,20 @@ const Home = () => {
     },
   ];
 
-  const featuredCreators = [
-    {
-      id: '1',
-      name: 'Priya Sharma',
-      photoUrl: null,
-      category: 'influencer',
-      city: 'Ahmedabad',
-      instagram: 'priyasharma',
-      followerCount: '50K+',
-      isVerified: true,
-      isFeatured: true,
-      bio: 'Lifestyle & Fashion Creator | Ahmedabad'
-    },
-    {
-      id: '2',
-      name: 'Rahul Mehta',
-      photoUrl: null,
-      category: 'creator',
-      city: 'Surat',
-      instagram: 'rahulmehta',
-      followerCount: '75K+',
-      isVerified: true,
-      isFeatured: true,
-      bio: 'Tech Reviewer | Content Creator'
-    },
-    {
-      id: '3',
-      name: 'Ananya Patel',
-      photoUrl: null,
-      category: 'model',
-      city: 'Vadodara',
-      instagram: 'ananyapatel',
-      followerCount: '1.2L+',
-      isVerified: true,
-      isFeatured: true,
-      bio: 'Fashion Model | Brand Ambassador'
-    },
-  ];
-
   const stats = [
-    { value: 500, suffix: '+', label: 'Elite Creators' },
-    { value: 50, suffix: '+', label: 'Luxury Brands' },
-    { value: 2, suffix: 'Cr+', label: 'Earnings Generated', prefix: '₹' },
-    { value: 95, suffix: '%', label: 'Success Rate' },
+    { value: 'Apply', label: 'Creator membership' },
+    { value: 'Verify', label: 'Email and profile' },
+    { value: 'Connect', label: 'Campaign inquiries' },
+    { value: 'Track', label: 'Points and referrals' },
   ];
 
   const benefits = [
-    'Exclusive brand partnerships',
-    'Priority campaign access',
-    'Dedicated account manager',
-    'Premium analytics dashboard',
-    'Early payment options',
-    'VIP event invitations',
+    'Structured creator profiles',
+    'Campaign opportunity matching',
+    'Referral and points tracking',
+    'Creator dashboard',
+    'Account approval workflow',
+    'Email-based support',
   ];
 
   return (
@@ -139,9 +97,9 @@ const Home = () => {
 
             {/* Subtitle with better typography */}
             <p className="text-lg md:text-xl text-muted max-w-3xl mx-auto mb-8 leading-relaxed tracking-wide">
-              India's most <span className="text-gold font-semibold border-b border-gold/30">exclusive influencer community</span>. 
+              A focused <span className="text-gold font-semibold border-b border-gold/30">creator collaboration platform</span>.
               <br className="hidden md:block" />
-              Connect with luxury brands. Create legendary campaigns.
+              Build your profile, discover opportunities, and manage your creator journey.
             </p>
 
             {/* CTA Buttons with enhanced styling */}
@@ -168,9 +126,7 @@ const Home = () => {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-5xl mx-auto">
               {stats.map((stat, index) => (
                 <div key={index} className="luxury-card rounded-2xl p-6 group hover:border-gold/50 transition-all duration-500 hover:-translate-y-2">
-                  <div className="text-4xl md:text-5xl font-display font-bold gradient-text mb-2">
-                    <AnimatedCounter end={stat.value} suffix={stat.suffix} prefix={stat.prefix} />
-                  </div>
+                  <div className="text-3xl md:text-4xl font-display font-bold gradient-text mb-2">{stat.value}</div>
                   <div className="text-muted text-xs uppercase tracking-widest">{stat.label}</div>
                 </div>
               ))}
@@ -260,10 +216,10 @@ const Home = () => {
             <FadeIn>
               <div>
                 <h2 className="font-display text-4xl md:text-5xl font-bold mb-6">
-                  <span className="gradient-text">VIP</span> Benefits
+                  <span className="gradient-text">Creator</span> Membership
                 </h2>
                 <p className="text-muted text-lg mb-8 leading-relaxed">
-                  Unlock exclusive perks designed for elite creators. Join the inner circle and experience the difference.
+                  Apply for membership and use the platform tools available to approved creator accounts.
                 </p>
                 
                 <div className="space-y-4">
@@ -278,7 +234,7 @@ const Home = () => {
                 </div>
 
                 <Link to="/join" className="btn-primary inline-flex items-center mt-8 group">
-                  Get VIP Access
+                  Apply to Join
                   <ArrowRight className="ml-2 group-hover:translate-x-2 transition-transform" size={20} />
                 </Link>
               </div>
@@ -291,26 +247,21 @@ const Home = () => {
                 
                 <div className="relative">
                   <div className="text-center mb-8">
-                    <div className="text-gold text-sm uppercase tracking-widest mb-2">Limited Time</div>
-                    <h3 className="font-display text-3xl font-bold gradient-text">Founding Member Offer</h3>
+                    <div className="text-gold text-sm uppercase tracking-widest mb-2">Application Process</div>
+                    <h3 className="font-display text-3xl font-bold gradient-text">Build Your Creator Profile</h3>
                   </div>
                   
                   <div className="space-y-6">
-                    <div className="flex justify-between items-center py-4 border-b border-gold/20">
-                      <span className="text-muted">Regular Price</span>
-                      <span className="text-muted line-through">₹9,999</span>
-                    </div>
-                    <div className="flex justify-between items-center py-4 border-b border-gold/20">
-                      <span className="text-white font-semibold">Founding Member Price</span>
-                      <span className="text-gold font-bold text-2xl">₹4,999</span>
-                    </div>
-                    <div className="text-center text-muted text-sm">
-                      Save 50% - Limited spots available!
-                    </div>
+                    {['Submit your details', 'Verify your email', 'Complete your profile', 'Wait for account approval'].map((step) => (
+                      <div key={step} className="flex items-center gap-3 py-4 border-b border-gold/20">
+                        <CheckCircle className="text-gold w-5 h-5" />
+                        <span className="text-white">{step}</span>
+                      </div>
+                    ))}
                   </div>
 
                   <Link to="/join" className="btn-primary w-full mt-6 py-4 text-lg">
-                    Claim Your Spot Now
+                    Start Application
                   </Link>
                 </div>
               </div>
@@ -319,44 +270,7 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Featured Creators - Enhanced */}
-      <section className="py-24 bg-bg-cardLight relative">
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-gold/3 to-transparent"></div>
-        
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <FadeIn>
-            <div className="text-center mb-16">
-              <h2 className="font-display text-4xl md:text-5xl font-bold mb-4">
-                <span className="gradient-text">Featured</span> Talent
-              </h2>
-              <p className="text-muted text-lg">Meet our top creators making waves</p>
-            </div>
-          </FadeIn>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {featuredCreators.map((creator, index) => (
-              <FadeIn key={creator.id} delay={index * 150}>
-                <CreatorCard creator={creator} />
-              </FadeIn>
-            ))}
-          </div>
-
-          <FadeIn>
-            <div className="text-center mt-12">
-              <Link to="/creators" className="btn-outline inline-flex items-center group px-8 py-4">
-                View All Creators
-                <ArrowRight className="ml-2 group-hover:translate-x-2 transition-transform" size={20} />
-              </Link>
-            </div>
-          </FadeIn>
-        </div>
-      </section>
-
-      {/* Brand Logos Section */}
       <BrandLogos />
-
-      {/* Testimonials Carousel */}
-      <TestimonialsCarousel />
 
       {/* CTA Section - Enhanced */}
       <section className="py-24 relative overflow-hidden">
@@ -370,7 +284,7 @@ const Home = () => {
               Ready to Join the Inner Circle?
             </h2>
             <p className="text-lg text-muted mb-10 max-w-2xl mx-auto leading-relaxed">
-              Be part of India's most exclusive influencer community. Limited spots available for founding members.
+              Create your profile and apply to join the Influenzia Club creator community.
             </p>
             <Link to="/join" className="btn-primary text-xl px-10 py-5 group relative overflow-hidden">
               <span className="relative z-10">Start Your Journey</span>

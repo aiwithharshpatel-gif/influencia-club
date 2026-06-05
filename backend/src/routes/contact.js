@@ -2,6 +2,9 @@ import express from 'express';
 import { sendEmail } from '../services/otp_master.js';
 import rateLimit from 'express-rate-limit';
 import { z } from 'zod';
+import { env } from '../config/env.js';
+import { escapeHtml, normalizeEmail } from '../utils/security.js';
+import { safeErrorMessage } from '../middleware/errorHandler.js';
 
 const router = express.Router();
 
@@ -13,10 +16,10 @@ const contactLimiter = rateLimit({
 
 const contactSchema = z.object({
   name: z.string().min(2).max(100),
-  email: z.string().email(),
+  email: z.string().email().max(150),
   subject: z.string().min(2).max(200),
   message: z.string().min(10).max(2000)
-});
+}).strict();
 
 // Submit contact form
 router.post('/', contactLimiter, async (req, res) => {
@@ -26,21 +29,23 @@ router.post('/', contactLimiter, async (req, res) => {
 
     // Forward to admin email
     await sendEmail({
-      to: process.env.EMAIL_FROM || 'hello@influenziaclub.com',
-      subject: `Contact Form: ${subject}`,
+      to: env.supportEmail,
+      replyTo: normalizeEmail(email),
+      subject: `Contact form: ${subject.replace(/[\r\n]/g, ' ')}`,
+      text: `Name: ${name}\nEmail: ${email}\nSubject: ${subject}\n\n${message}`,
       html: `
         <h2>New Contact Form Submission</h2>
-        <p><strong>Name:</strong> ${name}</p>
-        <p><strong>Email:</strong> ${email}</p>
-        <p><strong>Subject:</strong> ${subject}</p>
+        <p><strong>Name:</strong> ${escapeHtml(name)}</p>
+        <p><strong>Email:</strong> ${escapeHtml(email)}</p>
+        <p><strong>Subject:</strong> ${escapeHtml(subject)}</p>
         <p><strong>Message:</strong></p>
-        <p>${message}</p>
+        <p>${escapeHtml(message).replaceAll('\n', '<br>')}</p>
       `
     });
 
     res.json({
       success: true,
-      message: 'Thank you for contacting us! We will get back to you within 24 hours.'
+      message: 'Thank you for contacting us. Your message has been received.'
     });
   } catch (error) {
     console.error('Contact error:', error);
@@ -53,7 +58,7 @@ router.post('/', contactLimiter, async (req, res) => {
     }
     res.status(500).json({
       success: false,
-      message: error.message
+      message: safeErrorMessage(error, env.isProduction)
     });
   }
 });
