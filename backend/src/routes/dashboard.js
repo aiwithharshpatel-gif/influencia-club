@@ -1,10 +1,19 @@
 import express from 'express';
-import { PrismaClient } from '@prisma/client';
+import { z } from 'zod';
 import { protect } from '../middleware/auth.js';
 import { getPointsHistory, getReferralStats } from '../services/pointsService.js';
+import prisma from '../lib/prisma.js';
+import { safeErrorMessage } from '../middleware/errorHandler.js';
+import { env } from '../config/env.js';
 
 const router = express.Router();
-const prisma = new PrismaClient();
+
+const REWARD_COSTS = Object.freeze({
+  featured: 200,
+  ig_promo: 150,
+  event_entry: 100,
+  collab_priority: 300
+});
 
 // All routes require authentication
 router.use(protect);
@@ -65,7 +74,7 @@ router.get('/overview', async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: error.message
+      message: safeErrorMessage(error, env.isProduction)
     });
   }
 });
@@ -92,7 +101,7 @@ router.get('/points', async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: error.message
+      message: safeErrorMessage(error, env.isProduction)
     });
   }
 });
@@ -119,7 +128,7 @@ router.get('/referrals', async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: error.message
+      message: safeErrorMessage(error, env.isProduction)
     });
   }
 });
@@ -151,7 +160,7 @@ router.get('/collabs', async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: error.message
+      message: safeErrorMessage(error, env.isProduction)
     });
   }
 });
@@ -159,7 +168,12 @@ router.get('/collabs', async (req, res) => {
 // Submit redemption request
 router.post('/redeem', async (req, res) => {
   try {
-    const { rewardType, pointsCost } = req.body;
+    const { rewardType } = z
+      .object({
+        rewardType: z.enum(['featured', 'ig_promo', 'event_entry', 'collab_priority'])
+      })
+      .parse(req.body);
+    const pointsCost = REWARD_COSTS[rewardType];
 
     const creator = await prisma.creator.findUnique({
       where: { id: req.user.id }
@@ -172,12 +186,23 @@ router.post('/redeem', async (req, res) => {
       });
     }
 
-    const redemption = await prisma.redemptionRequest.create({
-      data: {
+    const existingPending = await prisma.redemptionRequest.findFirst({
+      where: {
         creatorId: req.user.id,
         rewardType,
-        pointsCost
+        status: 'pending'
       }
+    });
+
+    if (existingPending) {
+      return res.status(409).json({
+        success: false,
+        message: 'A request for this reward is already pending'
+      });
+    }
+
+    const redemption = await prisma.redemptionRequest.create({
+      data: { creatorId: req.user.id, rewardType, pointsCost }
     });
 
     res.json({
@@ -186,24 +211,29 @@ router.post('/redeem', async (req, res) => {
       redemption
     });
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid reward'
+      });
+    }
     res.status(500).json({
       success: false,
-      message: error.message
+      message: safeErrorMessage(error, env.isProduction)
     });
   }
 });
-
-import { z } from 'zod';
 
 const profileUpdateSchema = z.object({
   name: z.string().min(2).max(100).optional(),
   bio: z.string().max(200).optional(),
   city: z.string().max(50).optional(),
   category: z.enum(['influencer', 'actor', 'model', 'creator', 'public_figure']).optional(),
-  instagram: z.string().max(100).optional(),
-  mobile: z.string().regex(/^\d{10}$/).optional(),
+  instagram: z.string().max(100).regex(/^@?[A-Za-z0-9._]+$/).optional(),
+  mobile: z.string().regex(/^[6-9]\d{9}$/).optional(),
+  followerCount: z.string().max(20).optional().or(z.literal('')),
   photoUrl: z.string().url().optional().or(z.literal(''))
-});
+}).strict();
 
 // Update profile
 router.put('/profile', async (req, res) => {
@@ -218,6 +248,9 @@ router.put('/profile', async (req, res) => {
         updateData[key] = validated[key];
       }
     });
+    if (updateData.instagram) {
+      updateData.instagram = updateData.instagram.toLowerCase().replace(/^@/, '');
+    }
 
     const creator = await prisma.creator.update({
       where: { id: req.user.id },
@@ -231,7 +264,8 @@ router.put('/profile', async (req, res) => {
         city: true,
         bio: true,
         photoUrl: true,
-        mobile: true
+        mobile: true,
+        followerCount: true
       }
     });
 
@@ -250,7 +284,7 @@ router.put('/profile', async (req, res) => {
     }
     res.status(500).json({
       success: false,
-      message: error.message
+      message: safeErrorMessage(error, env.isProduction)
     });
   }
 });

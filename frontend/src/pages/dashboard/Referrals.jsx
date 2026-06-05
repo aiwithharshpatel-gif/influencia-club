@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Copy, Share2, TrendingUp, Award, Users, Star } from 'lucide-react';
+import { TrendingUp, Award, Users } from 'lucide-react';
 import api from '../../utils/api';
 import ReferralWidget from '../../components/ReferralWidget';
 

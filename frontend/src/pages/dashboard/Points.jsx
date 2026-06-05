@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
 import { Gift, Instagram, Ticket, Briefcase, CheckCircle } from 'lucide-react';
 import api from '../../utils/api';
 
@@ -9,8 +8,6 @@ const Points = () => {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   
-  const { register, handleSubmit, formState: { errors } } = useForm();
-
   useEffect(() => {
     fetchPoints();
   }, []);
@@ -28,12 +25,12 @@ const Points = () => {
     }
   };
 
-  const onSubmit = async (formData) => {
+  const onSubmit = async (rewardType) => {
     try {
       setSubmitting(true);
       setSuccess(false);
 
-      const response = await api.post('/dashboard/redeem', formData);
+      const response = await api.post('/dashboard/redeem', { rewardType });
       if (response.data.success) {
         setSuccess(true);
         fetchPoints();
@@ -137,9 +134,7 @@ const Points = () => {
                 {option.description}
               </p>
               <button
-                onClick={() => handleSubmit((formData) => {
-                  onSubmit({ rewardType: option.type, pointsCost: option.cost });
-                })()}
+                onClick={() => onSubmit(option.type)}
                 disabled={!canAfford || submitting}
                 className="w-full btn-outline text-sm py-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >

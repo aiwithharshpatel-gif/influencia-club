@@ -1,23 +1,20 @@
-FROM node:20-bookworm
+FROM node:20-bookworm-slim
 
-ARG CACHEBUST=1
-
-# Install network tools and openssl
-RUN apt-get update -y && apt-get install -y openssl ca-certificates netcat-traditional
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates netcat-openbsd openssl \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Copy dependency files
 COPY package*.json ./
-RUN npm install --legacy-peer-deps --ignore-scripts
+RUN npm ci
 
-# Copy the entire project (including schema_config folder)
-COPY . .
+COPY --chown=node:node . .
+RUN npx prisma generate --schema=./schema_config/prod.prisma \
+    && chmod +x deploy_start.sh
 
-# Make start script executable
-RUN chmod +x deploy_start.sh
-
+ENV NODE_ENV=production
 EXPOSE 5000
 
-# Use the startup script
+USER node
 ENTRYPOINT ["./deploy_start.sh"]

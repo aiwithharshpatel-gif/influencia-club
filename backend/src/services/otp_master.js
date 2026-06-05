@@ -1,121 +1,136 @@
 import nodemailer from 'nodemailer';
-import validator from 'validator';
+import { env } from '../config/env.js';
+import { escapeHtml } from '../utils/security.js';
 
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.resend.com',
-  port: parseInt(process.env.SMTP_PORT) || 465,
-  secure: (parseInt(process.env.SMTP_PORT) === 465 || !process.env.SMTP_PORT), // True for 465, default to true for Resend
-  auth: {
-    user: process.env.SMTP_USER || 'resend',
-    pass: process.env.SMTP_PASS
+  host: env.smtp.host,
+  port: env.smtp.port,
+  secure: env.smtp.secure,
+  auth:
+    env.smtp.user && env.smtp.pass
+      ? {
+          user: env.smtp.user,
+          pass: env.smtp.pass
+        }
+      : undefined,
+  pool: env.isProduction,
+  maxConnections: 3,
+  maxMessages: 100,
+  connectionTimeout: 15_000,
+  greetingTimeout: 15_000,
+  socketTimeout: 30_000,
+  tls: {
+    minVersion: 'TLSv1.2'
   }
 });
 
-export const sendEmail = async (options) => {
-  if (!process.env.SMTP_PASS) {
-    console.log('******************************************');
-    console.log('--- WARNING: RESEND API KEY (SMTP_PASS) MISSING ---');
-    console.log('To:', options.to);
-    console.log('Subject:', options.subject);
-    console.log('------------------------------------------');
-    console.log('OTP CODE (from HTML):', options.html.match(/\d{6}/)?.[0] || 'Not found');
-    console.log('******************************************');
-    
-    if (process.env.NODE_ENV === 'production') {
-      return { 
-        success: false, 
-        error: 'Email service not configured. Please contact support.' 
-      };
+export const verifyEmailTransport = async () => {
+  if (!env.smtp.host || !env.smtp.user || !env.smtp.pass) {
+    if (env.isProduction) {
+      throw new Error('SMTP is not fully configured');
     }
-    
-    return { success: true, messageId: 'mock-id-dev', note: 'Logged to console' };
+    console.warn('SMTP is not configured; development emails will be logged');
+    return false;
   }
 
-  const mailOptions = {
-    from: process.env.EMAIL_FROM || 'Influenzia Club <no-reply@influenziaclub.com>',
-    to: options.to,
-    subject: options.subject,
-    html: options.html
-  };
-
-  try {
-    const info = await transporter.sendMail(mailOptions);
-    console.log(`Email sent successfully to ${options.to}: ${info.messageId}`);
-    return { success: true, messageId: info.messageId };
-  } catch (error) {
-    console.error('--- NODEMAILER ERROR ---');
-    console.error('To:', options.to);
-    console.error('Error Code:', error.code);
-    console.error('Error Message:', error.message);
-    if (error.response) console.error('SMTP Response:', error.response);
-    console.error('------------------------');
-    return { success: false, error: error.message };
-  }
+  await transporter.verify();
+  console.log(`SMTP connection verified for ${env.smtp.host}:${env.smtp.port}`);
+  return true;
 };
 
-export const sendVerificationEmail = async (email, otp, name) => {
-  const safeName = validator.escape(name);
-  const html = `
-    <div style="font-family: sans-serif; padding: 20px;">
-      <h2>Welcome, ${safeName}</h2>
-      <p>Your verification code is:</p>
-      <div style="font-size: 32px; font-weight: bold; letter-spacing: 5px;">${otp}</div>
-      <p>Valid for 10 minutes.</p>
-    </div>
-  `;
+export const sendEmail = async ({ to, subject, html, text, replyTo }) => {
+  if (!env.smtp.host || !env.smtp.user || !env.smtp.pass) {
+    if (env.isProduction) {
+      throw new Error('Email service is unavailable');
+    }
+    console.log(`[DEV EMAIL] To: ${to} | Subject: ${subject}`);
+    return { success: true, messageId: 'development-email' };
+  }
 
-  return sendEmail({
-    to: email,
-    subject: 'Verify Your Email - Influenzia Club',
-    html
+  const info = await transporter.sendMail({
+    from: env.smtp.from,
+    to,
+    subject,
+    html,
+    text,
+    replyTo: replyTo || env.smtp.replyTo
   });
+
+  return { success: true, messageId: info.messageId };
 };
 
-export const sendWelcomeEmail = async (email, name, referralCode) => {
-  const safeName = validator.escape(name);
-  const referralLink = `${process.env.REFERRAL_BASE_URL || 'https://influenziaclub.com/join?ref='}${validator.escape(referralCode)}`;
-  
-  const html = `
-    <div style="font-family: sans-serif; padding: 20px;">
-      <h2>Welcome to the Club, ${safeName}</h2>
-      <p>Your referral link is: <strong>${referralLink}</strong></p>
-      <p>Signup Bonus: +10 pts</p>
-    </div>
-  `;
+export const sendVerificationEmail = (email, otp, name) =>
+  sendEmail({
+    to: email,
+    subject: 'Verify your email - Influenzia Club',
+    text: `Hi ${name}, your Influenzia Club verification code is ${otp}. It expires in 10 minutes.`,
+    html: `
+      <div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:24px">
+        <h2>Welcome, ${escapeHtml(name)}</h2>
+        <p>Use this verification code to complete your registration:</p>
+        <p style="font-size:32px;font-weight:700;letter-spacing:6px">${escapeHtml(otp)}</p>
+        <p>This code expires in 10 minutes. Do not share it with anyone.</p>
+      </div>
+    `
+  });
+
+export const sendWelcomeEmail = (email, name, referralCode) => {
+  const referralLink = `${env.referralBaseUrl}${encodeURIComponent(referralCode)}`;
 
   return sendEmail({
     to: email,
     subject: 'Welcome to Influenzia Club',
-    html
+    text: `Welcome, ${name}. Your referral link is ${referralLink}`,
+    html: `
+      <div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:24px">
+        <h2>Welcome to Influenzia Club, ${escapeHtml(name)}</h2>
+        <p>Your account is ready.</p>
+        <p>Your referral link:</p>
+        <p><a href="${escapeHtml(referralLink)}">${escapeHtml(referralLink)}</a></p>
+      </div>
+    `
   });
 };
 
-export const sendPasswordResetEmail = async (email, token, name) => {
-  const safeName = validator.escape(name);
-  const resetLink = `${process.env.FRONTEND_URL || 'https://influenziaclub.com'}/reset-password?token=${token}`;
-  
-  const html = `
-    <div style="font-family: sans-serif; padding: 20px;">
-      <p>Hi ${safeName},</p>
-      <p>Click below to reset your password:</p>
-      <a href="${resetLink}">Reset Password</a>
-    </div>
-  `;
+export const sendPasswordResetEmail = (email, token, name) => {
+  const resetLink = `${env.frontendOrigins[0]}/reset-password?token=${encodeURIComponent(token)}`;
 
   return sendEmail({
     to: email,
-    subject: 'Reset Your Password - Influenzia Club',
-    html
+    subject: 'Reset your password - Influenzia Club',
+    text: `Hi ${name}, reset your password using this link: ${resetLink}. It expires in 30 minutes.`,
+    html: `
+      <div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:24px">
+        <p>Hi ${escapeHtml(name)},</p>
+        <p>Use the button below to reset your password. This link expires in 30 minutes.</p>
+        <p><a href="${escapeHtml(resetLink)}">Reset password</a></p>
+        <p>If you did not request this, you can ignore this email.</p>
+      </div>
+    `
   });
 };
 
-export const sendInquiryNotificationEmail = async (inquiryData) => {
-  const { brandName, email } = inquiryData;
-  const html = `<p>New inquiry from ${brandName} (${email})</p>`;
-
-  return sendEmail({
-    to: process.env.EMAIL_FROM || 'hello@influenziaclub.com',
-    subject: 'New Brand Inquiry',
-    html
+export const sendInquiryNotificationEmail = (inquiryData) =>
+  sendEmail({
+    to: env.supportEmail,
+    replyTo: inquiryData.email,
+    subject: `New brand inquiry: ${inquiryData.brandName}`,
+    text: [
+      `Brand: ${inquiryData.brandName}`,
+      `Email: ${inquiryData.email}`,
+      `Mobile: ${inquiryData.mobile}`,
+      `Budget: ${inquiryData.budgetRange}`,
+      `Categories: ${inquiryData.categories}`,
+      `Message: ${inquiryData.message}`
+    ].join('\n'),
+    html: `
+      <h2>New brand inquiry</h2>
+      <p><strong>Brand:</strong> ${escapeHtml(inquiryData.brandName)}</p>
+      <p><strong>Email:</strong> ${escapeHtml(inquiryData.email)}</p>
+      <p><strong>Mobile:</strong> ${escapeHtml(inquiryData.mobile)}</p>
+      <p><strong>Budget:</strong> ${escapeHtml(inquiryData.budgetRange)}</p>
+      <p><strong>Categories:</strong> ${escapeHtml(inquiryData.categories)}</p>
+      <p><strong>Message:</strong></p>
+      <p>${escapeHtml(inquiryData.message).replaceAll('\n', '<br>')}</p>
+    `
   });
-};

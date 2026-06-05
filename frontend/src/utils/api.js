@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+export const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 const api = axios.create({
   baseURL: API_URL,
@@ -15,8 +15,17 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+    const isAuthRequest = [
+      '/auth/login',
+      '/auth/admin-login',
+      '/auth/register',
+      '/auth/verify-otp',
+      '/auth/refresh',
+      '/auth/forgot-password',
+      '/auth/reset-password'
+    ].some((path) => originalRequest?.url?.includes(path));
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (error.response?.status === 401 && !originalRequest?._retry && !isAuthRequest) {
       originalRequest._retry = true;
 
       try {

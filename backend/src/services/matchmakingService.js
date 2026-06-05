@@ -1,6 +1,4 @@
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import prisma from '../lib/prisma.js';
 
 /**
  * AI-Powered Matchmaking Service
@@ -37,7 +35,17 @@ export const findMatchingCreators = async (brandInquiry, limit = 10) => {
     // Get potential creators
     const creators = await prisma.creator.findMany({
       where,
-      include: {
+      select: {
+        id: true,
+        name: true,
+        photoUrl: true,
+        category: true,
+        city: true,
+        instagram: true,
+        followerCount: true,
+        isVerified: true,
+        isFeatured: true,
+        bio: true,
         creatorAnalytics: true,
         campaignCreators: {
           where: { status: 'completed' },
@@ -79,7 +87,7 @@ export const findMatchingCreators = async (brandInquiry, limit = 10) => {
     console.error('Matchmaking error:', error);
     return {
       success: false,
-      error: error.message
+      error: 'Unable to calculate creator matches'
     };
   }
 };
@@ -284,7 +292,7 @@ export const getRecommendations = async (creatorId, limit = 5) => {
     console.error('Recommendation error:', error);
     return {
       success: false,
-      error: error.message
+      error: 'Unable to generate recommendations'
     };
   }
 };
@@ -319,7 +327,7 @@ export const estimateCampaignReach = (creatorIds) => {
     console.error('Estimation error:', error);
     return {
       success: false,
-      error: error.message
+      error: 'Unable to estimate campaign performance'
     };
   }
 };

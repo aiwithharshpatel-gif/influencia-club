@@ -269,11 +269,20 @@ const Brands = () => {
                     Campaign Brief / Message
                   </label>
                   <textarea
-                    {...register('message')}
+                    {...register('message', {
+                      required: 'Campaign brief is required',
+                      minLength: {
+                        value: 10,
+                        message: 'Please provide at least 10 characters'
+                      }
+                    })}
                     rows={4}
                     className="w-full bg-bg border border-border rounded-lg px-4 py-3 text-white focus:outline-none focus:border-primary resize-none"
                     placeholder="Tell us about your campaign goals, target audience, and expectations..."
                   />
+                  {errors.message && (
+                    <p className="text-red-500 text-sm mt-1">{errors.message.message}</p>
+                  )}
                 </div>
 
                 <button

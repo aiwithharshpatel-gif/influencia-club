@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Target, Eye, Gift, Users, TrendingUp, DollarSign } from 'lucide-react';
+import { Target, Eye, Gift, Users, DollarSign } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 
@@ -23,10 +23,10 @@ const About = () => {
   ];
 
   const stats = [
-    { value: '500+', label: 'Active Creators' },
-    { value: '80+', label: 'Brand Deals Closed' },
-    { value: '12+', label: 'Cities Represented' },
-    { value: '₹2Cr+', label: 'Deals Facilitated' },
+    { value: 'Apply', label: 'Creator Registration' },
+    { value: 'Review', label: 'Account Approval' },
+    { value: 'Connect', label: 'Brand Inquiries' },
+    { value: 'Track', label: 'Points & Referrals' },
   ];
 
   return (

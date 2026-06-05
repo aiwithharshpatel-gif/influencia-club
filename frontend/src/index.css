@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer components {
+  .admin-row {
+    @apply flex flex-col md:flex-row md:items-center justify-between gap-4 bg-bg rounded-lg p-4;
+  }
+}
+
 :root {
   /* Gold colors from logo */
   --gold-primary: #D4AF37;

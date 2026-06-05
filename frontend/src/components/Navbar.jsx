@@ -2,10 +2,12 @@ import { Link, useLocation } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
 import { useState } from 'react';
 import logo from '../assets/logo.png';
+import { useAuth } from '../context/AuthContext';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
+  const { isAuthenticated, role } = useAuth();
 
   const navLinks = [
     { path: '/', label: 'Home' },
@@ -48,18 +50,29 @@ const Navbar = () => {
               </Link>
             ))}
             <div className="flex items-center space-x-4 border-l border-gold/20 pl-6 ml-4">
-              <Link
-                to="/login"
-                className="px-5 py-2 rounded-full border border-gold text-gold hover:bg-gold hover:text-black transition-all text-xs font-bold uppercase tracking-widest"
-              >
-                Sign In
-              </Link>
-              <Link
-                to="/join"
-                className="btn-primary text-xs px-6 py-2 uppercase tracking-widest font-bold"
-              >
-                Join Now
-              </Link>
+              {isAuthenticated && role === 'creator' ? (
+                <Link
+                  to="/dashboard"
+                  className="btn-primary text-xs px-6 py-2 uppercase tracking-widest font-bold"
+                >
+                  Dashboard
+                </Link>
+              ) : (
+                <>
+                  <Link
+                    to="/login"
+                    className="px-5 py-2 rounded-full border border-gold text-gold hover:bg-gold hover:text-black transition-all text-xs font-bold uppercase tracking-widest"
+                  >
+                    Sign In
+                  </Link>
+                  <Link
+                    to="/join"
+                    className="btn-primary text-xs px-6 py-2 uppercase tracking-widest font-bold"
+                  >
+                    Join Now
+                  </Link>
+                </>
+              )}
             </div>
           </div>
 
@@ -92,20 +105,32 @@ const Navbar = () => {
               </Link>
             ))}
             <div className="pt-4 space-y-3 border-t border-gold/20">
-              <Link
-                to="/login"
-                onClick={() => setIsOpen(false)}
-                className="block px-4 py-3 rounded-lg text-sm font-medium text-white hover:bg-gold/5 hover:text-gold transition-all text-center"
-              >
-                Sign In
-              </Link>
-              <Link
-                to="/join"
-                onClick={() => setIsOpen(false)}
-                className="block btn-primary text-center"
-              >
-                Join Now
-              </Link>
+              {isAuthenticated && role === 'creator' ? (
+                <Link
+                  to="/dashboard"
+                  onClick={() => setIsOpen(false)}
+                  className="block btn-primary text-center"
+                >
+                  Dashboard
+                </Link>
+              ) : (
+                <>
+                  <Link
+                    to="/login"
+                    onClick={() => setIsOpen(false)}
+                    className="block px-4 py-3 rounded-lg text-sm font-medium text-white hover:bg-gold/5 hover:text-gold transition-all text-center"
+                  >
+                    Sign In
+                  </Link>
+                  <Link
+                    to="/join"
+                    onClick={() => setIsOpen(false)}
+                    className="block btn-primary text-center"
+                  >
+                    Join Now
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>

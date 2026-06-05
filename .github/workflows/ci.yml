@@ -1,0 +1,49 @@
+name: Production CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DATABASE_URL: mysql://user:password@127.0.0.1:3306/influenzia
+      JWT_SECRET: ci-only-secret-000000000000000000000000000000
+      JWT_REFRESH_SECRET: ci-only-refresh-0000000000000000000000000000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            backend/package-lock.json
+            frontend/package-lock.json
+      - run: npm ci
+      - run: npm ci
+        working-directory: backend
+      - run: npm ci
+        working-directory: frontend
+      - run: npm run prisma:generate
+      - run: npm run check
+      - run: npm audit --audit-level=high
+      - run: npm audit --audit-level=high
+        working-directory: backend
+      - run: npm audit --audit-level=high
+        working-directory: frontend
+
+  containers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t influenzia-backend ./backend
+      - run: docker build -t influenzia-frontend ./frontend

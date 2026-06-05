@@ -1,13 +1,21 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { timingSafeEqual } from 'crypto';
 import rateLimit from 'express-rate-limit';
+import { z } from 'zod';
 import prisma from '../lib/prisma.js';
 import { generateOTP, generateReferralCode } from '../utils/helpers.js';
 import { sendVerificationEmail, sendWelcomeEmail, sendPasswordResetEmail } from '../services/otp_master.js';
-import { creditPoints, processReferral } from '../services/pointsService.js';
-import { validateCreator, safeErrorMessage } from '../middleware/errorHandler.js';
+import { safeErrorMessage } from '../middleware/errorHandler.js';
+import { env } from '../config/env.js';
+import {
+  createSessionToken,
+  hashOtp,
+  hashSessionToken,
+  normalizeEmail,
+  normalizeInstagram,
+  safeEqual
+} from '../utils/security.js';
 
 const router = express.Router();
 
@@ -24,46 +32,139 @@ const otpLimiter = rateLimit({
   message: 'Too many OTP requests, please try again after 15 minutes'
 });
 
-// OTPs are now stored in the database via Prisma
+const passwordSchema = z
+  .string()
+  .min(8)
+  .max(128)
+  .regex(/[A-Za-z]/, 'Password must include a letter')
+  .regex(/\d/, 'Password must include a number');
+
+const accessCookieOptions = {
+  httpOnly: true,
+  secure: env.isProduction,
+  sameSite: 'strict',
+  maxAge: 15 * 60 * 1000,
+  path: '/api'
+};
+
+const refreshCookieOptions = {
+  httpOnly: true,
+  secure: env.isProduction,
+  sameSite: 'strict',
+  maxAge: 30 * 24 * 60 * 60 * 1000,
+  path: '/api'
+};
+
+const cookieClearOptions = {
+  httpOnly: true,
+  secure: env.isProduction,
+  sameSite: 'strict',
+  path: '/api'
+};
+
+const clearCreatorSession = (res) => {
+  res.clearCookie('accessToken', cookieClearOptions);
+  res.clearCookie('refreshToken', cookieClearOptions);
+};
+
+const createStoredRefreshToken = async (creatorId, client = prisma) => {
+  const token = createSessionToken();
+  await client.refreshToken.create({
+    data: {
+      creatorId,
+      tokenHash: hashSessionToken(token, env.otpSecret),
+      expiresAt: new Date(Date.now() + refreshCookieOptions.maxAge)
+    }
+  });
+  return token;
+};
+
+const setCreatorSession = (res, creator, refreshToken) => {
+  const accessToken = jwt.sign(
+    {
+      id: creator.id,
+      email: creator.email,
+      role: 'creator',
+      version: creator.passwordVersion
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: '15m' }
+  );
+
+  res.cookie('accessToken', accessToken, accessCookieOptions);
+  res.cookie('refreshToken', refreshToken, refreshCookieOptions);
+};
+
+const registrationSchema = z.object({
+  name: z.string().min(2).max(100),
+  email: z.string().email().max(150),
+  mobile: z.string().regex(/^[6-9]\d{9}$/),
+  instagram: z.string().min(1).max(100).regex(/^@?[A-Za-z0-9._]+$/),
+  category: z.enum(['influencer', 'actor', 'model', 'creator', 'public_figure']),
+  city: z.string().min(2).max(50),
+  referralCode: z.string().max(20).optional().or(z.literal('')),
+  password: passwordSchema
+});
+
+const createUniqueReferralCode = async (name) => {
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const referralCode = generateReferralCode(name);
+    const exists = await prisma.creator.findUnique({ where: { referralCode } });
+    if (!exists) return referralCode;
+  }
+  throw new Error('Unable to generate a referral code');
+};
 
 // Register - Send OTP
-router.post('/register', otpLimiter, validateCreator, async (req, res) => {
+router.post('/register', otpLimiter, async (req, res) => {
   try {
-    const { name, email, mobile, instagram, category, city, referralCode, password } = req.body;
+    const parsed = registrationSchema.parse(req.body);
+    const email = normalizeEmail(parsed.email);
+    const instagram = normalizeInstagram(parsed.instagram);
 
-    if (!password || password.length < 8) {
-      return res.status(400).json({
-        success: false,
-        message: 'Password must be at least 8 characters'
-      });
-    }
-
-    // Generate OTP
-    const otp = generateOTP();
-    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-
-    // Store OTP in database
-    await prisma.otpVerification.create({
-      data: {
-        email,
-        otp,
-        userData: req.body,
-        expiresAt: otpExpiry
-      }
+    const existingCreator = await prisma.creator.findFirst({
+      where: { OR: [{ email }, { instagram }] },
+      select: { email: true, instagram: true }
     });
 
-    // Send verification email
-    const emailResult = await sendVerificationEmail(email, otp, name);
-    
-    if (!emailResult.success) {
-      // In production, we might want to fail the request if email sending fails
-      // However, for debugging, we'll return the error message
-      return res.status(500).json({
+    if (existingCreator) {
+      return res.status(409).json({
         success: false,
-        message: 'Failed to send verification email. Please check your email configuration.',
-        error: process.env.NODE_ENV === 'development' ? emailResult.error : undefined
+        message:
+          existingCreator.email === email
+            ? 'Email already registered'
+            : 'Instagram handle already registered'
       });
     }
+
+    const otp = generateOTP();
+    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    const passwordHash = await bcrypt.hash(parsed.password, 12);
+
+    await prisma.$transaction(async (tx) => {
+      await tx.otpVerification.deleteMany({
+        where: { expiresAt: { lt: new Date() } }
+      });
+      await tx.otpVerification.deleteMany({ where: { email } });
+      await tx.otpVerification.create({
+        data: {
+          email,
+          otp: hashOtp(email, otp, env.otpSecret),
+          userData: {
+            name: parsed.name,
+            mobile: parsed.mobile,
+            instagram,
+            category: parsed.category,
+            city: parsed.city,
+            referralCode: parsed.referralCode || null,
+            passwordHash
+          },
+          expiresAt: otpExpiry
+        }
+      });
+    });
+
+    await sendVerificationEmail(email, otp, parsed.name);
 
     res.json({
       success: true,
@@ -72,6 +173,13 @@ router.post('/register', otpLimiter, validateCreator, async (req, res) => {
     });
   } catch (error) {
     console.error('Register error:', error);
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: error.issues
+      });
+    }
     res.status(500).json({
       success: false,
       message: safeErrorMessage(error, process.env.NODE_ENV === 'production')
@@ -82,15 +190,21 @@ router.post('/register', otpLimiter, validateCreator, async (req, res) => {
 // Verify OTP and Complete Registration
 router.post('/verify-otp', otpLimiter, async (req, res) => {
   try {
-    const { email, otp } = req.body;
+    const verification = z
+      .object({
+        email: z.string().email(),
+        otp: z.string().regex(/^\d{6}$/)
+      })
+      .parse(req.body);
+    const email = normalizeEmail(verification.email);
 
-    // Check OTP in database
     const storedOTP = await prisma.otpVerification.findFirst({
-      where: { email, otp },
+      where: { email },
       orderBy: { createdAt: 'desc' }
     });
 
-    if (!storedOTP) {
+    const submittedOtpHash = hashOtp(email, verification.otp, env.otpSecret);
+    if (!storedOTP || !safeEqual(storedOTP.otp, submittedOtpHash)) {
       return res.status(400).json({
         success: false,
         message: 'Invalid verification code or no code found.'
@@ -105,16 +219,17 @@ router.post('/verify-otp', otpLimiter, async (req, res) => {
       });
     }
 
-    // OTP verified, create user
-    const { name, mobile, instagram, category, city, password, referralCode: inputReferralCode } = storedOTP.userData;
+    const {
+      name,
+      mobile,
+      instagram,
+      category,
+      city,
+      passwordHash,
+      referralCode: inputReferralCode
+    } = storedOTP.userData;
+    const referralCode = await createUniqueReferralCode(name);
 
-    // Hash password
-    const passwordHash = await bcrypt.hash(password, 10);
-
-    // Generate unique referral code
-    const referralCode = generateReferralCode(name);
-
-    // Check if referral code is valid
     let referrer = null;
     if (inputReferralCode) {
       referrer = await prisma.creator.findUnique({
@@ -122,71 +237,92 @@ router.post('/verify-otp', otpLimiter, async (req, res) => {
       });
     }
 
-    // Create creator
-    const creator = await prisma.creator.create({
-      data: {
-        name,
-        email,
-        passwordHash,
-        mobile,
-        instagram: instagram.toLowerCase().replace('@', ''),
-        category,
-        city,
-        referralCode,
-        referredBy: referrer?.id || null,
-        isApproved: true // Auto-approve at launch
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        referralCode: true
+    const creator = await prisma.$transaction(async (tx) => {
+      const created = await tx.creator.create({
+        data: {
+          name,
+          email,
+          passwordHash,
+          mobile,
+          instagram,
+          category,
+          city,
+          referralCode,
+          referredBy: referrer?.id || null,
+          isApproved: false,
+          pointsBalance: 10
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          referralCode: true,
+          passwordVersion: true
+        }
+      });
+
+      await tx.pointsTransaction.create({
+        data: {
+          creatorId: created.id,
+          type: 'earn',
+          reason: 'signup',
+          points: 10,
+          note: 'Signup bonus'
+        }
+      });
+
+      if (referrer) {
+        await tx.referral.create({
+          data: {
+            referrerId: referrer.id,
+            referredId: created.id,
+            status: 'confirmed',
+            pointsCredited: true
+          }
+        });
+
+        const referralCount = await tx.referral.count({
+          where: { referrerId: referrer.id, status: 'confirmed' }
+        });
+        const milestonePoints = referralCount % 5 === 0 ? 100 : 0;
+
+        await tx.creator.update({
+          where: { id: referrer.id },
+          data: { pointsBalance: { increment: 50 + milestonePoints } }
+        });
+        await tx.pointsTransaction.create({
+          data: {
+            creatorId: referrer.id,
+            type: 'earn',
+            reason: 'referral',
+            points: 50,
+            note: 'Referred a new creator'
+          }
+        });
+
+        if (milestonePoints) {
+          await tx.pointsTransaction.create({
+            data: {
+              creatorId: referrer.id,
+              type: 'earn',
+              reason: 'referral_milestone',
+              points: milestonePoints,
+              note: `${referralCount} referrals milestone`
+            }
+          });
+        }
       }
+
+      await tx.otpVerification.deleteMany({ where: { email } });
+      return created;
     });
 
-    // Credit signup bonus
-    await creditPoints(creator.id, 10, 'signup', 'Signup bonus');
-
-    // Process referral if exists
-    if (referrer) {
-      await processReferral(referrer.id, creator.id);
-    }
-
-    // Delete OTP from database
-    await prisma.otpVerification.deleteMany({ where: { email } });
-
-    // Send welcome email
-    await sendWelcomeEmail(email, name, referralCode);
-
-    // Auto-login: Generate tokens
-    const accessToken = jwt.sign(
-      { id: creator.id, email: creator.email, role: 'creator', version: 1 },
-      process.env.JWT_SECRET,
-      { expiresIn: '15m' }
-    );
-
-    const refreshToken = jwt.sign(
-      { id: creator.id, version: 1 },
-      process.env.JWT_REFRESH_SECRET,
-      { expiresIn: '30d' }
-    );
-
-    // Set cookies
-    res.cookie('accessToken', accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 15 * 60 * 1000,
-      path: '/api'
+    sendWelcomeEmail(email, name, referralCode).catch((error) => {
+      console.error(`Welcome email failed for ${email}: ${error.message}`);
     });
 
-    res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 30 * 24 * 60 * 60 * 1000,
-      path: '/api'
-    });
+    const refreshToken = await createStoredRefreshToken(creator.id);
+    setCreatorSession(res, creator, refreshToken);
 
     res.json({
       success: true,
@@ -201,6 +337,12 @@ router.post('/verify-otp', otpLimiter, async (req, res) => {
     });
   } catch (error) {
     console.error('Verify OTP error:', error);
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid verification request'
+      });
+    }
     res.status(500).json({
       success: false,
       message: safeErrorMessage(error, process.env.NODE_ENV === 'production')
@@ -211,7 +353,10 @@ router.post('/verify-otp', otpLimiter, async (req, res) => {
 // Login
 router.post('/login', loginLimiter, async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const credentials = z
+      .object({ email: z.string().email(), password: z.string().min(1).max(128) })
+      .parse(req.body);
+    const email = normalizeEmail(credentials.email);
 
     // Find creator
     const creator = await prisma.creator.findUnique({
@@ -226,8 +371,15 @@ router.post('/login', loginLimiter, async (req, res) => {
       });
     }
 
+    if (creator.status !== 'active') {
+      return res.status(403).json({
+        success: false,
+        message: 'Your account is not active'
+      });
+    }
+
     // Verify password
-    const isValidPassword = await bcrypt.compare(password, creator.passwordHash);
+    const isValidPassword = await bcrypt.compare(credentials.password, creator.passwordHash);
 
     if (!isValidPassword) {
       console.warn(`[SECURITY] Failed login attempt for email: ${email} (Invalid password)`);
@@ -237,43 +389,16 @@ router.post('/login', loginLimiter, async (req, res) => {
       });
     }
 
-    // Check if approved
-    if (!creator.isApproved) {
-      return res.status(403).json({
-        success: false,
-        message: 'Your profile is pending approval'
-      });
-    }
-
-    // Generate tokens
-    const accessToken = jwt.sign(
-      { id: creator.id, email: creator.email, role: 'creator', version: creator.passwordVersion },
-      process.env.JWT_SECRET,
-      { expiresIn: '15m' }
-    );
-
-    const refreshToken = jwt.sign(
-      { id: creator.id, version: creator.passwordVersion },
-      process.env.JWT_REFRESH_SECRET,
-      { expiresIn: '30d' }
-    );
-
-    // Set cookies with strict sameSite and path restriction
-    res.cookie('accessToken', accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 15 * 60 * 1000,
-      path: '/api'
+    await prisma.refreshToken.deleteMany({
+      where: {
+        OR: [
+          { creatorId: creator.id, expiresAt: { lt: new Date() } },
+          { creatorId: creator.id, createdAt: { lt: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000) } }
+        ]
+      }
     });
-
-    res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 30 * 24 * 60 * 60 * 1000,
-      path: '/api'
-    });
+    const refreshToken = await createStoredRefreshToken(creator.id);
+    setCreatorSession(res, creator, refreshToken);
 
     res.json({
       success: true,
@@ -290,6 +415,12 @@ router.post('/login', loginLimiter, async (req, res) => {
     });
   } catch (error) {
     console.error('Login error:', error);
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        success: false,
+        message: 'Valid email and password are required'
+      });
+    }
     res.status(500).json({
       success: false,
       message: safeErrorMessage(error, process.env.NODE_ENV === 'production')
@@ -298,68 +429,77 @@ router.post('/login', loginLimiter, async (req, res) => {
 });
 
 // Logout
-router.post('/logout', (req, res) => {
-  const cookieOptions = {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
-    path: '/api'
-  };
+router.post('/logout', async (req, res) => {
+  try {
+    if (req.cookies.refreshToken) {
+      await prisma.refreshToken.deleteMany({
+        where: {
+          tokenHash: hashSessionToken(req.cookies.refreshToken, env.otpSecret)
+        }
+      });
+    }
+  } catch (error) {
+    console.error('Refresh token revocation failed during logout:', error.message);
+  }
 
-  res.clearCookie('accessToken', cookieOptions);
-  res.clearCookie('refreshToken', cookieOptions);
-  res.clearCookie('adminToken', cookieOptions);
+  clearCreatorSession(res);
+  res.clearCookie('adminToken', cookieClearOptions);
   res.json({
     success: true,
     message: 'Logout successful'
   });
 });
 
-// Refresh Token - issues new access token
-// Note: Full refresh token rotation requires RefreshToken model in Prisma schema
 router.post('/refresh', async (req, res) => {
   try {
-    const refreshToken = req.cookies.refreshToken;
+    const submittedToken = req.cookies.refreshToken;
 
-    if (!refreshToken) {
+    if (!submittedToken) {
       return res.status(401).json({
         success: false,
         message: 'No refresh token'
       });
     }
 
-    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
-
-    const creator = await prisma.creator.findUnique({
-      where: { id: decoded.id }
+    const storedToken = await prisma.refreshToken.findUnique({
+      where: {
+        tokenHash: hashSessionToken(submittedToken, env.otpSecret)
+      },
+      include: { creator: true }
     });
 
-    if (!creator || creator.passwordVersion !== decoded.version) {
+    if (
+      !storedToken ||
+      storedToken.expiresAt <= new Date() ||
+      storedToken.creator.status !== 'active'
+    ) {
+      clearCreatorSession(res);
       return res.status(401).json({
         success: false,
         message: 'Invalid refresh token'
       });
     }
 
-    const accessToken = jwt.sign(
-      { id: creator.id, email: creator.email, role: 'creator', version: creator.passwordVersion },
-      process.env.JWT_SECRET,
-      { expiresIn: '15m' }
-    );
+    const replacementToken = createSessionToken();
+    await prisma.$transaction([
+      prisma.refreshToken.delete({ where: { id: storedToken.id } }),
+      prisma.refreshToken.create({
+        data: {
+          creatorId: storedToken.creatorId,
+          tokenHash: hashSessionToken(replacementToken, env.otpSecret),
+          expiresAt: new Date(Date.now() + refreshCookieOptions.maxAge)
+        }
+      })
+    ]);
 
-    res.cookie('accessToken', accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 15 * 60 * 1000,
-      path: '/api'
-    });
+    setCreatorSession(res, storedToken.creator, replacementToken);
 
     res.json({
       success: true,
       message: 'Token refreshed'
     });
   } catch (error) {
+    clearCreatorSession(res);
     res.status(401).json({
       success: false,
       message: 'Invalid refresh token'
@@ -368,26 +508,31 @@ router.post('/refresh', async (req, res) => {
 });
 
 // Forgot Password
-router.post('/forgot-password', async (req, res) => {
+router.post('/forgot-password', otpLimiter, async (req, res) => {
   try {
-    const { email } = req.body;
+    const { email: submittedEmail } = z.object({ email: z.string().email() }).parse(req.body);
+    const email = normalizeEmail(submittedEmail);
 
     const creator = await prisma.creator.findUnique({
       where: { email }
     });
 
     if (!creator) {
-      return res.status(404).json({
-        success: false,
-        message: 'Email not found'
+      return res.json({
+        success: true,
+        message: 'If an account exists, a password reset link has been sent'
       });
     }
 
     // Generate reset token
     const resetToken = jwt.sign(
-      { id: creator.id },
+      {
+        id: creator.id,
+        purpose: 'password-reset',
+        version: creator.passwordVersion
+      },
       process.env.JWT_SECRET,
-      { expiresIn: '24h' }
+      { expiresIn: '30m' }
     );
 
     // Send reset email
@@ -402,9 +547,15 @@ router.post('/forgot-password', async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Password reset link sent to your email'
+      message: 'If an account exists, a password reset link has been sent'
     });
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        success: false,
+        message: 'A valid email is required'
+      });
+    }
     res.status(500).json({
       success: false,
       message: safeErrorMessage(error, process.env.NODE_ENV === 'production')
@@ -415,19 +566,35 @@ router.post('/forgot-password', async (req, res) => {
 // Reset Password
 router.post('/reset-password', async (req, res) => {
   try {
-    const { token, newPassword } = req.body;
+    const { token, newPassword } = z
+      .object({ token: z.string().min(1), newPassword: passwordSchema })
+      .parse(req.body);
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
-    const passwordHash = await bcrypt.hash(newPassword, 10);
+    if (decoded.purpose !== 'password-reset') {
+      throw new Error('Invalid token purpose');
+    }
 
-    await prisma.creator.update({
+    const creator = await prisma.creator.findUnique({
       where: { id: decoded.id },
-      data: { 
-        passwordHash,
-        passwordVersion: { increment: 1 }
-      }
+      select: { passwordVersion: true }
     });
+    if (!creator || creator.passwordVersion !== decoded.version) {
+      throw new Error('Reset token has already been used');
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+
+    await prisma.$transaction([
+      prisma.creator.update({
+        where: { id: decoded.id },
+        data: {
+          passwordHash,
+          passwordVersion: { increment: 1 }
+        }
+      }),
+      prisma.refreshToken.deleteMany({ where: { creatorId: decoded.id } })
+    ]);
 
     res.json({
       success: true,
@@ -444,7 +611,10 @@ router.post('/reset-password', async (req, res) => {
 // Admin Login
 router.post('/admin-login', loginLimiter, async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const credentials = z
+      .object({ email: z.string().email(), password: z.string().min(1).max(128) })
+      .parse(req.body);
+    const email = normalizeEmail(credentials.email);
 
     const admin = await prisma.admin.findUnique({
       where: { email }
@@ -458,7 +628,7 @@ router.post('/admin-login', loginLimiter, async (req, res) => {
       });
     }
 
-    const isValidPassword = await bcrypt.compare(password, admin.passwordHash);
+    const isValidPassword = await bcrypt.compare(credentials.password, admin.passwordHash);
 
     if (!isValidPassword) {
       console.warn(`[SECURITY] Failed ADMIN login attempt for email: ${email} (Invalid password)`);
@@ -496,6 +666,12 @@ router.post('/admin-login', loginLimiter, async (req, res) => {
     });
   } catch (error) {
     console.error('Admin login error:', error);
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        success: false,
+        message: 'Valid email and password are required'
+      });
+    }
     res.status(500).json({
       success: false,
       message: safeErrorMessage(error, process.env.NODE_ENV === 'production')
@@ -533,11 +709,16 @@ router.get('/me', async (req, res) => {
             city: true,
             pointsBalance: true,
             isApproved: true,
+            status: true,
             passwordVersion: true
           }
         });
         
-        if (user && user.passwordVersion === decoded.version) {
+        if (
+          user &&
+          user.status === 'active' &&
+          user.passwordVersion === decoded.version
+        ) {
           return res.json({
             success: true,
             role: 'creator',
@@ -584,7 +765,7 @@ router.get('/me', async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: error.message
+      message: safeErrorMessage(error, env.isProduction)
     });
   }
 });
