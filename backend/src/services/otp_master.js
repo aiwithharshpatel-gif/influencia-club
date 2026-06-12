@@ -1,14 +1,6 @@
 import nodemailer from 'nodemailer';
 import validator from 'validator';
 
-console.log('--- SMTP CONFIGURATION INITIALIZED ---');
-console.log('Host:', process.env.SMTP_HOST || 'smtp.resend.com');
-console.log('Port:', process.env.SMTP_PORT || 465);
-console.log('User:', process.env.SMTP_USER || 'resend');
-console.log('Pass Length:', process.env.SMTP_PASS ? process.env.SMTP_PASS.length : 0);
-console.log('Pass Hex:', process.env.SMTP_PASS ? Buffer.from(process.env.SMTP_PASS).toString('hex') : 'none');
-console.log('--------------------------------------');
-
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.resend.com',
   port: parseInt(process.env.SMTP_PORT) || 465,
@@ -21,13 +13,12 @@ const transporter = nodemailer.createTransport({
 
 transporter.verify(function (error, success) {
   if (error) {
-    console.log("--- SMTP VERIFY FAILED ---");
-    console.log("Error Message:", error.message);
-    console.log("--------------------------");
+    console.error("SMTP transporter verification failed:", error.message);
   } else {
-    console.log("--- SMTP VERIFY SUCCESSFUL! Server is ready to take messages ---");
+    console.log("SMTP transporter verified successfully");
   }
 });
+
 
 
 
