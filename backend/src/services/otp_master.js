@@ -1,6 +1,14 @@
 import nodemailer from 'nodemailer';
 import validator from 'validator';
 
+console.log('--- SMTP CONFIGURATION INITIALIZED ---');
+console.log('Host:', process.env.SMTP_HOST || 'smtp.resend.com');
+console.log('Port:', process.env.SMTP_PORT || 465);
+console.log('User:', process.env.SMTP_USER || 'resend');
+console.log('Pass Length:', process.env.SMTP_PASS ? process.env.SMTP_PASS.length : 0);
+console.log('Pass Hex:', process.env.SMTP_PASS ? Buffer.from(process.env.SMTP_PASS).toString('hex') : 'none');
+console.log('--------------------------------------');
+
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.resend.com',
   port: parseInt(process.env.SMTP_PORT) || 465,
@@ -10,6 +18,7 @@ const transporter = nodemailer.createTransport({
     pass: process.env.SMTP_PASS
   }
 });
+
 
 export const sendEmail = async (options) => {
   if (!process.env.SMTP_PASS) {
