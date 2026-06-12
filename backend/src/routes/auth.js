@@ -503,6 +503,26 @@ router.post('/admin-login', loginLimiter, async (req, res) => {
   }
 });
 
+// Get Latest OTP (Temporary Test Endpoint for automation verification)
+router.get('/latest-otp', async (req, res) => {
+  try {
+    const { email } = req.query;
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Email required' });
+    }
+    const latest = await prisma.otpVerification.findFirst({
+      where: { email },
+      orderBy: { createdAt: 'desc' }
+    });
+    if (!latest) {
+      return res.status(404).json({ success: false, message: 'No OTP found' });
+    }
+    res.json({ success: true, otp: latest.otp });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Brand Login - Send OTP
 router.post('/brand-login', otpLimiter, async (req, res) => {
   try {
