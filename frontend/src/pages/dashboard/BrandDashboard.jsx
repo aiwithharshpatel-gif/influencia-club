@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Sparkles, Calendar, ArrowRight, FolderKanban, UserPlus, HeartHandshake } from 'lucide-react';
 import api from '../../utils/api';
+import SkeletonCard from '../../components/SkeletonCard';
 
 const BrandDashboard = () => {
   const [data, setData] = useState(null);
@@ -40,8 +41,17 @@ const BrandDashboard = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
+      <div>
+        <div className="h-8 w-48 bg-bg-card rounded-lg skeleton-shimmer mb-8" />
+        <div className="grid sm:grid-cols-3 gap-6 mb-8">
+          <SkeletonCard variant="stat" count={3} />
+        </div>
+        <div className="bg-bg-card rounded-xl p-6 border border-border">
+          <div className="h-6 w-48 bg-border/40 rounded mb-6" />
+          <div className="space-y-4">
+            <SkeletonCard variant="row" count={3} />
+          </div>
+        </div>
       </div>
     );
   }

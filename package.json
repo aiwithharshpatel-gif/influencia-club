@@ -17,32 +17,33 @@
     "prisma:generate": "cd backend && npx prisma generate --schema=./schema_config/prod.prisma"
   },
   "dependencies": {
-    "vite": "^5.1.6",
+    "@prisma/client": "^5.10.0",
     "@vitejs/plugin-react": "^4.2.1",
     "autoprefixer": "^10.4.18",
-    "postcss": "^8.4.35",
-    "tailwindcss": "^3.4.1",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-router-dom": "^6.22.3",
     "axios": "^1.6.7",
-    "react-hook-form": "^7.51.0",
-    "lucide-react": "^0.344.0",
-    "express": "^4.18.3",
-    "cors": "^2.8.5",
-    "cookie-parser": "^1.4.6",
-    "dotenv": "^16.4.5",
-    "@prisma/client": "^5.10.0",
     "bcryptjs": "^2.4.3",
     "cloudinary": "^2.0.3",
+    "cookie-parser": "^1.4.6",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.18.3",
     "jsonwebtoken": "^9.0.2",
+    "lucide-react": "^0.344.0",
     "multer": "^1.4.5-lts.1",
     "nodemailer": "^6.9.12",
+    "postcss": "^8.4.35",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-hook-form": "^7.51.0",
+    "react-router-dom": "^6.22.3",
+    "tailwindcss": "^3.4.1",
     "uuid": "^9.0.1",
-    "validator": "^13.11.0"
+    "validator": "^13.11.0",
+    "vite": "^5.1.6"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
+    "playwright": "^1.60.0",
     "prisma": "^5.10.0"
   }
 }

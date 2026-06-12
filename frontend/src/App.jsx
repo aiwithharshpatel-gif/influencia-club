@@ -18,6 +18,7 @@ import Login from './pages/Login';
 import BrandLogin from './pages/BrandLogin';
 import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
+import NotFound from './pages/NotFound';
 
 // Dashboard Pages
 const DashboardLayout = lazy(() => import('./pages/dashboard/DashboardLayout'));
@@ -31,6 +32,8 @@ const Collaborations = lazy(() => import('./pages/dashboard/Collabs'));
 const BrandDashboardLayout = lazy(() => import('./pages/dashboard/BrandDashboardLayout'));
 const BrandDashboard = lazy(() => import('./pages/dashboard/BrandDashboard'));
 const BrandMatchmaking = lazy(() => import('./pages/dashboard/BrandMatchmaking'));
+const BrandAnalytics = lazy(() => import('./pages/dashboard/BrandAnalytics'));
+const BrandMessages = lazy(() => import('./pages/dashboard/BrandMessages'));
 
 
 function App() {
@@ -104,7 +107,12 @@ function App() {
             }>
               <Route index element={<BrandDashboard />} />
               <Route path="inquiries/:id/matches" element={<BrandMatchmaking />} />
+              <Route path="analytics" element={<BrandAnalytics />} />
+              <Route path="messages" element={<BrandMessages />} />
             </Route>
+
+            {/* 404 Catch-All */}
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </PageTransition>
       </Router>

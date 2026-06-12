@@ -5,6 +5,7 @@ import PricingCard from '../components/PricingCard';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import api from '../utils/api';
+import toast from 'react-hot-toast';
 
 const Brands = () => {
   const [submitted, setSubmitted] = useState(false);
@@ -86,10 +87,11 @@ const Brands = () => {
         categories: Array.isArray(data.categories) ? data.categories : [data.categories]
       });
       if (response.data.success) {
+        toast.success('Inquiry submitted successfully! We\'ll get back to you within 48 hours.');
         setSubmitted(true);
       }
     } catch (error) {
-      alert(error.response?.data?.message || 'Failed to submit inquiry');
+      toast.error(error.response?.data?.message || 'Failed to submit inquiry. Please try again.');
     }
   };
 

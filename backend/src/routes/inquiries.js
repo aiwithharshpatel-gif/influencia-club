@@ -13,7 +13,7 @@ const inquirySchema = z.object({
   mobile: z.string().regex(/^\d{10}$/, 'Mobile must be 10 digits'),
   budgetRange: z.enum(['<5000', '5000-15000', '15000-30000', '30000-50000', '50000+']),
   categories: z.array(z.string()).min(1),
-  message: z.string().min(1).max(2000)
+  message: z.string().max(2000).optional().default('')
 });
 
 // Submit brand inquiry
@@ -55,15 +55,19 @@ router.post('/', async (req, res) => {
   } catch (error) {
     console.error('Inquiry error:', error);
     if (error instanceof z.ZodError) {
+      const fieldErrors = error.issues.map(issue => {
+        const field = issue.path.join('.');
+        return `${field}: ${issue.message}`;
+      });
       return res.status(400).json({
         success: false,
-        message: 'Validation failed',
-        errors: error.issues
+        message: fieldErrors[0] || 'Validation failed',
+        errors: fieldErrors
       });
     }
     res.status(500).json({
       success: false,
-      message: error.message
+      message: 'An error occurred while submitting your inquiry. Please try again.'
     });
   }
 });

@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Link, useNavigate, Outlet, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Briefcase, FilePlus, LogOut, ArrowLeft } from 'lucide-react';
+import { LayoutDashboard, Briefcase, FilePlus, LogOut, ArrowLeft, BarChart3, MessageSquare } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
@@ -18,6 +18,8 @@ const BrandDashboardLayout = () => {
 
   const navItems = [
     { path: '/brand/dashboard', label: 'Campaign Hub', icon: LayoutDashboard },
+    { path: '/brand/dashboard/analytics', label: 'Analytics', icon: BarChart3 },
+    { path: '/brand/dashboard/messages', label: 'Messages', icon: MessageSquare },
   ];
 
   const handleLogout = async () => {
@@ -64,7 +66,9 @@ const BrandDashboardLayout = () => {
                 <nav className="space-y-2">
                   {navItems.map((item) => {
                     const Icon = item.icon;
-                    const isActive = location.pathname === item.path;
+                    const isActive = item.path === '/brand/dashboard'
+                      ? location.pathname === '/brand/dashboard'
+                      : location.pathname.startsWith(item.path);
                     
                     return (
                       <Link
@@ -104,6 +108,37 @@ const BrandDashboardLayout = () => {
             {/* Main Content */}
             <div className="lg:col-span-3">
               <Outlet />
+            </div>
+          </div>
+
+          {/* Mobile Bottom Tab Bar */}
+          <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-bg-card/95 backdrop-blur-md border-t border-border">
+            <div className="flex items-center justify-around py-2">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = item.path === '/brand/dashboard'
+                  ? location.pathname === '/brand/dashboard'
+                  : location.pathname.startsWith(item.path);
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    className={`flex flex-col items-center gap-1 px-3 py-1.5 rounded-lg transition-colors ${
+                      isActive ? 'text-primary' : 'text-muted'
+                    }`}
+                  >
+                    <Icon size={20} />
+                    <span className="text-[10px] font-medium">{item.label}</span>
+                  </Link>
+                );
+              })}
+              <button
+                onClick={handleLogout}
+                className="flex flex-col items-center gap-1 px-3 py-1.5 text-red-400"
+              >
+                <LogOut size={20} />
+                <span className="text-[10px] font-medium">Logout</span>
+              </button>
             </div>
           </div>
         </div>

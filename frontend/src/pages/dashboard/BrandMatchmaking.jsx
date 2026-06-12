@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Sparkles, CheckCircle2, Star, MailOpen, AlertCircle } from 'lucide-react';
 import api from '../../utils/api';
 import toast from 'react-hot-toast';
+import SkeletonCard from '../../components/SkeletonCard';
 
 const BrandMatchmaking = () => {
   const { id } = useParams();
@@ -54,8 +55,17 @@ const BrandMatchmaking = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
+      <div>
+        <div className="flex items-center space-x-4 mb-8">
+          <div className="w-10 h-10 bg-bg-card rounded-lg skeleton-shimmer" />
+          <div className="space-y-2">
+            <div className="h-3 w-24 bg-border/40 rounded" />
+            <div className="h-6 w-48 bg-border/50 rounded" />
+          </div>
+        </div>
+        <div className="grid md:grid-cols-2 gap-6">
+          <SkeletonCard variant="card" count={4} />
+        </div>
       </div>
     );
   }

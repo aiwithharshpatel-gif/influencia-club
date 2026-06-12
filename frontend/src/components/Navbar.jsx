@@ -100,6 +100,13 @@ const Navbar = () => {
                 Sign In
               </Link>
               <Link
+                to="/brand-login"
+                onClick={() => setIsOpen(false)}
+                className="block px-4 py-3 rounded-lg text-sm font-medium text-gold/80 hover:bg-gold/5 hover:text-gold transition-all text-center border border-gold/20"
+              >
+                Brand Portal
+              </Link>
+              <Link
                 to="/join"
                 onClick={() => setIsOpen(false)}
                 className="block btn-primary text-center"
