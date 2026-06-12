@@ -43,7 +43,7 @@ const BrandDashboardLayout = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-4 gap-8">
             {/* Sidebar */}
-            <div className="lg:col-span-1">
+            <div className="hidden lg:block lg:col-span-1">
               <div className="bg-bg-card rounded-2xl p-6 border border-border sticky top-24">
                 {/* Brand Info */}
                 <div className="flex items-center space-x-3 mb-6 pb-6 border-b border-border">
