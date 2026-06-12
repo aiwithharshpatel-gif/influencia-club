@@ -529,6 +529,7 @@ router.post('/brand-login', otpLimiter, async (req, res) => {
 
     // Generate OTP
     const otp = generateOTP();
+    console.log(`DEBUG BRAND OTP: ${otp} for ${email}`);
     const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
     // Store OTP in database
