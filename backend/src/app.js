@@ -105,6 +105,9 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/brand', brandRoutes);
 
 
+import { createServer } from 'http';
+import { Server } from 'socket.io';
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Influenzia Club API is running' });
@@ -120,9 +123,37 @@ app.use((err, req, res, next) => {
   });
 });
 
+// Create HTTP server and integrate socket.io
+const server = createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    methods: ['GET', 'POST'],
+    credentials: true
+  }
+});
+
+// Socket connection registry
+io.on('connection', (socket) => {
+  console.log(`Socket client connected: ${socket.id}`);
+
+  // Client joins their specific room (either user email or creator ID)
+  socket.on('join', (roomName) => {
+    socket.join(roomName);
+    console.log(`Socket client ${socket.id} joined room: ${roomName}`);
+  });
+
+  socket.on('disconnect', () => {
+    console.log(`Socket client disconnected: ${socket.id}`);
+  });
+});
+
+// Expose io instance to Express routes
+app.set('io', io);
+
 // Start server
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Influenzia Club API running on port ${PORT} at 0.0.0.0`);
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`Influenzia Club API with WebSockets running on port ${PORT} at 0.0.0.0`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });
 

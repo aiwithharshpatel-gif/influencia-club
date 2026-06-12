@@ -113,6 +113,7 @@ model Creator {
   referralsReceived    Referral[]        @relation("ReferredUser")
   redemptionRequests   RedemptionRequest[]
   campaignCreators     CampaignCreator[]
+  campaignApplications CampaignApplication[]
   assignedInquiries    BrandInquiry[]    @relation("AssignedCreator")
   payments             Payment[]
   payouts              Payout[]
@@ -190,9 +191,12 @@ model Campaign {
   startDate       DateTime?
   endDate         DateTime?
   notes           String?           @db.Text
+  isPublic        Boolean           @default(false)
+  budget          String?           @db.VarChar(50)
   createdAt       DateTime          @default(now()) @map("created_at")
 
   campaignCreators CampaignCreator[]
+  campaignApplications CampaignApplication[]
   analytics        CampaignAnalytics?
   review           Review?
 
@@ -210,6 +214,22 @@ model CampaignCreator {
   createdAt   DateTime              @default(now()) @map("created_at")
 
   @@map("campaign_creators")
+}
+
+model CampaignApplication {
+  id          String   @id @default(uuid())
+  campaignId  String   @db.VarChar(36)
+  campaign    Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  creatorId   String   @db.VarChar(36)
+  creator     Creator  @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  pitch       String   @db.Text
+  rate        String?  @db.VarChar(50)
+  status      String   @default("pending") // "pending", "approved", "rejected"
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@unique([campaignId, creatorId])
+  @@map("campaign_applications")
 }
 
 model Admin {

@@ -97,25 +97,37 @@ router.get('/inquiries/:id/matches', async (req, res) => {
 
     const matchResult = await findMatchingCreators(brandInquiry, 10);
     
+    // Find or create Campaign record
+    let campaign = await prisma.campaign.findFirst({
+      where: { brandInquiryId: id }
+    });
+
+    if (!campaign) {
+      campaign = await prisma.campaign.create({
+        data: {
+          brandInquiryId: id,
+          title: `Campaign for ${brandInquiry.brandName} (${brandInquiry.budgetRange})`,
+          status: 'planning',
+          budget: brandInquiry.budgetRange,
+          isPublic: false
+        }
+      });
+    }
+
     // Also fetch currently invited creators for this inquiry to flag them in UI
-    const campaigns = await prisma.campaign.findMany({
-      where: { brandInquiryId: id },
-      include: {
-        campaignCreators: true
-      }
+    const campaignCreators = await prisma.campaignCreator.findMany({
+      where: { campaignId: campaign.id }
     });
 
     const invitedCreatorIds = new Set();
     const confirmedCreatorIds = new Set();
 
-    campaigns.forEach(camp => {
-      camp.campaignCreators.forEach(cc => {
-        if (cc.status === 'confirmed' || cc.status === 'completed') {
-          confirmedCreatorIds.add(cc.creatorId);
-        } else {
-          invitedCreatorIds.add(cc.creatorId);
-        }
-      });
+    campaignCreators.forEach(cc => {
+      if (cc.status === 'confirmed' || cc.status === 'completed') {
+        confirmedCreatorIds.add(cc.creatorId);
+      } else {
+        invitedCreatorIds.add(cc.creatorId);
+      }
     });
 
     if (matchResult.success) {
@@ -144,6 +156,11 @@ router.get('/inquiries/:id/matches', async (req, res) => {
 
       res.json({
         success: true,
+        campaign: {
+          id: campaign.id,
+          isPublic: campaign.isPublic,
+          budget: campaign.budget
+        },
         matches: enhancedMatches
       });
     } else {
@@ -510,6 +527,12 @@ router.post('/messages', async (req, res) => {
       }
     });
 
+    // Emit real-time socket event
+    const io = req.app.get('io');
+    if (io) {
+      io.to(creatorId).emit('message', message);
+    }
+
     res.json({
       success: true,
       message
@@ -519,6 +542,254 @@ router.post('/messages', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to send message'
+    });
+  }
+});
+
+/**
+ * Get registered creators (Marketplace)
+ * GET /api/brand/creators
+ */
+router.get('/creators', async (req, res) => {
+  try {
+    const { category, city, search } = req.query;
+
+    const whereClause = {
+      status: 'active'
+    };
+
+    if (category) {
+      whereClause.category = category;
+    }
+    if (city) {
+      whereClause.city = city;
+    }
+    if (search?.trim()) {
+      whereClause.OR = [
+        { name: { contains: search } },
+        { instagram: { contains: search } },
+        { bio: { contains: search } }
+      ];
+    }
+
+    const creators = await prisma.creator.findMany({
+      where: whereClause,
+      select: {
+        id: true,
+        name: true,
+        instagram: true,
+        category: true,
+        city: true,
+        bio: true,
+        photoUrl: true,
+        followerCount: true,
+        isVerified: true,
+        isFeatured: true
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    res.json({
+      success: true,
+      creators
+    });
+  } catch (error) {
+    console.error('Fetch marketplace creators error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve creators list'
+    });
+  }
+});
+
+/**
+ * Toggle Campaign Public Recruitment & Update Budget
+ * PUT /api/brand/campaigns/:id/recruitment
+ */
+router.put('/campaigns/:id/recruitment', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { isPublic, budget } = req.body;
+
+    // Verify campaign belongs to the brand
+    const campaign = await prisma.campaign.findUnique({
+      where: { id },
+      include: { brandInquiry: true }
+    });
+
+    if (!campaign || campaign.brandInquiry.email !== req.brand.email) {
+      return res.status(404).json({
+        success: false,
+        message: 'Campaign not found'
+      });
+    }
+
+    const updatedCampaign = await prisma.campaign.update({
+      where: { id },
+      data: {
+        isPublic: isPublic !== undefined ? !!isPublic : campaign.isPublic,
+        budget: budget !== undefined ? budget : campaign.budget
+      }
+    });
+
+    res.json({
+      success: true,
+      message: `Campaign recruitment status updated successfully`,
+      campaign: updatedCampaign
+    });
+  } catch (error) {
+    console.error('Update campaign recruitment error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update recruitment settings'
+    });
+  }
+});
+
+/**
+ * Get incoming applications for a campaign
+ * GET /api/brand/campaigns/:id/applications
+ */
+router.get('/campaigns/:id/applications', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Verify campaign belongs to the brand
+    const campaign = await prisma.campaign.findUnique({
+      where: { id },
+      include: { brandInquiry: true }
+    });
+
+    if (!campaign || campaign.brandInquiry.email !== req.brand.email) {
+      return res.status(404).json({
+        success: false,
+        message: 'Campaign not found'
+      });
+    }
+
+    const applications = await prisma.campaignApplication.findMany({
+      where: { campaignId: id },
+      include: {
+        creator: {
+          select: {
+            id: true,
+            name: true,
+            instagram: true,
+            category: true,
+            city: true,
+            bio: true,
+            photoUrl: true,
+            followerCount: true,
+            isVerified: true
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    res.json({
+      success: true,
+      applications
+    });
+  } catch (error) {
+    console.error('Fetch campaign applications error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve applications'
+    });
+  }
+});
+
+/**
+ * Action on a campaign application (Accept/Reject)
+ * POST /api/brand/applications/:id/action
+ */
+router.post('/applications/:id/action', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { action } = req.body; // 'approve' or 'reject'
+
+    if (!['approve', 'reject'].includes(action)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid action. Must be approve or reject.'
+      });
+    }
+
+    // Verify application and brand ownership
+    const application = await prisma.campaignApplication.findUnique({
+      where: { id },
+      include: {
+        campaign: {
+          include: { brandInquiry: true }
+        }
+      }
+    });
+
+    if (!application || application.campaign.brandInquiry.email !== req.brand.email) {
+      return res.status(404).json({
+        success: false,
+        message: 'Application not found'
+      });
+    }
+
+    if (application.status !== 'pending') {
+      return res.status(400).json({
+        success: false,
+        message: `Application is already ${application.status}`
+      });
+    }
+
+    // Update status
+    const status = action === 'approve' ? 'approved' : 'rejected';
+    
+    // Perform transaction to ensure atomic update and campaign creator match if approved
+    const result = await prisma.$transaction(async (tx) => {
+      const updatedApp = await tx.campaignApplication.update({
+        where: { id },
+        data: { status }
+      });
+
+      if (action === 'approve') {
+        // Check if CampaignCreator link already exists
+        const existingCc = await tx.campaignCreator.findFirst({
+          where: {
+            campaignId: application.campaignId,
+            creatorId: application.creatorId
+          }
+        });
+
+        if (!existingCc) {
+          await tx.campaignCreator.create({
+            data: {
+              campaignId: application.campaignId,
+              creatorId: application.creatorId,
+              deliverables: `Applied with rate: ${application.rate || 'Negotiable'}. Pitch: ${application.pitch}`,
+              status: 'confirmed'
+            }
+          });
+        } else {
+          // If already exists (e.g. invited), update status to confirmed
+          await tx.campaignCreator.update({
+            where: { id: existingCc.id },
+            data: { status: 'confirmed' }
+          });
+        }
+      }
+
+      return updatedApp;
+    });
+
+    res.json({
+      success: true,
+      message: `Application ${action}d successfully`,
+      application: result
+    });
+  } catch (error) {
+    console.error('Campaign application action error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to process application action'
     });
   }
 });
