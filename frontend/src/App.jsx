@@ -15,6 +15,7 @@ import Join from './pages/Join';
 import Brands from './pages/Brands';
 import Contact from './pages/Contact';
 import Login from './pages/Login';
+import BrandLogin from './pages/BrandLogin';
 import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
 
@@ -25,6 +26,12 @@ const Profile = lazy(() => import('./pages/dashboard/Profile'));
 const Referrals = lazy(() => import('./pages/dashboard/Referrals'));
 const Points = lazy(() => import('./pages/dashboard/Points'));
 const Collaborations = lazy(() => import('./pages/dashboard/Collabs'));
+
+// Brand Dashboard Pages
+const BrandDashboardLayout = lazy(() => import('./pages/dashboard/BrandDashboardLayout'));
+const BrandDashboard = lazy(() => import('./pages/dashboard/BrandDashboard'));
+const BrandMatchmaking = lazy(() => import('./pages/dashboard/BrandMatchmaking'));
+
 
 function App() {
   const [isLoading, setIsLoading] = useState(true);
@@ -84,6 +91,19 @@ function App() {
               <Route path="referrals" element={<Referrals />} />
               <Route path="points" element={<Points />} />
               <Route path="collabs" element={<Collaborations />} />
+            </Route>
+
+            {/* Brand Login Route */}
+            <Route path="/brand-login" element={<BrandLogin />} />
+
+            {/* Brand Dashboard Routes */}
+            <Route path="/brand/dashboard" element={
+              <Suspense fallback={<LoadingScreen />}>
+                <BrandDashboardLayout />
+              </Suspense>
+            }>
+              <Route index element={<BrandDashboard />} />
+              <Route path="inquiries/:id/matches" element={<BrandMatchmaking />} />
             </Route>
           </Routes>
         </PageTransition>

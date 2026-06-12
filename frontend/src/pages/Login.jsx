@@ -115,6 +115,15 @@ const Login = () => {
                 Join Now
               </Link>
             </p>
+
+            <div className="mt-6 pt-6 border-t border-border/50 text-center">
+              <p className="text-muted text-sm">
+                Are you a Brand Partner?{' '}
+                <Link to="/brand-login" className="text-primary hover:text-primary-soft font-medium">
+                  Access Brand Portal
+                </Link>
+              </p>
+            </div>
           </div>
         </div>
       </section>

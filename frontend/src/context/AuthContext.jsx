@@ -69,6 +69,20 @@ export const AuthProvider = ({ children }) => {
     return response.data;
   };
 
+  const brandLogin = async (email) => {
+    const response = await api.post('/auth/brand-login', { email });
+    return response.data;
+  };
+
+  const brandVerifyOTP = async (email, otp) => {
+    const response = await api.post('/auth/brand-verify', { email, otp });
+    if (response.data.success) {
+      setUser({ email, brandName: response.data.brandName || 'Brand Manager', role: 'brand' });
+      setRole('brand');
+    }
+    return response.data;
+  };
+
   const logout = async () => {
     try {
       await api.post('/auth/logout');
@@ -86,11 +100,14 @@ export const AuthProvider = ({ children }) => {
     loading,
     login,
     adminLogin,
+    brandLogin,
+    brandVerifyOTP,
     register,
     verifyOTP,
     logout,
     isAuthenticated: !!user,
-    isAdmin: role === 'admin'
+    isAdmin: role === 'admin',
+    isBrand: role === 'brand'
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

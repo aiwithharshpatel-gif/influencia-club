@@ -182,3 +182,59 @@ export const anyProtect = async (req, res, next) => {
     next(error);
   }
 };
+
+export const brandProtect = async (req, res, next) => {
+  try {
+    const token = req.cookies?.accessToken || req.headers.authorization?.split(' ')[1];
+
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: 'Access denied. No brand token provided.'
+      });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    
+    if (decoded.role !== 'brand') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Invalid brand role.'
+      });
+    }
+
+    // Verify if brand inquiries exist for this email to verify active brand status
+    const inquiries = await prisma.brandInquiry.findMany({
+      where: { email: decoded.email }
+    });
+
+    if (inquiries.length === 0) {
+      return res.status(401).json({
+        success: false,
+        message: 'Brand inquiry profile not found or expired'
+      });
+    }
+
+    req.brand = {
+      email: decoded.email,
+      brandName: inquiries[0].brandName,
+      role: 'brand'
+    };
+    next();
+  } catch (error) {
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid brand token'
+      });
+    }
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({
+        success: false,
+        message: 'Brand token expired'
+      });
+    }
+    next(error);
+  }
+};
+

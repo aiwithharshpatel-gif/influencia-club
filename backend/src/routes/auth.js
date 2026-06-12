@@ -5,7 +5,7 @@ import { timingSafeEqual } from 'crypto';
 import rateLimit from 'express-rate-limit';
 import prisma from '../lib/prisma.js';
 import { generateOTP, generateReferralCode } from '../utils/helpers.js';
-import { sendVerificationEmail, sendWelcomeEmail, sendPasswordResetEmail } from '../services/otp_master.js';
+import { sendVerificationEmail, sendWelcomeEmail, sendPasswordResetEmail, sendEmail } from '../services/otp_master.js';
 import { creditPoints, processReferral } from '../services/pointsService.js';
 import { validateCreator, safeErrorMessage } from '../middleware/errorHandler.js';
 
@@ -503,6 +503,162 @@ router.post('/admin-login', loginLimiter, async (req, res) => {
   }
 });
 
+// Brand Login - Send OTP
+router.post('/brand-login', otpLimiter, async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email is required'
+      });
+    }
+
+    // Verify if any BrandInquiry exists for this email
+    const inquiryExists = await prisma.brandInquiry.findFirst({
+      where: { email }
+    });
+
+    if (!inquiryExists) {
+      return res.status(404).json({
+        success: false,
+        message: 'No campaign inquiries found for this email. Please submit a campaign request on our Brands page first.'
+      });
+    }
+
+    // Generate OTP
+    const otp = generateOTP();
+    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    // Store OTP in database
+    await prisma.otpVerification.create({
+      data: {
+        email,
+        otp,
+        userData: { role: 'brand' },
+        expiresAt: otpExpiry
+      }
+    });
+
+    // Send verification email
+    const html = `
+      <div style="font-family: sans-serif; padding: 20px; max-width: 600px; border: 1px solid #eee; border-radius: 8px;">
+        <h2 style="color: #6366f1;">Brand Dashboard Login</h2>
+        <p>Use the verification code below to log in to your Brand Dashboard:</p>
+        <div style="font-size: 32px; font-weight: bold; letter-spacing: 5px; margin: 20px 0; background: #f3f4f6; padding: 15px; border-radius: 8px; text-align: center; color: #111827;">${otp}</div>
+        <p style="color: #6b7280; font-size: 14px;">This code is valid for 10 minutes. If you did not request this code, please ignore this email.</p>
+      </div>
+    `;
+
+    const emailResult = await sendEmail({
+      to: email,
+      subject: 'Your Brand Dashboard Login Code - Influenzia Club',
+      html
+    });
+
+    if (!emailResult.success) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to send login code email. Please try again.',
+        error: process.env.NODE_ENV === 'development' ? emailResult.error : undefined
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Login verification code sent to your email',
+      email
+    });
+  } catch (error) {
+    console.error('Brand login error:', error);
+    res.status(500).json({
+      success: false,
+      message: safeErrorMessage(error, process.env.NODE_ENV === 'production')
+    });
+  }
+});
+
+// Brand Verify - Validate OTP and Complete Login
+router.post('/brand-verify', otpLimiter, async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email and verification code are required'
+      });
+    }
+
+    // Check OTP in database
+    const storedOTP = await prisma.otpVerification.findFirst({
+      where: { email, otp },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    if (!storedOTP) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid verification code or no code found.'
+      });
+    }
+
+    if (storedOTP.expiresAt < new Date()) {
+      await prisma.otpVerification.delete({ where: { id: storedOTP.id } });
+      return res.status(400).json({
+        success: false,
+        message: 'Verification code expired. Please request a new code.'
+      });
+    }
+
+    // Delete OTP from database
+    await prisma.otpVerification.deleteMany({ where: { email } });
+
+    // Generate tokens
+    const accessToken = jwt.sign(
+      { id: email, email: email, role: 'brand', version: 1 },
+      process.env.JWT_SECRET,
+      { expiresIn: '15m' }
+    );
+
+    const refreshToken = jwt.sign(
+      { id: email, version: 1 },
+      process.env.JWT_REFRESH_SECRET,
+      { expiresIn: '30d' }
+    );
+
+    // Set cookies
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 15 * 60 * 1000,
+      path: '/api'
+    };
+
+    res.cookie('accessToken', accessToken, cookieOptions);
+
+    res.cookie('refreshToken', refreshToken, {
+      ...cookieOptions,
+      maxAge: 30 * 24 * 60 * 60 * 1000
+    });
+
+    res.json({
+      success: true,
+      message: 'Login successful',
+      email,
+      role: 'brand'
+    });
+  } catch (error) {
+    console.error('Brand verify error:', error);
+    res.status(500).json({
+      success: false,
+      message: safeErrorMessage(error, process.env.NODE_ENV === 'production')
+    });
+  }
+});
+
 // Get Current User Info
 router.get('/me', async (req, res) => {
   try {
@@ -546,7 +702,30 @@ router.get('/me', async (req, res) => {
         }
       }
     } catch (e) {
-      // Not a valid creator token, try admin
+      // Not a valid creator token
+    }
+
+    // Try verifying as brand
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+      if (decoded.role === 'brand') {
+        const inquiries = await prisma.brandInquiry.findMany({
+          where: { email: decoded.email }
+        });
+        if (inquiries.length > 0) {
+          return res.json({
+            success: true,
+            role: 'brand',
+            user: {
+              email: decoded.email,
+              brandName: inquiries[0].brandName,
+              role: 'brand'
+            }
+          });
+        }
+      }
+    } catch (e) {
+      // Not a brand token
     }
 
     // Try verifying as admin
@@ -574,7 +753,7 @@ router.get('/me', async (req, res) => {
         }
       }
     } catch (e) {
-      // Both failed
+      // Admin verification failed
     }
 
     res.status(401).json({
@@ -590,3 +769,4 @@ router.get('/me', async (req, res) => {
 });
 
 export default router;
+

@@ -37,3 +37,8 @@ backend/prisma/migrations/
 
 .vercel
 .env*.local
+
+# Demo videos & media
+demo-videos/
+*.webm
+*.mp4

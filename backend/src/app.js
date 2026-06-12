@@ -15,6 +15,8 @@ import dashboardRoutes from './routes/dashboard.js';
 import adminRoutes from './routes/admin.js';
 import contactRoutes from './routes/contact.js';
 import paymentRoutes from './routes/payments.js';
+import brandRoutes from './routes/brand.js';
+
 import { sanitizeRequest } from './middleware/sanitizer.js';
 
 dotenv.config();
@@ -100,6 +102,8 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/brand', brandRoutes);
+
 
 // Health check
 app.get('/api/health', (req, res) => {

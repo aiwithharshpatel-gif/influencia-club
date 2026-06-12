@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { Upload, CheckCircle } from 'lucide-react';
+import { Upload, CheckCircle, Star } from 'lucide-react';
 import api from '../../utils/api';
 
 const Profile = () => {
