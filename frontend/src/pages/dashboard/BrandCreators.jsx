@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, MapPin, Users, Sparkles, Filter, Mail, CheckCircle2, X, Bell, Eye, Heart, MessageCircle, TrendingUp, Calendar, Hash } from 'lucide-react';
+import { Search, MapPin, Users, Sparkles, Filter, Mail, CheckCircle2, X, Bell, Eye, Heart, MessageCircle, TrendingUp, Calendar, Hash, Instagram } from 'lucide-react';
 import api from '../../utils/api';
 import toast from 'react-hot-toast';
 import SkeletonCard from '../../components/SkeletonCard';
