@@ -1,18 +1,9 @@
 import { chromium } from 'playwright';
-import { PrismaClient } from './backend/node_modules/@prisma/client/index.js';
 import path from 'path';
 import fs from 'fs';
 
 const targetUrl = 'https://test.influenziaclub.com';
 const outputDir = path.resolve('C:/Users/Harsh patel/.gemini/antigravity-ide/brain/4446771d-1d86-4bea-ad47-42095f978c80/scratch');
-
-const prisma = new PrismaClient({
-  datasources: {
-    db: {
-      url: "mysql://root:Influenzia%402026@187.127.157.111:3306/influenzia"
-    }
-  }
-});
 
 (async () => {
   const timestamp = Date.now();
@@ -66,20 +57,20 @@ const prisma = new PrismaClient({
     await page.waitForSelector('input[placeholder="000000"]', { timeout: 15000 });
     console.log(`✅ OTP screen loaded!`);
 
-    // 5. Query the database to retrieve OTP
-    console.log(`🔍 Querying the database to fetch OTP for ${testEmail}...`);
+    // 5. Query the /latest-otp endpoint to retrieve OTP
+    console.log(`🔍 Querying API endpoint to fetch OTP for ${testEmail}...`);
     await new Promise(resolve => setTimeout(resolve, 3000)); // wait a bit for database write
     
-    const otpRecord = await prisma.otpVerification.findFirst({
-      where: { email: testEmail },
-      orderBy: { createdAt: 'desc' }
-    });
-
-    if (!otpRecord) {
-      throw new Error(`Could not find OTP verification record for email: ${testEmail}`);
+    const response = await page.request.get(`${targetUrl}/api/auth/latest-otp?email=${testEmail}`);
+    if (!response.ok()) {
+      throw new Error(`Failed to fetch OTP: ${response.status()} - ${await response.text()}`);
+    }
+    const data = await response.json();
+    if (!data.success || !data.otp) {
+      throw new Error(`Could not retrieve OTP from API: ${JSON.stringify(data)}`);
     }
 
-    const otp = otpRecord.otp;
+    const otp = data.otp;
     console.log(`🔑 Retrieved OTP: ${otp}`);
 
     // 6. Enter OTP
@@ -124,7 +115,6 @@ const prisma = new PrismaClient({
     const video = page.video();
     await context.close();
     await browser.close();
-    await prisma.$disconnect();
 
     if (video) {
       const videoPath = await video.path();
