@@ -148,7 +148,8 @@ router.post('/verify-otp', otpLimiter, async (req, res) => {
         id: true,
         name: true,
         email: true,
-        referralCode: true
+        referralCode: true,
+        passwordVersion: true
       }
     });
 
@@ -168,13 +169,13 @@ router.post('/verify-otp', otpLimiter, async (req, res) => {
 
     // Auto-login: Generate tokens
     const accessToken = jwt.sign(
-      { id: creator.id, email: creator.email, role: 'creator', version: 1 },
+      { id: creator.id, email: creator.email, role: 'creator', version: creator.passwordVersion },
       process.env.JWT_SECRET,
       { expiresIn: '15m' }
     );
 
     const refreshToken = jwt.sign(
-      { id: creator.id, version: 1 },
+      { id: creator.id, version: creator.passwordVersion },
       process.env.JWT_REFRESH_SECRET,
       { expiresIn: '30d' }
     );

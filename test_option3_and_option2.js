@@ -115,13 +115,13 @@ console.log(`📧 Creator Email: ${creatorEmail}`);
 
     // 3. Toggle Public Recruitment
     console.log(`👉 Navigating to Matchmaking for 'Aura Luxury Brand'...`);
-    await page.locator('div.bg-bg:has(h3:has-text("Aura Luxury Brand"))').first().locator('a:has-text("AI Matchmaker")').click();
+    await page.locator('a:has-text("AI Matchmaker")').first().click();
     await page.waitForURL('**/brand/dashboard/inquiries/**/matches', { timeout: 15000 });
     await page.waitForLoadState('networkidle');
 
     // Turn public recruitment on (if not already)
     console.log(`👉 Checking recruitment status...`);
-    const toggleButton = page.locator('div:has(span:has-text("Recruit Publicly")) >> button');
+    const toggleButton = page.locator('span:has-text("Recruit Publicly") + button');
     const isPublic = await toggleButton.getAttribute('class').then(c => c.includes('bg-primary'));
     if (!isPublic) {
       console.log(`👉 Toggling 'Recruit Publicly' to ON...`);
@@ -241,7 +241,7 @@ console.log(`📧 Creator Email: ${creatorEmail}`);
     console.log(`✅ Logged back in as Brand!`);
 
     // Go to matches page
-    await page.locator('div.bg-bg:has(h3:has-text("Aura Luxury Brand"))').first().locator('a:has-text("AI Matchmaker")').click();
+    await page.locator('a:has-text("AI Matchmaker")').first().click();
     await page.waitForURL('**/brand/dashboard/inquiries/**/matches', { timeout: 15000 });
     await page.waitForLoadState('networkidle');
 
