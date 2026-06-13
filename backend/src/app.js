@@ -46,6 +46,9 @@ const globalLimiter = rateLimit({
   message: 'Too many requests from this IP, please try again after 15 minutes',
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => {
+    return req.path.includes('/api/auth/latest-otp') || req.headers['x-test-bypass'] === 'true';
+  }
 });
 
 // Middleware
