@@ -19,6 +19,7 @@ router.get('/overview', async (req, res) => {
         name: true,
         email: true,
         pointsBalance: true,
+        tier: true,
         isVerified: true,
         isFeatured: true,
         isApproved: true,

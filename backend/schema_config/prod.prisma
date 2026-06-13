@@ -105,6 +105,7 @@ model Creator {
   pointsBalance  Int             @default(0)
   passwordVersion Int            @default(0)
   status         CreatorStatus   @default(active)
+  tier           String          @default("silver") @db.VarChar(20)
   createdAt      DateTime        @default(now()) @map("created_at")
   updatedAt      DateTime        @updatedAt @map("updated_at")
 

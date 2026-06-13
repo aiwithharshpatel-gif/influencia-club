@@ -2,6 +2,7 @@ import express from 'express';
 import prisma from '../lib/prisma.js';
 import { adminProtect } from '../middleware/auth.js';
 import { safeErrorMessage } from '../middleware/errorHandler.js';
+import { updateCreatorTier } from '../services/pointsService.js';
 
 const router = express.Router();
 
@@ -378,24 +379,27 @@ router.put('/redemptions/:id', async (req, res) => {
       });
     }
 
-    if (status === 'approved') {
-      // Use transaction to prevent race condition
+    if (status === 'rejected') {
+      // Refund points since they were already deducted on submission
       await prisma.$transaction(async (tx) => {
-        const creator = await tx.creator.findUnique({
-          where: { id: redemption.creatorId },
-          select: { pointsBalance: true }
-        });
-
-        if (!creator || creator.pointsBalance < redemption.pointsCost) {
-          throw new Error('Insufficient balance');
-        }
-
         await tx.creator.update({
           where: { id: redemption.creatorId },
           data: {
-            pointsBalance: { decrement: redemption.pointsCost }
+            pointsBalance: { increment: redemption.pointsCost }
           }
         });
+
+        await tx.pointsTransaction.create({
+          data: {
+            creatorId: redemption.creatorId,
+            type: 'earn',
+            reason: 'admin_grant',
+            points: redemption.pointsCost,
+            note: `Refund for rejected redemption of ${redemption.rewardType}`
+          }
+        });
+
+        await updateCreatorTier(tx, redemption.creatorId);
       });
     }
 
@@ -431,7 +435,7 @@ router.post('/points', async (req, res) => {
 
     // Use transaction to prevent race condition
     const creator = await prisma.$transaction(async (tx) => {
-      const updated = await tx.creator.update({
+      await tx.creator.update({
         where: { id: creatorId },
         data: {
           pointsBalance: { increment: points }
@@ -448,7 +452,7 @@ router.post('/points', async (req, res) => {
         }
       });
 
-      return updated;
+      return await updateCreatorTier(tx, creatorId);
     });
 
     res.json({
@@ -457,7 +461,8 @@ router.post('/points', async (req, res) => {
       creator: {
         id: creator.id,
         name: creator.name,
-        pointsBalance: creator.pointsBalance
+        pointsBalance: creator.pointsBalance,
+        tier: creator.tier
       }
     });
   } catch (error) {

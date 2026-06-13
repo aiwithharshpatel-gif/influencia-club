@@ -8,6 +8,35 @@ const POINTS = {
   REFERRAL_MILESTONE: 100
 };
 
+export const updateCreatorTier = async (tx, creatorId) => {
+  // Aggregate lifetime points of type 'earn'
+  const aggregate = await tx.pointsTransaction.aggregate({
+    where: {
+      creatorId,
+      type: 'earn'
+    },
+    _sum: {
+      points: true
+    }
+  });
+
+  const lifetimePoints = aggregate._sum.points || 0;
+
+  let tier = 'silver';
+  if (lifetimePoints >= 500) {
+    tier = 'platinum';
+  } else if (lifetimePoints >= 200) {
+    tier = 'gold';
+  }
+
+  const creator = await tx.creator.update({
+    where: { id: creatorId },
+    data: { tier }
+  });
+
+  return creator;
+};
+
 export const creditPoints = async (creatorId, points, reason, note = null) => {
   return prisma.$transaction(async (tx) => {
     // Create points transaction
@@ -22,7 +51,7 @@ export const creditPoints = async (creatorId, points, reason, note = null) => {
     });
 
     // Update creator balance
-    const creator = await tx.creator.update({
+    await tx.creator.update({
       where: { id: creatorId },
       data: {
         pointsBalance: {
@@ -31,7 +60,7 @@ export const creditPoints = async (creatorId, points, reason, note = null) => {
       }
     });
 
-    return creator;
+    return await updateCreatorTier(tx, creatorId);
   });
 };
 
@@ -133,6 +162,8 @@ const creditPointsToTransaction = async (tx, creatorId, points, reason, note) =>
       pointsBalance: { increment: points }
     }
   });
+
+  await updateCreatorTier(tx, creatorId);
 };
 
 export const getReferralStats = async (creatorId) => {

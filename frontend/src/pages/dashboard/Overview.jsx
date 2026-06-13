@@ -45,7 +45,7 @@ const DashboardOverview = () => {
   const stats = [
     {
       icon: Award,
-      label: 'Points Balance',
+      label: data?.creator?.tier ? `Points Balance (${data.creator.tier.charAt(0).toUpperCase() + data.creator.tier.slice(1)} Tier)` : 'Points Balance',
       value: data?.creator?.pointsBalance || 0,
       color: 'text-gold'
     },

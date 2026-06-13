@@ -205,7 +205,8 @@ router.post('/verify-otp', otpLimiter, async (req, res) => {
         name: creator.name,
         email: creator.email,
         referralCode: creator.referralCode,
-        pointsBalance: 10
+        pointsBalance: 10,
+        tier: 'silver'
       }
     });
   } catch (error) {
@@ -294,7 +295,8 @@ router.post('/login', loginLimiter, async (req, res) => {
         instagram: creator.instagram,
         category: creator.category,
         city: creator.city,
-        pointsBalance: creator.pointsBalance
+        pointsBalance: creator.pointsBalance,
+        tier: creator.tier
       }
     });
   } catch (error) {
@@ -717,6 +719,7 @@ router.get('/me', async (req, res) => {
             category: true,
             city: true,
             pointsBalance: true,
+            tier: true,
             isApproved: true,
             passwordVersion: true
           }
