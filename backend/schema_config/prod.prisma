@@ -134,6 +134,7 @@ model Creator {
   payments             Payment[]
   payouts              Payout[]
   creatorAnalytics     CreatorAnalytics?
+  instagramProfile     InstagramProfile?
 
   @@map("creators")
 }
@@ -433,3 +434,24 @@ model PushSubscription {
   @@unique([email, endpoint])
   @@map("push_subscriptions")
 }
+
+model InstagramProfile {
+  id              String   @id @default(uuid())
+  creatorId       String   @unique @db.VarChar(36)
+  creator         Creator  @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  username        String   @db.VarChar(100)
+  fullName        String?  @db.VarChar(150)
+  profilePicUrl   String?  @db.VarChar(500)
+  followersCount  Int      @default(0)
+  mediaCount      Int      @default(0)
+  engagementRate  Decimal  @db.Decimal(5, 2) @default(0)
+  avgLikes        Int      @default(0)
+  avgComments     Int      @default(0)
+  recentPosts     Json     // Array of post objects: { id, permalink, mediaType, mediaUrl, caption, likeCount, commentsCount, timestamp }
+  accessToken     String?  @db.VarChar(255)
+  connectedAt     DateTime @default(now()) @map("connected_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@map("instagram_profiles")
+}
+

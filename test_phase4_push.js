@@ -128,7 +128,7 @@ console.log(`📧 Creator Email: ${creatorEmail}`);
     console.log(`✍️ Sending push-triggering chat message...`);
     const messageInput = page.locator('input[placeholder="Type a message..."]');
     await messageInput.fill('Push notifications test message!');
-    await page.click('button:has(svg)');
+    await page.click('button[type="submit"]:has-text("Send")');
 
     await page.waitForTimeout(4000); // Wait for async push service execution
     console.log(`✅ Trigger message sent successfully!`);

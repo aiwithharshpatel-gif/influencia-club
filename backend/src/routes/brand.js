@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import { brandProtect } from '../middleware/auth.js';
 import { findMatchingCreators } from '../services/matchmakingService.js';
 import { sendPushNotification } from '../services/pushService.js';
+import { searchCreators } from '../services/semanticSearchService.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -562,7 +563,7 @@ router.post('/messages', async (req, res) => {
  */
 router.get('/creators', async (req, res) => {
   try {
-    const { category, city, search } = req.query;
+    const { category, city, search, useSemantic } = req.query;
 
     const whereClause = {
       status: 'active'
@@ -574,7 +575,10 @@ router.get('/creators', async (req, res) => {
     if (city) {
       whereClause.city = city;
     }
-    if (search?.trim()) {
+
+    // Apply contains search only if not using semantic search
+    const isSemantic = useSemantic === 'true';
+    if (search?.trim() && !isSemantic) {
       whereClause.OR = [
         { name: { contains: search } },
         { instagram: { contains: search } },
@@ -582,7 +586,7 @@ router.get('/creators', async (req, res) => {
       ];
     }
 
-    const creators = await prisma.creator.findMany({
+    let creators = await prisma.creator.findMany({
       where: whereClause,
       select: {
         id: true,
@@ -594,10 +598,23 @@ router.get('/creators', async (req, res) => {
         photoUrl: true,
         followerCount: true,
         isVerified: true,
-        isFeatured: true
+        isFeatured: true,
+        instagramProfile: true
       },
       orderBy: { createdAt: 'desc' }
     });
+
+    // Run semantic search ranking if requested
+    if (isSemantic && search?.trim()) {
+      creators = searchCreators(search, creators);
+    } else {
+      // Add default score properties for standard results consistency
+      creators = creators.map(c => ({
+        ...c,
+        matchScore: null,
+        matchPercentage: null
+      }));
+    }
 
     res.json({
       success: true,

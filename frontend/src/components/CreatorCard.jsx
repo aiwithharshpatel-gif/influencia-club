@@ -41,11 +41,18 @@ const CreatorCard = ({ creator }) => {
       <div className="p-4 space-y-3">
         {/* Name & Verify Badge */}
         <div className="flex items-center justify-between">
-          <h3 className="font-display text-lg font-semibold text-white">
-            {name}
-          </h3>
-          {isVerified && (
-            <Verified size={18} className="text-primary" fill="#7B2FFF" />
+          <div className="flex items-center space-x-1.5">
+            <h3 className="font-display text-lg font-semibold text-white">
+              {name}
+            </h3>
+            {isVerified && (
+              <Verified size={18} className="text-primary" fill="#7B2FFF" />
+            )}
+          </div>
+          {creator.matchPercentage && (
+            <span className="bg-gold/15 text-gold border border-gold/25 px-2 py-0.5 rounded-full text-[10px] font-bold">
+              {creator.matchPercentage}
+            </span>
           )}
         </div>
 
