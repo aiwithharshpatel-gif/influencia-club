@@ -2,6 +2,7 @@ import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import { brandProtect } from '../middleware/auth.js';
 import { findMatchingCreators } from '../services/matchmakingService.js';
+import { sendPushNotification } from '../services/pushService.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -533,6 +534,15 @@ router.post('/messages', async (req, res) => {
       io.to(creatorId).emit('message', message);
     }
 
+    // Dispatch push notification to creator
+    sendPushNotification(creator.email, 'creator', {
+      title: `New Message from ${req.brand.brandName || 'Brand'}`,
+      body: content.trim(),
+      data: {
+        url: '/dashboard/messages'
+      }
+    });
+
     res.json({
       success: true,
       message
@@ -722,7 +732,8 @@ router.post('/applications/:id/action', async (req, res) => {
       include: {
         campaign: {
           include: { brandInquiry: true }
-        }
+        },
+        creator: true
       }
     });
 
@@ -792,6 +803,16 @@ router.post('/applications/:id/action', async (req, res) => {
 
       return updatedApp;
     });
+
+    if (action === 'approve') {
+      sendPushNotification(application.creator.email, 'creator', {
+        title: `Application Approved!`,
+        body: `Your application to "${application.campaign.title}" has been approved by ${req.brand.brandName || 'Brand'}.`,
+        data: {
+          url: '/dashboard/collabs'
+        }
+      });
+    }
 
     res.json({
       success: true,

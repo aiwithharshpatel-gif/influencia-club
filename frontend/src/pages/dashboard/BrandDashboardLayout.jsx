@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, Outlet, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Briefcase, FilePlus, LogOut, ArrowLeft, BarChart3, MessageSquare, Search, Target } from 'lucide-react';
+import { LayoutDashboard, Briefcase, FilePlus, LogOut, ArrowLeft, BarChart3, MessageSquare, Search, Target, Bell } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
+import { subscribeUserToPush } from '../../services/pushNotification';
 
 const BrandDashboardLayout = () => {
   const { user, role, loading, logout } = useAuth();
@@ -42,6 +43,30 @@ const BrandDashboardLayout = () => {
     }
     setDeferredPrompt(null);
     setShowInstallBtn(false);
+  };
+
+  const [showPushBanner, setShowPushBanner] = useState(false);
+
+  useEffect(() => {
+    const isSupported = 'Notification' in window && 'serviceWorker' in navigator;
+    const dismissed = sessionStorage.getItem('push_banner_dismissed') === 'true';
+    if (isSupported && Notification.permission === 'default' && !dismissed) {
+      setShowPushBanner(true);
+    }
+  }, []);
+
+  const handleEnablePush = async () => {
+    try {
+      await subscribeUserToPush();
+      setShowPushBanner(false);
+    } catch (err) {
+      console.error('Failed to subscribe to push:', err);
+    }
+  };
+
+  const handleDismissPush = () => {
+    sessionStorage.setItem('push_banner_dismissed', 'true');
+    setShowPushBanner(false);
   };
 
   const navItems = [
@@ -162,6 +187,33 @@ const BrandDashboardLayout = () => {
                   >
                     Install
                   </button>
+                </div>
+              )}
+              {showPushBanner && (
+                <div className="bg-gradient-to-r from-gold/15 via-gold/5 to-transparent border border-gold/20 p-4 mb-6 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="flex items-center space-x-3 text-left">
+                    <div className="p-2 bg-gold/10 text-gold rounded-xl">
+                      <Bell size={20} className="animate-pulse text-primary" />
+                    </div>
+                    <div>
+                      <h4 className="text-white text-sm font-semibold">Enable Real-Time Notifications</h4>
+                      <p className="text-muted text-xs">Stay updated on new messages, invitations, and milestone approvals.</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={handleDismissPush}
+                      className="px-3 py-1.5 text-muted hover:text-white text-xs font-semibold transition-colors"
+                    >
+                      Later
+                    </button>
+                    <button
+                      onClick={handleEnablePush}
+                      className="bg-primary hover:bg-primary-soft text-black px-4 py-1.5 rounded-lg text-xs font-bold transition-all shadow-[0_0_15px_rgba(212,175,55,0.2)] hover:shadow-[0_0_25px_rgba(212,175,55,0.4)]"
+                    >
+                      Enable Now
+                    </button>
+                  </div>
                 </div>
               )}
               <Outlet />

@@ -10,7 +10,8 @@ export default defineConfig({
       injectRegister: 'inline',
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
-        cleanupOutdatedCaches: true
+        cleanupOutdatedCaches: true,
+        importScripts: ['/push-sw.js']
       },
       manifest: {
         name: 'Influenzia Club',

@@ -18,6 +18,7 @@ import paymentRoutes from './routes/payments.js';
 import brandRoutes from './routes/brand.js';
 import rewardsRoutes from './routes/rewards.js';
 import milestonesRoutes from './routes/milestones.js';
+import notificationsRoutes from './routes/notifications.js';
 
 import { sanitizeRequest } from './middleware/sanitizer.js';
 
@@ -110,6 +111,7 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/brand', brandRoutes);
 app.use('/api/rewards', rewardsRoutes);
 app.use('/api/milestones', milestonesRoutes);
+app.use('/api/notifications', notificationsRoutes);
 
 
 import { createServer } from 'http';

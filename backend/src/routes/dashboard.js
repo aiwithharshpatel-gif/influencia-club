@@ -2,6 +2,7 @@ import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import { protect } from '../middleware/auth.js';
 import { getPointsHistory, getReferralStats } from '../services/pointsService.js';
+import { sendPushNotification } from '../services/pushService.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -412,6 +413,15 @@ router.post('/messages', async (req, res) => {
     if (io) {
       io.to(brandEmail).emit('message', message);
     }
+
+    // Dispatch push notification to brand
+    sendPushNotification(brandEmail, 'brand', {
+      title: `New Message from ${req.user.name || 'Creator'}`,
+      body: content.trim(),
+      data: {
+        url: '/brand/dashboard/messages'
+      }
+    });
 
     res.json({
       success: true,

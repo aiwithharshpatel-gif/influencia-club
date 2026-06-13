@@ -2,6 +2,7 @@ import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import { protect } from '../middleware/auth.js';
 import { brandProtect } from '../middleware/auth.js';
+import { sendPushNotification } from '../services/pushService.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -160,6 +161,7 @@ router.put('/brand/:milestoneId/review', brandProtect, async (req, res) => {
             campaign: {
               include: { brandInquiry: true }
             },
+            creator: true,
             milestones: {
               orderBy: { sortOrder: 'asc' }
             }
@@ -218,6 +220,17 @@ router.put('/brand/:milestoneId/review', brandProtect, async (req, res) => {
         });
       }
     }
+
+    // Dispatch push notification to creator
+    sendPushNotification(milestone.campaignCreator.creator.email, 'creator', {
+      title: action === 'approve' ? 'Milestone Approved! 🚀' : 'Revision Requested ⚠️',
+      body: action === 'approve'
+        ? `Your milestone "${milestone.title}" has been approved.`
+        : `Revision requested for "${milestone.title}". Feedback: "${feedback || ''}"`,
+      data: {
+        url: '/dashboard/milestones'
+      }
+    });
 
     res.json({
       success: true,
@@ -394,7 +407,13 @@ router.put('/creator/:milestoneId/submit', protect, async (req, res) => {
     const milestone = await prisma.milestone.findUnique({
       where: { id: milestoneId },
       include: {
-        campaignCreator: true
+        campaignCreator: {
+          include: {
+            campaign: {
+              include: { brandInquiry: true }
+            }
+          }
+        }
       }
     });
 
@@ -419,6 +438,16 @@ router.put('/creator/:milestoneId/submit', protect, async (req, res) => {
         submissionUrl: submissionUrl || milestone.submissionUrl,
         submissionNote: submissionNote || milestone.submissionNote,
         submittedAt: new Date()
+      }
+    });
+
+    // Dispatch push notification to brand
+    const brandEmail = milestone.campaignCreator.campaign.brandInquiry.email;
+    sendPushNotification(brandEmail, 'brand', {
+      title: 'New Milestone Submission 📁',
+      body: `${req.user.name || 'Creator'} submitted work for "${milestone.title}".`,
+      data: {
+        url: '/brand/dashboard/milestones'
       }
     });
 
