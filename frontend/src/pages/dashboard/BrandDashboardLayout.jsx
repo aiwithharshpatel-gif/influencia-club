@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, Outlet, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Briefcase, FilePlus, LogOut, ArrowLeft, BarChart3, MessageSquare, Search } from 'lucide-react';
+import { LayoutDashboard, Briefcase, FilePlus, LogOut, ArrowLeft, BarChart3, MessageSquare, Search, Target } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
@@ -47,6 +47,7 @@ const BrandDashboardLayout = () => {
   const navItems = [
     { path: '/brand/dashboard', label: 'Campaign Hub', icon: LayoutDashboard },
     { path: '/brand/dashboard/creators', label: 'Marketplace', icon: Search },
+    { path: '/brand/dashboard/milestones', label: 'Deliverables', icon: Target },
     { path: '/brand/dashboard/analytics', label: 'Analytics', icon: BarChart3 },
     { path: '/brand/dashboard/messages', label: 'Messages', icon: MessageSquare },
   ];

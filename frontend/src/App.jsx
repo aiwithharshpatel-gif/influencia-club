@@ -29,6 +29,7 @@ const Points = lazy(() => import('./pages/dashboard/Points'));
 const Collaborations = lazy(() => import('./pages/dashboard/Collabs'));
 const CreatorMessages = lazy(() => import('./pages/dashboard/CreatorMessages'));
 const ExploreCampaigns = lazy(() => import('./pages/dashboard/ExploreCampaigns'));
+const CollabMilestones = lazy(() => import('./pages/dashboard/CollabMilestones'));
 
 // Brand Dashboard Pages
 const BrandDashboardLayout = lazy(() => import('./pages/dashboard/BrandDashboardLayout'));
@@ -37,6 +38,7 @@ const BrandMatchmaking = lazy(() => import('./pages/dashboard/BrandMatchmaking')
 const BrandAnalytics = lazy(() => import('./pages/dashboard/BrandAnalytics'));
 const BrandMessages = lazy(() => import('./pages/dashboard/BrandMessages'));
 const BrandCreators = lazy(() => import('./pages/dashboard/BrandCreators'));
+const BrandMilestones = lazy(() => import('./pages/dashboard/BrandMilestones'));
 
 
 function App() {
@@ -99,6 +101,7 @@ function App() {
               <Route path="collabs" element={<Collaborations />} />
               <Route path="messages" element={<CreatorMessages />} />
               <Route path="explore" element={<ExploreCampaigns />} />
+              <Route path="milestones" element={<CollabMilestones />} />
             </Route>
 
             {/* Brand Login Route */}
@@ -115,6 +118,7 @@ function App() {
               <Route path="creators" element={<BrandCreators />} />
               <Route path="analytics" element={<BrandAnalytics />} />
               <Route path="messages" element={<BrandMessages />} />
+              <Route path="milestones" element={<BrandMilestones />} />
             </Route>
 
             {/* 404 Catch-All */}

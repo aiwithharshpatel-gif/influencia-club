@@ -78,6 +78,21 @@ enum CampaignCreatorStatus {
   completed
 }
 
+enum MilestoneType {
+  brief_review
+  draft_submit
+  draft_review
+  live_verification
+}
+
+enum MilestoneStatus {
+  pending
+  in_progress
+  submitted
+  approved
+  revision_requested
+}
+
 enum AdminRole {
   super_admin
   manager
@@ -214,7 +229,30 @@ model CampaignCreator {
   deliverables String?              @db.Text
   createdAt   DateTime              @default(now()) @map("created_at")
 
+  milestones  Milestone[]
+
   @@map("campaign_creators")
+}
+
+model Milestone {
+  id                  String           @id @default(uuid())
+  campaignCreatorId   String           @db.VarChar(36)
+  campaignCreator     CampaignCreator  @relation(fields: [campaignCreatorId], references: [id], onDelete: Cascade)
+  type                MilestoneType
+  status              MilestoneStatus  @default(pending)
+  title               String           @db.VarChar(200)
+  description         String?          @db.Text
+  submissionUrl       String?          @db.VarChar(500)
+  submissionNote      String?          @db.Text
+  brandFeedback       String?          @db.Text
+  dueDate             DateTime?
+  submittedAt         DateTime?
+  reviewedAt          DateTime?
+  sortOrder           Int              @default(0)
+  createdAt           DateTime         @default(now()) @map("created_at")
+  updatedAt           DateTime         @updatedAt @map("updated_at")
+
+  @@map("milestones")
 }
 
 model CampaignApplication {

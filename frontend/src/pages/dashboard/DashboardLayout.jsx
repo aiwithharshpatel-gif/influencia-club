@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { LayoutDashboard, User, Users, Award, MessageSquare, LogOut, Star, Search } from 'lucide-react';
+import { LayoutDashboard, User, Users, Award, MessageSquare, LogOut, Star, Search, Target } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
@@ -44,6 +44,7 @@ const DashboardLayout = () => {
     { path: '/dashboard/profile', label: 'Profile', icon: User },
     { path: '/dashboard/explore', label: 'Explore', icon: Search },
     { path: '/dashboard/collabs', label: 'Collabs', icon: Star },
+    { path: '/dashboard/milestones', label: 'Milestones', icon: Target },
     { path: '/dashboard/messages', label: 'Messages', icon: MessageSquare },
     { path: '/dashboard/referrals', label: 'Referrals', icon: Users },
     { path: '/dashboard/points', label: 'Points', icon: Award },

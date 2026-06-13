@@ -17,6 +17,7 @@ import contactRoutes from './routes/contact.js';
 import paymentRoutes from './routes/payments.js';
 import brandRoutes from './routes/brand.js';
 import rewardsRoutes from './routes/rewards.js';
+import milestonesRoutes from './routes/milestones.js';
 
 import { sanitizeRequest } from './middleware/sanitizer.js';
 
@@ -105,6 +106,7 @@ app.use('/api/contact', contactRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/brand', brandRoutes);
 app.use('/api/rewards', rewardsRoutes);
+app.use('/api/milestones', milestonesRoutes);
 
 
 import { createServer } from 'http';
