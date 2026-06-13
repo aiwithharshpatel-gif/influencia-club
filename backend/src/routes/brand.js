@@ -775,6 +775,19 @@ router.post('/applications/:id/action', async (req, res) => {
             data: { status: 'confirmed' }
           });
         }
+
+        // Create an initial message thread
+        await tx.message.create({
+          data: {
+            campaignId: application.campaignId,
+            senderId: application.campaign.brandInquiry.email,
+            senderType: 'brand',
+            recipientId: application.creatorId,
+            recipientType: 'creator',
+            content: `Hi! Your application to our campaign "${application.campaign.title}" has been approved! Let's discuss collaboration details here.`,
+            isRead: false
+          }
+        });
       }
 
       return updatedApp;

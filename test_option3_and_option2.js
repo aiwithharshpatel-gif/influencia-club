@@ -158,19 +158,20 @@ console.log(`📧 Creator Email: ${creatorEmail}`);
     const creatorRegisterIP = generateRandomIP();
     console.log(`🌀 Setting X-Forwarded-For IP to: ${creatorRegisterIP}`);
     await context.setExtraHTTPHeaders({ 'X-Forwarded-For': creatorRegisterIP });
+
+    // Capture the registration response
+    const registerResponsePromise = page.waitForResponse(response => 
+      response.url().includes('/api/auth/register')
+    );
     await page.click('button:has-text("Send Verification Code")');
+    const registerResponse = await registerResponsePromise;
 
-    // Wait a brief moment and check for registration error
-    await page.waitForTimeout(2000);
-    const creatorToastError = page.locator('text=already exists, text=already registered, text=already in use');
-    const hasError = await creatorToastError.count() > 0 && await creatorToastError.first().isVisible();
-
-    if (hasError) {
+    if (registerResponse.status() === 409) {
       console.log(`⚠️ Creator is already registered. Logging in directly instead...`);
       await page.goto(`${targetUrl}/login`);
       await page.waitForLoadState('networkidle');
       await page.fill('input[placeholder="your@email.com"]', creatorEmail);
-      await page.fill('input[placeholder="Enter your password"]', creatorPhone);
+      await page.fill('input[placeholder="********"]', creatorPhone);
       await page.click('button[type="submit"]:has-text("Sign In")');
     } else {
       const creatorOTP = await fetchOTP(creatorEmail);
@@ -194,8 +195,9 @@ console.log(`📧 Creator Email: ${creatorEmail}`);
     await page.waitForLoadState('networkidle');
 
     console.log(`👉 Finding 'Aura Luxury Brand' and applying...`);
-    const applyButton = page.locator('div.bg-bg-card:has(span:has-text("Aura Luxury Brand"))').locator('button:has-text("Apply Now")');
-    const alreadyApplied = await page.locator('div.bg-bg-card:has(span:has-text("Aura Luxury Brand"))').locator('button:has-text("Applied")').count() > 0;
+    const firstCard = page.locator('div.bg-bg-card:has(span:has-text("Aura Luxury Brand"))').first();
+    const applyButton = firstCard.locator('button:has-text("Apply Now")');
+    const alreadyApplied = await firstCard.locator('button:has-text("Applied")').count() > 0;
 
     if (!alreadyApplied) {
       await applyButton.click();
@@ -208,7 +210,7 @@ console.log(`📧 Creator Email: ${creatorEmail}`);
 
       // Verify submitted status on Creator side
       console.log(`⏳ Verifying application status is "Applied"...`);
-      await page.waitForSelector('button:has-text("Applied")', { timeout: 10000 });
+      await firstCard.locator('button:has-text("Applied")').waitFor({ state: 'visible', timeout: 10000 });
       console.log(`✅ Application submitted and status verified!`);
     } else {
       console.log(`👉 Creator has already applied to this campaign.`);
@@ -247,12 +249,13 @@ console.log(`📧 Creator Email: ${creatorEmail}`);
 
     // Find application and click Accept (if it is pending)
     console.log(`👉 Approving the creator's application...`);
-    const acceptBtn = page.locator('div.bg-bg-card:has(h4:has-text("E2E Creator"))').locator('button:has-text("Accept")');
-    if (await acceptBtn.count() > 0 && await acceptBtn.isVisible()) {
+    const acceptBtn = page.locator('div.bg-bg-card:has(h4:has-text("E2E Creator"))').first().locator('button:has-text("Accept")');
+    try {
+      await acceptBtn.waitFor({ state: 'visible', timeout: 5000 });
       await acceptBtn.click();
       await page.waitForTimeout(2000);
       console.log(`✅ Creator's application approved!`);
-    } else {
+    } catch (e) {
       console.log(`👉 Application is already approved or not pending.`);
     }
 
@@ -285,7 +288,7 @@ console.log(`📧 Creator Email: ${creatorEmail}`);
 
     console.log(`✍️ Logging in as Creator via password...`);
     await page.fill('input[placeholder="your@email.com"]', creatorEmail);
-    await page.fill('input[placeholder="Enter your password"]', creatorPhone);
+    await page.fill('input[placeholder="********"]', creatorPhone);
     await page.click('button[type="submit"]:has-text("Sign In")');
 
     await page.waitForURL('**/dashboard', { timeout: 15000 });
