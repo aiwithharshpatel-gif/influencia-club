@@ -426,7 +426,7 @@ model PushSubscription {
   id        String   @id @default(uuid())
   email     String   @db.VarChar(150)
   role      String   @db.VarChar(20) // 'creator' or 'brand'
-  endpoint  String   @db.Text
+  endpoint  String   @db.VarChar(500)
   keys      Json     // contains p256dh and auth fields
   createdAt DateTime @default(now()) @map("created_at")
 
