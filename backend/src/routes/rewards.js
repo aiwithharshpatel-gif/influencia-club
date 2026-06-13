@@ -236,4 +236,51 @@ router.post('/redeem', async (req, res) => {
   }
 });
 
+// Test endpoint to grant points during E2E automation
+router.post('/test-grant', async (req, res) => {
+  try {
+    const { secret, points } = req.body;
+    if (secret !== (process.env.JWT_ADMIN_SECRET || process.env.JWT_SECRET)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Forbidden'
+      });
+    }
+
+    const creatorId = req.user.id;
+
+    const creator = await prisma.$transaction(async (tx) => {
+      await tx.creator.update({
+        where: { id: creatorId },
+        data: {
+          pointsBalance: { increment: points }
+        }
+      });
+
+      await tx.pointsTransaction.create({
+        data: {
+          creatorId,
+          type: 'earn',
+          reason: 'admin_grant',
+          points,
+          note: 'E2E Test points grant'
+        }
+      });
+
+      return await updateCreatorTier(tx, creatorId);
+    });
+
+    res.json({
+      success: true,
+      message: `Granted ${points} points for testing`,
+      creator
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
 export default router;
