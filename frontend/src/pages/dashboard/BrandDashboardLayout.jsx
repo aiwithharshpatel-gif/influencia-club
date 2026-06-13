@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate, Outlet, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Briefcase, FilePlus, LogOut, ArrowLeft, BarChart3, MessageSquare, Search } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -10,11 +10,39 @@ const BrandDashboardLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [showInstallBtn, setShowInstallBtn] = useState(false);
+
+  useEffect(() => {
+    const handler = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setShowInstallBtn(true);
+    };
+
+    window.addEventListener('beforeinstallprompt', handler);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handler);
+    };
+  }, []);
+
   useEffect(() => {
     if (!loading && (!user || role !== 'brand')) {
       navigate('/brand-login');
     }
   }, [user, role, loading, navigate]);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      console.log('User accepted the install prompt');
+    }
+    setDeferredPrompt(null);
+    setShowInstallBtn(false);
+  };
 
   const navItems = [
     { path: '/brand/dashboard', label: 'Campaign Hub', icon: LayoutDashboard },
@@ -95,6 +123,19 @@ const BrandDashboardLayout = () => {
                   </Link>
                 </nav>
 
+                {/* PWA Install Button */}
+                {showInstallBtn && (
+                  <div className="mt-6 p-4 bg-primary/10 border border-primary/20 rounded-xl text-center space-y-2">
+                    <p className="text-white text-xs font-semibold">Install Influenzia App for faster access!</p>
+                    <button
+                      onClick={handleInstallClick}
+                      className="w-full bg-primary hover:bg-primary-soft text-black py-2 rounded-lg text-xs font-bold transition-colors"
+                    >
+                      Install App
+                    </button>
+                  </div>
+                )}
+
                 {/* Logout */}
                 <button
                   onClick={handleLogout}
@@ -108,6 +149,20 @@ const BrandDashboardLayout = () => {
 
             {/* Main Content */}
             <div className="lg:col-span-3">
+              {showInstallBtn && (
+                <div className="lg:hidden mb-6 p-4 bg-primary/10 border border-primary/20 rounded-xl flex items-center justify-between gap-4">
+                  <div className="text-left">
+                    <p className="text-white text-xs font-semibold">Install Influenzia App</p>
+                    <p className="text-muted text-[10px]">Access your dashboard faster on mobile</p>
+                  </div>
+                  <button
+                    onClick={handleInstallClick}
+                    className="bg-primary hover:bg-primary-soft text-black px-4 py-2 rounded-lg text-xs font-bold transition-colors whitespace-nowrap"
+                  >
+                    Install
+                  </button>
+                </div>
+              )}
               <Outlet />
             </div>
           </div>
