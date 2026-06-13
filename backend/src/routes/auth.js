@@ -534,6 +534,47 @@ router.get('/latest-otp', async (req, res) => {
   }
 });
 
+// Reset Test Milestones (Temporary Test Endpoint for automation verification)
+router.post('/reset-test-milestones', async (req, res) => {
+  try {
+    const brandEmail = 'e2e_brand_1781258450000@example.com';
+    const creatorEmail = 'e2ecreator_1781258450000@example.com';
+
+    // Find creator
+    const creator = await prisma.creator.findFirst({
+      where: { email: creatorEmail }
+    });
+    if (!creator) {
+      return res.status(404).json({ success: false, message: 'Creator not found' });
+    }
+
+    // Find campaign creator collabs
+    const campaignCreators = await prisma.campaignCreator.findMany({
+      where: {
+        creatorId: creator.id
+      }
+    });
+
+    for (const cc of campaignCreators) {
+      // Delete milestones for this collaboration
+      await prisma.milestone.deleteMany({
+        where: {
+          campaignCreatorId: cc.id
+        }
+      });
+      // Reset collaboration status to confirmed
+      await prisma.campaignCreator.update({
+        where: { id: cc.id },
+        data: { status: 'confirmed' }
+      });
+    }
+
+    res.json({ success: true, message: 'Test milestones reset successfully' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Brand Login - Send OTP
 router.post('/brand-login', otpLimiter, async (req, res) => {
   try {

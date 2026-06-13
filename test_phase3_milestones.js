@@ -68,6 +68,17 @@ console.log(`📧 Creator Email: ${creatorEmail}`);
   }
 
   try {
+    // 0. Reset milestones for E2E testing
+    console.log(`🧹 Resetting milestones for test accounts...`);
+    const resetRes = await page.request.post(`${targetUrl}/api/auth/reset-test-milestones`, {
+      headers: { 'x-test-bypass': 'true' }
+    });
+    if (!resetRes.ok()) {
+      console.warn(`⚠️ Warning: Milestone reset failed: ${resetRes.status()}`);
+    } else {
+      console.log(`✅ Milestone reset succeeded!`);
+    }
+
     // 1. Login as Brand
     console.log(`🌐 Navigating to ${targetUrl}/brand-login...`);
     await page.goto(`${targetUrl}/brand-login`);
