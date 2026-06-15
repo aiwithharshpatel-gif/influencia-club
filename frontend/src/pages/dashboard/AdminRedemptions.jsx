@@ -218,7 +218,7 @@ const AdminRedemptions = () => {
             <form onSubmit={handleSubmitAction} className="space-y-4 text-left">
               <div className="text-center pb-2 border-b border-border/30">
                 <AlertOctagon size={28} className={actionType === 'approved' ? 'text-emerald-400 mx-auto mb-2' : 'text-red-400 mx-auto mb-2'} />
-                <h3 className="text-white text-base font-bold capitalize">{actionType} Redemption</h3>
+                <h3 className="text-white text-base font-bold">{actionType === 'approved' ? 'Approve' : 'Reject'} Redemption</h3>
                 <p className="text-xs text-muted mt-0.5">
                   Confirm action for {selectedRedemption.creator.name}'s request for {formatRewardType(selectedRedemption.rewardType)}
                 </p>
