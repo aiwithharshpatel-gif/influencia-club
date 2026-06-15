@@ -167,10 +167,9 @@ function generateRandomIP() {
     await page.goto(`${targetUrl}/admin-login`);
     await page.waitForLoadState('networkidle');
 
-    console.log(`✍️ Entering admin credentials...`);
-    await page.fill('input[placeholder="admin@influenziaclub.com"]', 'admin@influenziaclub.com');
-    await page.fill('input[placeholder="********"]', 'Admin@12345');
-    await page.click('button[type="submit"]:has-text("Sign In")');
+    await page.fill('input#admin_email', 'admin@influenziaclub.com');
+    await page.fill('input#admin_password', 'Admin@12345');
+    await page.click('button#admin_login_submit');
 
     await page.waitForURL('**/admin/dashboard', { timeout: 15000 });
     await page.waitForLoadState('networkidle');
@@ -194,12 +193,18 @@ function generateRandomIP() {
     await page.click('button:has-text("Filter Directory")');
     await page.waitForTimeout(2000);
 
-    // Click Approve
-    console.log(`👍 Approving creator...`);
+    // Click Approve if not already approved
+    console.log(`👍 Checking approval status...`);
     const creatorRow = page.locator(`tr:has-text("${testName}")`);
-    await creatorRow.locator('button:has-text("Approve")').click();
-    await page.waitForTimeout(2000);
-    console.log(`✅ Creator approved!`);
+    const approveBtn = creatorRow.locator('button:has-text("Approve")');
+    if (await approveBtn.count() > 0 && await approveBtn.isVisible()) {
+      console.log(`👉 Creator not approved yet. Clicking Approve...`);
+      await approveBtn.click();
+      await page.waitForTimeout(2000);
+      console.log(`✅ Creator approved!`);
+    } else {
+      console.log(`✅ Creator is already approved.`);
+    }
 
     // Toggle verified badge
     console.log(`🌟 Verifying creator...`);

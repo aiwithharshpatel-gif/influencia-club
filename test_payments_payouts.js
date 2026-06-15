@@ -256,10 +256,7 @@ function generateRandomIP() {
     if (await createMilestonesBtn.count() > 0 && await createMilestonesBtn.isVisible()) {
       console.log(`👉 Creating default milestones...`);
       await createMilestonesBtn.click();
-      await page.waitForTimeout(2000);
-      // Re-expand
-      await collabHeader.click();
-      await page.waitForTimeout(2000);
+      await page.waitForTimeout(3000);
     }
 
     // Perform Escrow Payment
@@ -305,26 +302,9 @@ function generateRandomIP() {
     await page.goto(`${targetUrl}/login`);
     await page.waitForLoadState('networkidle');
 
-    await page.fill('input#email', testEmail);
-    await page.click('button:has-text("Send Verification Code")');
-    
-    console.log(`⏳ Waiting for OTP screen...`);
-    await page.waitForSelector('input[placeholder="000000"]', { timeout: 15000 });
-
-    console.log(`🔍 Fetching OTP for Creator...`);
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    const creatorOtpRes = await page.request.get(`${targetUrl}/api/auth/latest-otp?email=${testEmail}`, {
-      headers: { 'x-test-bypass': 'true' }
-    });
-    if (!creatorOtpRes.ok()) {
-      throw new Error(`Failed to fetch Creator OTP: ${creatorOtpRes.status()}`);
-    }
-    const creatorOtpData = await creatorOtpRes.json();
-    const creatorOtp = creatorOtpData.otp;
-    console.log(`🔑 Creator OTP: ${creatorOtp}`);
-
-    await page.fill('input[placeholder="000000"]', creatorOtp);
-    await page.click('button:has-text("Verify Email")');
+    await page.fill('input[placeholder="your@email.com"]', testEmail);
+    await page.fill('input[placeholder="********"]', testPhone);
+    await page.click('button:has-text("Sign In")');
 
     await page.waitForURL('**/dashboard', { timeout: 15000 });
     await page.waitForLoadState('networkidle');
@@ -364,7 +344,7 @@ function generateRandomIP() {
 
     // Verify Payout request appears in history
     console.log(`⏳ Waiting for payout success banner...`);
-    await page.waitForSelector('text=Payout request submitted successfully!', { timeout: 15000 });
+    await page.waitForSelector('text=Payout initiated', { timeout: 15000 });
     console.log(`✅ Payout request submitted!`);
 
     // Verify history log entry
