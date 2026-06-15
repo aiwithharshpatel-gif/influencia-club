@@ -292,6 +292,7 @@ router.get('/brand', brandProtect, async (req, res) => {
           collaborations.push({
             campaignCreatorId: cc.id,
             campaignId: campaign.id,
+            brandInquiryId: inq.id,
             campaignTitle: campaign.title,
             brandName: inq.brandName,
             creator: cc.creator,

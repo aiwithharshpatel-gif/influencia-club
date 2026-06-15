@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Award, Gift, Instagram, Ticket, Briefcase, CheckCircle, Trophy, TrendingUp, Sparkles, Clock, Crown, ArrowUpRight, Lock } from 'lucide-react';
 import api from '../../utils/api';
+import toast from 'react-hot-toast';
 
 const Points = () => {
   const [data, setData] = useState(null);
@@ -10,8 +11,17 @@ const Points = () => {
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
+  // Payout states
+  const [activeTab, setActiveTab] = useState('catalog'); // 'catalog' or 'payout'
+  const [payouts, setPayouts] = useState([]);
+  const [loadingPayouts, setLoadingPayouts] = useState(false);
+  const [payoutAmount, setPayoutAmount] = useState('');
+  const [upiId, setUpiId] = useState('');
+  const [payoutSubmitting, setPayoutSubmitting] = useState(false);
+
   useEffect(() => {
     fetchMarketplaceData();
+    fetchPayouts();
   }, []);
 
   const fetchMarketplaceData = async () => {
@@ -25,6 +35,68 @@ const Points = () => {
       setErrorMsg('Failed to load marketplace data. Please try again.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchPayouts = async () => {
+    try {
+      setLoadingPayouts(true);
+      const response = await api.get('/payments/payouts');
+      if (response.data.success) {
+        setPayouts(response.data.payouts);
+      }
+    } catch (error) {
+      console.error('Error fetching payouts:', error);
+    } finally {
+      setLoadingPayouts(false);
+    }
+  };
+
+  const handlePayoutRequest = async (e) => {
+    e.preventDefault();
+
+    const amt = Number(payoutAmount);
+    if (!amt || amt < 100) {
+      setErrorMsg('Minimum payout is 100 points');
+      return;
+    }
+
+    if (amt > creator?.pointsBalance) {
+      setErrorMsg('Insufficient points balance');
+      return;
+    }
+
+    const upiPattern = /^[\w.-]+@[\w.-]+$/;
+    if (!upiPattern.test(upiId)) {
+      setErrorMsg('Please enter a valid UPI ID (e.g., username@bank)');
+      return;
+    }
+
+    try {
+      setPayoutSubmitting(true);
+      setErrorMsg('');
+      setSuccess(false);
+
+      const response = await api.post('/payments/payout', {
+        amount: amt,
+        upiId
+      });
+
+      if (response.data.success) {
+        setSuccessMsg(response.data.message || 'Payout request submitted successfully!');
+        setSuccess(true);
+        setPayoutAmount('');
+        setUpiId('');
+        
+        await fetchMarketplaceData();
+        await fetchPayouts();
+        
+        setTimeout(() => setSuccess(false), 5000);
+      }
+    } catch (error) {
+      setErrorMsg(error.response?.data?.message || 'Payout request failed. Please try again.');
+    } finally {
+      setPayoutSubmitting(false);
     }
   };
 
@@ -213,81 +285,238 @@ const Points = () => {
         </div>
       </div>
 
-      {/* Main Grid: Catalog and Leaderboard */}
+      {/* Navigation Tabs */}
+      <div className="flex gap-4 border-b border-border/40 pb-3" id="points-tab-navigation">
+        <button
+          onClick={() => setActiveTab('catalog')}
+          className={`font-display font-bold text-lg pb-1 border-b-2 transition-all ${
+            activeTab === 'catalog'
+              ? 'text-primary border-primary'
+              : 'text-muted border-transparent hover:text-white'
+          }`}
+          id="tab-rewards-catalog"
+        >
+          Rewards Catalog
+        </button>
+        <button
+          onClick={() => setActiveTab('payout')}
+          className={`font-display font-bold text-lg pb-1 border-b-2 transition-all ${
+            activeTab === 'payout'
+              ? 'text-primary border-primary'
+              : 'text-muted border-transparent hover:text-white'
+          }`}
+          id="tab-upi-payout"
+        >
+          UPI Payout Center
+        </button>
+      </div>
+
+      {/* Main Grid: Catalog/Payout and Leaderboard */}
       <div className="grid lg:grid-cols-3 gap-8">
-        {/* Rewards Catalog */}
-        <div className="lg:col-span-2 space-y-6">
-          <h2 className="font-display text-2xl font-bold text-white flex items-center gap-2">
-            <Gift className="text-primary" /> Available Rewards
-          </h2>
+        {activeTab === 'catalog' ? (
+          /* Rewards Catalog */
+          <div className="lg:col-span-2 space-y-6">
+            <h2 className="font-display text-2xl font-bold text-white flex items-center gap-2">
+              <Gift className="text-primary" /> Available Rewards
+            </h2>
 
-          <div className="grid md:grid-cols-2 gap-6">
-            {catalog?.map((item) => {
-              const Icon = getRewardIcon(item.type);
-              const canAfford = (creator?.pointsBalance || 0) >= item.cost;
+            <div className="grid md:grid-cols-2 gap-6">
+              {catalog?.map((item) => {
+                const Icon = getRewardIcon(item.type);
+                const canAfford = (creator?.pointsBalance || 0) >= item.cost;
 
-              return (
-                <div
-                  key={item.id}
-                  className={`group relative bg-bg-card rounded-2xl p-6 border transition-all duration-300 flex flex-col justify-between hover:-translate-y-1 ${
-                    canAfford
-                      ? 'border-border hover:border-purple-500/50 hover:shadow-[0_8px_30px_rgb(126,34,206,0.1)]'
-                      : 'border-border/50 opacity-70 hover:opacity-100 hover:border-border'
-                  }`}
-                >
-                  <div>
-                    {/* Item Badge & Cost */}
-                    <div className="flex items-start justify-between gap-2 mb-4">
-                      <span className="px-2.5 py-0.5 rounded-md text-[10px] uppercase font-bold tracking-wider bg-slate-900 text-purple-400 border border-purple-500/20">
-                        {item.badge}
-                      </span>
-                      <div className="text-right">
-                        <span className="text-xs text-muted block">Cost</span>
-                        <span className="text-xl font-display font-black text-gold">
-                          {item.cost} <span className="text-xs font-semibold">pts</span>
+                return (
+                  <div
+                    key={item.id}
+                    className={`group relative bg-bg-card rounded-2xl p-6 border transition-all duration-300 flex flex-col justify-between hover:-translate-y-1 ${
+                      canAfford
+                        ? 'border-border hover:border-purple-500/50 hover:shadow-[0_8px_30px_rgb(126,34,206,0.1)]'
+                        : 'border-border/50 opacity-70 hover:opacity-100 hover:border-border'
+                    }`}
+                  >
+                    <div>
+                      {/* Item Badge & Cost */}
+                      <div className="flex items-start justify-between gap-2 mb-4">
+                        <span className="px-2.5 py-0.5 rounded-md text-[10px] uppercase font-bold tracking-wider bg-slate-900 text-purple-400 border border-purple-500/20">
+                          {item.badge}
                         </span>
+                        <div className="text-right">
+                          <span className="text-xs text-muted block">Cost</span>
+                          <span className="text-xl font-display font-black text-gold">
+                            {item.cost} <span className="text-xs font-semibold">pts</span>
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Reward Details */}
+                      <div className="flex gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-purple-glow/20 flex items-center justify-center text-primary group-hover:scale-110 transition-transform duration-300 flex-shrink-0">
+                          <Icon size={22} />
+                        </div>
+                        <div className="space-y-1">
+                          <h3 className="font-display font-bold text-white text-lg leading-tight group-hover:text-primary transition-colors duration-300">
+                            {item.title}
+                          </h3>
+                          <p className="text-muted text-xs leading-relaxed">
+                            {item.description}
+                          </p>
+                        </div>
                       </div>
                     </div>
 
-                    {/* Reward Details */}
-                    <div className="flex gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-purple-glow/20 flex items-center justify-center text-primary group-hover:scale-110 transition-transform duration-300 flex-shrink-0">
-                        <Icon size={22} />
-                      </div>
-                      <div className="space-y-1">
-                        <h3 className="font-display font-bold text-white text-lg leading-tight group-hover:text-primary transition-colors duration-300">
-                          {item.title}
-                        </h3>
-                        <p className="text-muted text-xs leading-relaxed">
-                          {item.description}
-                        </p>
-                      </div>
+                    {/* Redeem Button */}
+                    <div className="mt-6">
+                      <button
+                        onClick={() => handleRedeem(item.type)}
+                        disabled={!canAfford || submitting}
+                        className={`w-full py-2.5 px-4 rounded-xl text-xs font-bold transition-all duration-300 flex items-center justify-center gap-1.5 ${
+                          canAfford
+                            ? 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white shadow-lg shadow-purple-900/20 cursor-pointer'
+                            : 'bg-slate-900 border border-border text-muted cursor-not-allowed'
+                        }`}
+                      >
+                        {canAfford ? (
+                          <>Redeem Reward <ArrowUpRight size={14} /></>
+                        ) : (
+                          <>Need {item.cost - (creator?.pointsBalance || 0)} More Points</>
+                        )}
+                      </button>
                     </div>
                   </div>
-
-                  {/* Redeem Button */}
-                  <div className="mt-6">
-                    <button
-                      onClick={() => handleRedeem(item.type)}
-                      disabled={!canAfford || submitting}
-                      className={`w-full py-2.5 px-4 rounded-xl text-xs font-bold transition-all duration-300 flex items-center justify-center gap-1.5 ${
-                        canAfford
-                          ? 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white shadow-lg shadow-purple-900/20 cursor-pointer'
-                          : 'bg-slate-900 border border-border text-muted cursor-not-allowed'
-                      }`}
-                    >
-                      {canAfford ? (
-                        <>Redeem Reward <ArrowUpRight size={14} /></>
-                      ) : (
-                        <>Need {item.cost - (creator?.pointsBalance || 0)} More Points</>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
-        </div>
+        ) : (
+          /* UPI Payout Center */
+          <div className="lg:col-span-2 space-y-6">
+            <h2 className="font-display text-2xl font-bold text-white flex items-center gap-2">
+              <TrendingUp className="text-primary" /> UPI Payout Center
+            </h2>
+
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Payout Request Form */}
+              <div className="bg-bg-card rounded-2xl p-6 border border-border flex flex-col justify-between">
+                <div>
+                  <h3 className="font-display font-bold text-white text-lg mb-2">
+                    Withdraw Earnings
+                  </h3>
+                  <p className="text-muted text-xs leading-relaxed mb-4">
+                    Convert your cashable points directly to your bank account via UPI. 1 point = ₹1.
+                  </p>
+
+                  <div className="bg-primary/5 p-4 rounded-xl border border-primary/20 mb-4 flex items-center justify-between">
+                    <div>
+                      <span className="text-xs text-muted block uppercase font-bold tracking-wider">Cashable Balance</span>
+                      <span className="text-2xl font-display font-black text-white" id="cashable-balance-display">
+                        ₹{creator?.pointsBalance || 0}
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-xs text-muted block uppercase font-bold">Min. Payout</span>
+                      <span className="text-sm font-semibold text-primary">100 pts</span>
+                    </div>
+                  </div>
+
+                  <form onSubmit={handlePayoutRequest} className="space-y-3">
+                    <div>
+                      <label className="block text-xs text-muted mb-1.5 font-medium">
+                        Withdrawal Amount (Points)
+                      </label>
+                      <input
+                        type="number"
+                        value={payoutAmount}
+                        onChange={(e) => setPayoutAmount(e.target.value)}
+                        placeholder="Min 100"
+                        className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-sm text-white placeholder-muted/50 focus:border-primary focus:ring-1 focus:ring-primary/30 outline-none transition-colors"
+                        min="100"
+                        max={creator?.pointsBalance}
+                        id="payout-amount-input"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs text-muted mb-1.5 font-medium">
+                        UPI ID
+                      </label>
+                      <input
+                        type="text"
+                        value={upiId}
+                        onChange={(e) => setUpiId(e.target.value)}
+                        placeholder="username@bank"
+                        className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-sm text-white placeholder-muted/50 focus:border-primary focus:ring-1 focus:ring-primary/30 outline-none transition-colors"
+                        id="payout-upi-input"
+                        required
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={payoutSubmitting || !creator?.pointsBalance || creator?.pointsBalance < 100}
+                      className="w-full mt-2 bg-primary hover:bg-primary-soft text-black font-bold py-2.5 px-4 rounded-xl text-xs transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                      id="submit-payout-btn"
+                    >
+                      {payoutSubmitting ? 'Processing Payout...' : 'Request UPI Payout'}
+                    </button>
+                  </form>
+                </div>
+              </div>
+
+              {/* Payout History */}
+              <div className="bg-bg-card rounded-2xl p-6 border border-border flex flex-col h-full">
+                <h3 className="font-display font-bold text-white text-lg mb-4">
+                  Payout History
+                </h3>
+
+                {loadingPayouts ? (
+                  <div className="flex-1 flex items-center justify-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+                  </div>
+                ) : payouts.length === 0 ? (
+                  <div className="flex-1 flex flex-col items-center justify-center py-12 text-center text-muted">
+                    <Clock size={32} className="mb-2" />
+                    <p className="text-xs">No payout requests found.</p>
+                  </div>
+                ) : (
+                  <div className="flex-1 overflow-y-auto max-h-72 space-y-3 pr-1" id="payout-history-list">
+                    {payouts.map((payout) => {
+                      let statusBadge = 'bg-slate-900 text-muted';
+                      if (payout.status === 'pending') statusBadge = 'bg-amber-500/10 text-amber-400 border border-amber-500/20';
+                      if (payout.status === 'processing') statusBadge = 'bg-blue-500/10 text-blue-400 border border-blue-500/20';
+                      if (payout.status === 'completed') statusBadge = 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+                      if (payout.status === 'failed') statusBadge = 'bg-rose-500/10 text-rose-400 border border-rose-500/20';
+
+                      return (
+                        <div
+                          key={payout.id}
+                          className="p-3 bg-slate-950/40 border border-border/40 rounded-xl hover:border-border/80 transition-colors flex items-center justify-between"
+                        >
+                          <div>
+                            <div className="font-semibold text-white text-xs">
+                              UPI: {payout.upiId}
+                            </div>
+                            <div className="text-[10px] text-muted mt-1">
+                              {new Date(payout.createdAt).toLocaleDateString()}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-bold text-white text-sm">
+                              ₹{Number(payout.amount).toLocaleString('en-IN')}
+                            </div>
+                            <span className={`inline-block mt-1 px-2 py-0.5 rounded text-[8px] uppercase font-bold tracking-wider ${statusBadge}`}>
+                              {payout.status}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Leaderboard Section */}
         <div className="space-y-6">
