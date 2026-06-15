@@ -41,6 +41,15 @@ const BrandMessages = lazy(() => import('./pages/dashboard/BrandMessages'));
 const BrandCreators = lazy(() => import('./pages/dashboard/BrandCreators'));
 const BrandMilestones = lazy(() => import('./pages/dashboard/BrandMilestones'));
 
+// Admin Dashboard Pages
+const AdminLogin = lazy(() => import('./pages/AdminLogin'));
+const AdminDashboardLayout = lazy(() => import('./pages/dashboard/AdminDashboardLayout'));
+const AdminOverview = lazy(() => import('./pages/dashboard/AdminOverview'));
+const AdminCreators = lazy(() => import('./pages/dashboard/AdminCreators'));
+const AdminInquiries = lazy(() => import('./pages/dashboard/AdminInquiries'));
+const AdminRedemptions = lazy(() => import('./pages/dashboard/AdminRedemptions'));
+const AdminPoints = lazy(() => import('./pages/dashboard/AdminPoints'));
+
 
 function App() {
   const [isLoading, setIsLoading] = useState(true);
@@ -121,6 +130,26 @@ function App() {
               <Route path="analytics" element={<BrandAnalytics />} />
               <Route path="messages" element={<BrandMessages />} />
               <Route path="milestones" element={<BrandMilestones />} />
+            </Route>
+
+            {/* Admin Login Route */}
+            <Route path="/admin-login" element={
+              <Suspense fallback={<LoadingScreen />}>
+                <AdminLogin />
+              </Suspense>
+            } />
+
+            {/* Admin Dashboard Routes */}
+            <Route path="/admin/dashboard" element={
+              <Suspense fallback={<LoadingScreen />}>
+                <AdminDashboardLayout />
+              </Suspense>
+            }>
+              <Route index element={<AdminOverview />} />
+              <Route path="creators" element={<AdminCreators />} />
+              <Route path="inquiries" element={<AdminInquiries />} />
+              <Route path="redemptions" element={<AdminRedemptions />} />
+              <Route path="points" element={<AdminPoints />} />
             </Route>
 
             {/* 404 Catch-All */}

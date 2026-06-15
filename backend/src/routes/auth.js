@@ -457,6 +457,21 @@ router.post('/admin-login', loginLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
 
+    // Auto-seed default admin if no admins exist in DB
+    const adminCount = await prisma.admin.count();
+    if (adminCount === 0) {
+      const hashedDefaultPassword = await bcrypt.hash('Admin@12345', 10);
+      await prisma.admin.create({
+        data: {
+          name: 'Super Admin',
+          email: 'admin@influenziaclub.com',
+          passwordHash: hashedDefaultPassword,
+          role: 'super_admin'
+        }
+      });
+      console.log('🌱 Seeded default admin account: admin@influenziaclub.com / Admin@12345');
+    }
+
     const admin = await prisma.admin.findUnique({
       where: { email }
     });
