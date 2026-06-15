@@ -314,6 +314,23 @@ router.post('/campaigns', async (req, res) => {
       }
     });
 
+    // Check if inquiry has an assigned creator
+    const inquiry = await prisma.brandInquiry.findUnique({
+      where: { id: brandInquiryId }
+    });
+
+    if (inquiry && inquiry.assignedTo) {
+      // Create campaign creator collaboration automatically
+      await prisma.campaignCreator.create({
+        data: {
+          campaignId: campaign.id,
+          creatorId: inquiry.assignedTo,
+          deliverables: notes || 'Campaign deliverables negotiated by admin.',
+          status: 'confirmed'
+        }
+      });
+    }
+
     res.json({
       success: true,
       message: 'Campaign created',
