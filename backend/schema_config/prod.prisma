@@ -300,8 +300,8 @@ model Payment {
   razorpaySignature String?       @db.VarChar(255)
   gstAmount       Decimal         @db.Decimal(10, 2) @default(0)
   tdsAmount       Decimal         @db.Decimal(10, 2) @default(0)
-  invoiceUrl      String?         @db.VarChar(500)
-  agreementUrl    String?         @db.VarChar(500)
+  invoiceUrl      String?         @db.Text
+  agreementUrl    String?         @db.Text
   paidAt          DateTime?
   createdAt       DateTime        @default(now()) @map("created_at")
   updatedAt       DateTime        @updatedAt @map("updated_at")
