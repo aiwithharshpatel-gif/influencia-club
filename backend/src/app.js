@@ -19,6 +19,7 @@ import brandRoutes from './routes/brand.js';
 import rewardsRoutes from './routes/rewards.js';
 import milestonesRoutes from './routes/milestones.js';
 import notificationsRoutes from './routes/notifications.js';
+import { startInstagramSyncScheduler } from './services/instagramSyncScheduler.js';
 
 import { sanitizeRequest } from './middleware/sanitizer.js';
 
@@ -164,6 +165,9 @@ app.set('io', io);
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`Influenzia Club API with WebSockets running on port ${PORT} at 0.0.0.0`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  
+  // Start the Instagram Profile statistics daily auto-sync background task
+  startInstagramSyncScheduler();
 });
 
 export default app;

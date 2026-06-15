@@ -3,6 +3,7 @@ import prisma from '../lib/prisma.js';
 import { adminProtect } from '../middleware/auth.js';
 import { safeErrorMessage } from '../middleware/errorHandler.js';
 import { updateCreatorTier } from '../services/pointsService.js';
+import { runInstagramAutoSync } from '../services/instagramSyncScheduler.js';
 
 const router = express.Router();
 
@@ -481,6 +482,26 @@ router.post('/points', async (req, res) => {
         pointsBalance: creator.pointsBalance,
         tier: creator.tier
       }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: safeErrorMessage(error, process.env.NODE_ENV === 'production')
+    });
+  }
+});
+
+// Bulk refresh all Instagram statistics (admin only)
+router.post('/creators/instagram/refresh-all', async (req, res) => {
+  try {
+    // We execute the auto sync task in background
+    runInstagramAutoSync()
+      .then(stats => console.log('[Admin Stats Refresh] Completed background refresh:', stats))
+      .catch(err => console.error('[Admin Stats Refresh] Background refresh failed:', err));
+
+    res.json({
+      success: true,
+      message: 'Bulk Instagram statistics refresh triggered in the background'
     });
   } catch (error) {
     res.status(500).json({

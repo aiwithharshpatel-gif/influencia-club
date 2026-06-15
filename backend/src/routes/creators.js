@@ -222,6 +222,64 @@ router.post('/instagram/connect', protect, async (req, res) => {
 });
 
 /**
+ * Refresh connected Instagram profile statistics manually
+ * POST /api/creators/instagram/refresh
+ */
+router.post('/instagram/refresh', protect, async (req, res) => {
+  try {
+    const profile = await prisma.instagramProfile.findUnique({
+      where: { creatorId: req.user.id }
+    });
+
+    if (!profile) {
+      return res.status(400).json({
+        success: false,
+        message: 'Instagram profile not connected'
+      });
+    }
+
+    // Call Meta API mock service
+    const igData = await fetchInstagramData(profile.accessToken || 'mock_access_token_123', profile.username);
+
+    // Save updated statistics
+    const updatedProfile = await prisma.instagramProfile.update({
+      where: { id: profile.id },
+      data: {
+        fullName: igData.fullName,
+        profilePicUrl: igData.profilePicUrl,
+        followersCount: igData.followersCount,
+        mediaCount: igData.mediaCount,
+        engagementRate: igData.engagementRate,
+        avgLikes: igData.avgLikes,
+        avgComments: igData.avgComments,
+        recentPosts: igData.recentPosts
+      }
+    });
+
+    // Update parent Creator
+    const formatted = formatFollowers(igData.followersCount);
+    await prisma.creator.update({
+      where: { id: req.user.id },
+      data: {
+        followerCount: formatted
+      }
+    });
+
+    res.json({
+      success: true,
+      message: 'Instagram statistics refreshed successfully!',
+      profile: updatedProfile
+    });
+  } catch (error) {
+    console.error('Refresh Instagram profile error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to refresh Instagram statistics'
+    });
+  }
+});
+
+/**
  * Disconnect Instagram Profile
  * POST /api/creators/instagram/disconnect
  */

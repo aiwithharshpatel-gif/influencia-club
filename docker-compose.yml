@@ -51,10 +51,25 @@ services:
         - VITE_API_URL=${VITE_API_URL:-/api}
         - CACHEBUST=LAUNCH-FINAL-VER-116
     restart: always
-    ports:
-      - "5000:80"
+    expose:
+      - "80"
     depends_on:
       - backend_final
+    networks:
+      - app-network
+
+  caddy:
+    image: caddy:2
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend_final
     networks:
       - app-network
 
@@ -64,3 +79,5 @@ networks:
 
 volumes:
   db_data_v3:
+  caddy_data:
+  caddy_config:

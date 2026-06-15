@@ -132,6 +132,23 @@ const Profile = () => {
     }
   };
 
+  const handleSyncInstagram = async () => {
+    try {
+      setIgLoading(true);
+      const response = await api.post('/creators/instagram/refresh');
+      if (response.data.success) {
+        toast.success(response.data.message || 'Instagram metrics synchronized successfully!');
+        setIgProfile(response.data.profile);
+        await fetchProfile(); // refresh followerCount inside form
+      }
+    } catch (error) {
+      console.error('Error syncing Instagram:', error);
+      toast.error(error.response?.data?.message || 'Failed to synchronize Instagram metrics');
+    } finally {
+      setIgLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -363,13 +380,26 @@ const Profile = () => {
               Connect Instagram
             </button>
           ) : (
-            <button
-              onClick={handleDisconnectInstagram}
-              className="bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/30 px-5 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center space-x-1.5 transition-all"
-            >
-              <Unlink size={14} />
-              <span>Disconnect Profile</span>
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleSyncInstagram}
+                disabled={igLoading}
+                className="bg-primary hover:bg-primary-soft text-black px-5 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center space-x-1.5 transition-all disabled:opacity-50"
+                id="sync-instagram-btn"
+              >
+                <RefreshCw size={14} className={igLoading ? 'animate-spin' : ''} />
+                <span>Sync Metrics</span>
+              </button>
+
+              <button
+                onClick={handleDisconnectInstagram}
+                disabled={igLoading}
+                className="bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/30 px-5 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center space-x-1.5 transition-all disabled:opacity-50"
+              >
+                <Unlink size={14} />
+                <span>Disconnect Profile</span>
+              </button>
+            </div>
           )}
         </div>
 
