@@ -42,3 +42,9 @@ backend/prisma/migrations/
 demo-videos/
 *.webm
 *.mp4
+
+# Temp debug/test files
+debug_semantic_search.js
+test_phase5_failure.png
+test_phase5_instagram_search.js
+

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Award, Gift, Instagram, Ticket, Briefcase, CheckCircle, Trophy, TrendingUp, Sparkles, Clock, Crown, ArrowUpRight, Lock } from 'lucide-react';
+import { Award, Gift, Instagram, Ticket, Briefcase, CheckCircle, Trophy, TrendingUp, Sparkles, Clock, Crown, ArrowUpRight, Lock, RefreshCw } from 'lucide-react';
 import api from '../../utils/api';
 import toast from 'react-hot-toast';
 
@@ -18,6 +18,34 @@ const Points = () => {
   const [payoutAmount, setPayoutAmount] = useState('');
   const [upiId, setUpiId] = useState('');
   const [payoutSubmitting, setPayoutSubmitting] = useState(false);
+  const [checkingPayout, setCheckingPayout] = useState({});
+
+  const checkStatus = async (payoutId) => {
+    setCheckingPayout(prev => ({ ...prev, [payoutId]: true }));
+    const toastId = toast.loading('Checking live status...');
+    try {
+      const response = await api.get(`/payments/payout/${payoutId}/status`);
+      if (response.data.success) {
+        const updatedStatus = response.data.payout.status;
+        toast.success(`Payout status: ${updatedStatus.toUpperCase()}`, { id: toastId });
+        
+        setPayouts(prev =>
+          prev.map(p => p.id === payoutId ? { ...p, status: updatedStatus } : p)
+        );
+        
+        if (updatedStatus === 'completed' || updatedStatus === 'failed') {
+          fetchMarketplaceData();
+        }
+      } else {
+        toast.error('Failed to retrieve status update', { id: toastId });
+      }
+    } catch (error) {
+      console.error('Error checking payout status:', error);
+      toast.error('Error fetching status', { id: toastId });
+    } finally {
+      setCheckingPayout(prev => ({ ...prev, [payoutId]: false }));
+    }
+  };
 
   useEffect(() => {
     fetchMarketplaceData();
@@ -500,13 +528,26 @@ const Points = () => {
                               {new Date(payout.createdAt).toLocaleDateString()}
                             </div>
                           </div>
-                          <div className="text-right">
+                          <div className="text-right flex flex-col items-end gap-1">
                             <div className="font-bold text-white text-sm">
                               ₹{Number(payout.amount).toLocaleString('en-IN')}
                             </div>
-                            <span className={`inline-block mt-1 px-2 py-0.5 rounded text-[8px] uppercase font-bold tracking-wider ${statusBadge}`}>
-                              {payout.status}
-                            </span>
+                            <div className="flex items-center gap-1.5">
+                              <span className={`inline-block px-2 py-0.5 rounded text-[8px] uppercase font-bold tracking-wider ${statusBadge}`}>
+                                {payout.status}
+                              </span>
+                              {(payout.status === 'pending' || payout.status === 'processing') && (
+                                <button
+                                  type="button"
+                                  onClick={() => checkStatus(payout.id)}
+                                  disabled={checkingPayout[payout.id]}
+                                  className="p-1 rounded bg-bg border border-border text-[9px] text-muted hover:text-white hover:border-primary/50 transition-colors flex items-center justify-center disabled:opacity-50"
+                                  title="Check Live status"
+                                >
+                                  <RefreshCw size={10} className={checkingPayout[payout.id] ? 'animate-spin' : ''} />
+                                </button>
+                              )}
+                            </div>
                           </div>
                         </div>
                       );

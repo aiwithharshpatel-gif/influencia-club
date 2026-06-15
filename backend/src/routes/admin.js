@@ -4,6 +4,7 @@ import { adminProtect } from '../middleware/auth.js';
 import { safeErrorMessage } from '../middleware/errorHandler.js';
 import { updateCreatorTier } from '../services/pointsService.js';
 import { runInstagramAutoSync } from '../services/instagramSyncScheduler.js';
+import { createNotification } from '../services/notificationInboxService.js';
 
 const router = express.Router();
 
@@ -156,6 +157,29 @@ router.put('/creators/:id', async (req, res) => {
         pointsBalance: true
       }
     });
+
+    // Notify creator if approved or verified
+    const io = req.app.get('io');
+    if (isApproved === true) {
+      await createNotification({
+        recipientId: id,
+        recipientType: 'creator',
+        type: 'approval',
+        title: 'Account Approved! 🎉',
+        message: 'Congratulations! Your creator profile has been approved by the admin team. You can now participate in campaigns.',
+        link: '/dashboard/profile'
+      }, io);
+    }
+    if (isVerified === true) {
+      await createNotification({
+        recipientId: id,
+        recipientType: 'creator',
+        type: 'approval',
+        title: 'Verified Badge Granted! ⭐',
+        message: 'Your profile has been verified by the admin team. A verification badge is now shown on your profile.',
+        link: '/dashboard/profile'
+      }, io);
+    }
 
     res.json({
       success: true,
@@ -425,6 +449,28 @@ router.put('/redemptions/:id', async (req, res) => {
       where: { id },
       data: { status, adminNote }
     });
+
+    // Notify creator
+    const io = req.app.get('io');
+    if (status === 'approved') {
+      await createNotification({
+        recipientId: redemption.creatorId,
+        recipientType: 'creator',
+        type: 'system',
+        title: 'Redemption Approved! 🎁',
+        message: `Your redemption request for "${redemption.rewardType.replace(/_/g, ' ')}" has been approved. Note: ${adminNote || 'Processed.'}`,
+        link: '/dashboard/points'
+      }, io);
+    } else if (status === 'rejected') {
+      await createNotification({
+        recipientId: redemption.creatorId,
+        recipientType: 'creator',
+        type: 'system',
+        title: 'Redemption Rejected ❌',
+        message: `Your redemption request for "${redemption.rewardType.replace(/_/g, ' ')}" was rejected. Points have been refunded. Note: ${adminNote || 'No reason provided.'}`,
+        link: '/dashboard/points'
+      }, io);
+    }
 
     res.json({
       success: true,

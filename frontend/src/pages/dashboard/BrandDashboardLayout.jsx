@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import { subscribeUserToPush } from '../../services/pushNotification';
+import NotificationInbox from '../../components/NotificationInbox';
 
 const BrandDashboardLayout = () => {
   const { user, role, loading, logout } = useAuth();
@@ -115,6 +116,7 @@ const BrandDashboardLayout = () => {
                       {user?.email || 'brand@email.com'}
                     </div>
                   </div>
+                  <NotificationInbox />
                 </div>
 
                 {/* Navigation */}

@@ -2,9 +2,10 @@ import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
 import { protect } from '../middleware/auth.js';
-import { createOrder, verifyPayment, initiatePayout, generateInvoice, generateAgreement } from '../services/paymentService.js';
+import { createOrder, verifyPayment, initiatePayout, checkPayoutStatus, generateInvoice, generateAgreement } from '../services/paymentService.js';
 import { findMatchingCreators } from '../services/matchmakingService.js';
 import { debitPoints } from '../services/pointsService.js';
+import { createNotification } from '../services/notificationInboxService.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -191,6 +192,26 @@ router.post('/verify-payment', anyPaymentUserProtect, async (req, res) => {
       }
     });
 
+    // Notify creator and brand
+    const io = req.app.get('io');
+    await createNotification({
+      recipientId: payment.creatorId,
+      recipientType: 'creator',
+      type: 'payment',
+      title: 'Escrow Deposited 💰',
+      message: `Brand "${payment.brandInquiry.brandName}" has deposited ₹${payment.amount} in escrow for your collaboration.`,
+      link: '/dashboard/collabs'
+    }, io);
+
+    await createNotification({
+      recipientId: payment.brandInquiry.email,
+      recipientType: 'brand',
+      type: 'payment',
+      title: 'Escrow Payment Verified ✅',
+      message: `Your escrow payment of ₹${payment.amount} for creator "${payment.creator.name}" has been successfully verified.`,
+      link: '/brand/dashboard/inquiries'
+    }, io);
+
     res.json({
       success: true,
       message: 'Payment verified successfully',
@@ -279,6 +300,16 @@ router.post('/payout', protect, async (req, res) => {
         }
       });
     }
+
+    const io = req.app.get('io');
+    await createNotification({
+      recipientId: creatorId,
+      recipientType: 'creator',
+      type: 'payout',
+      title: 'Payout Initiated 💸',
+      message: `Your payout request of ₹${amount} (UPI: ${upiId}) is being processed.`,
+      link: '/dashboard/points'
+    }, io);
 
     res.json({
       success: true,
@@ -413,6 +444,116 @@ router.post('/matches', async (req, res) => {
     res.json(matches);
   } catch (error) {
     console.error('Matches error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+/**
+ * Check Payout Status (polls Cashfree)
+ * GET /api/payments/payout/:id/status
+ */
+router.get('/payout/:id/status', protect, async (req, res) => {
+  try {
+    const payout = await prisma.payout.findUnique({
+      where: { id: req.params.id }
+    });
+
+    if (!payout) {
+      return res.status(404).json({
+        success: false,
+        message: 'Payout not found'
+      });
+    }
+
+    // Only the creator who owns this payout can check status
+    if (payout.creatorId !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied'
+      });
+    }
+
+    // If we have a Cashfree transfer ID, check live status
+    const transferId = payout.cashfreePayoutId;
+    if (transferId) {
+      const statusResult = await checkPayoutStatus(transferId);
+
+      if (statusResult.success) {
+        // Map Cashfree status to our status
+        let mappedStatus = payout.status;
+        if (statusResult.status === 'SUCCESS') {
+          mappedStatus = 'completed';
+        } else if (statusResult.status === 'FAILED' || statusResult.status === 'REVERSED') {
+          mappedStatus = 'failed';
+        } else if (statusResult.status === 'PENDING') {
+          mappedStatus = 'processing';
+        }
+
+        // Update local record if status changed
+        if (mappedStatus !== payout.status) {
+          await prisma.payout.update({
+            where: { id: payout.id },
+            data: {
+              status: mappedStatus,
+              processedAt: mappedStatus === 'completed' ? new Date() : payout.processedAt
+            }
+          });
+
+          // Notify creator
+          const io = req.app.get('io');
+          if (mappedStatus === 'completed') {
+            await createNotification({
+              recipientId: payout.creatorId,
+              recipientType: 'creator',
+              type: 'payout',
+              title: 'Payout Successful! ✅',
+              message: `Your payout of ₹${payout.amount} has been successfully credited to your account.`,
+              link: '/dashboard/points'
+            }, io);
+          } else if (mappedStatus === 'failed') {
+            await createNotification({
+              recipientId: payout.creatorId,
+              recipientType: 'creator',
+              type: 'payout',
+              title: 'Payout Failed ❌',
+              message: `Your payout of ₹${payout.amount} has failed. Please check your payment details.`,
+              link: '/dashboard/points'
+            }, io);
+          }
+        }
+
+        return res.json({
+          success: true,
+          payout: {
+            id: payout.id,
+            amount: payout.amount,
+            status: mappedStatus,
+            cashfreeStatus: statusResult.status,
+            utr: statusResult.utr,
+            transferId,
+            processedAt: mappedStatus === 'completed' ? new Date() : payout.processedAt
+          }
+        });
+      }
+    }
+
+    // No Cashfree ID or check failed — return local status
+    res.json({
+      success: true,
+      payout: {
+        id: payout.id,
+        amount: payout.amount,
+        status: payout.status,
+        cashfreeStatus: null,
+        transferId: payout.cashfreePayoutId,
+        processedAt: payout.processedAt
+      }
+    });
+  } catch (error) {
+    console.error('Payout status check error:', error);
     res.status(500).json({
       success: false,
       message: error.message

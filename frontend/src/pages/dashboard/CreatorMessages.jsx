@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { MessageSquare, Send, ArrowLeft, User, Circle } from 'lucide-react';
+import { MessageSquare, Send, ArrowLeft, User, Circle, Paperclip, X, FileText } from 'lucide-react';
 import api, { API_URL } from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
@@ -15,8 +15,12 @@ const CreatorMessages = () => {
   const [loading, setLoading] = useState(true);
   const [threadLoading, setThreadLoading] = useState(false);
   const [sending, setSending] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  
   const messagesEndRef = useRef(null);
   const selectedBrandRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   // Keep ref up to date for socket listener callback
   useEffect(() => {
@@ -61,7 +65,7 @@ const CreatorMessages = () => {
           const isCurrentActive = activeBrand === conv.brandEmail;
           updated[existingIdx] = {
             ...conv,
-            lastMessage: message.content,
+            lastMessage: message.attachments?.length ? '📎 Attachment' : message.content,
             lastMessageAt: message.createdAt,
             unreadCount: isCurrentActive ? 0 : (message.recipientType === 'creator' ? conv.unreadCount + 1 : conv.unreadCount)
           };
@@ -101,6 +105,7 @@ const CreatorMessages = () => {
   const openThread = async (brandEmail) => {
     setSelectedBrand(brandEmail);
     setThreadLoading(true);
+    setSelectedFile(null);
     try {
       const response = await api.get(`/dashboard/messages/${brandEmail}`);
       if (response.data.success) {
@@ -119,24 +124,65 @@ const CreatorMessages = () => {
     }
   };
 
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('File size must be less than 5MB');
+      return;
+    }
+
+    setUploadingFile(true);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const toastId = toast.loading('Uploading attachment...');
+    try {
+      const response = await api.post('/dashboard/messages/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      if (response.data.success) {
+        setSelectedFile(response.data.attachment);
+        toast.success('File ready to send!', { id: toastId });
+      } else {
+        toast.error('Upload failed', { id: toastId });
+      }
+    } catch (error) {
+      console.error('File upload error:', error);
+      toast.error(error.response?.data?.message || 'Failed to upload file', { id: toastId });
+    } finally {
+      setUploadingFile(false);
+      e.target.value = '';
+    }
+  };
+
   const handleSend = async (e) => {
     e.preventDefault();
-    if (!newMessage.trim() || sending) return;
+    if ((!newMessage.trim() && !selectedFile) || sending || uploadingFile) return;
 
     setSending(true);
     try {
-      const response = await api.post('/dashboard/messages', {
+      const payload = {
         brandEmail: selectedBrand,
-        content: newMessage.trim()
-      });
+        content: newMessage.trim(),
+        attachments: selectedFile ? [selectedFile] : undefined
+      };
+      
+      const response = await api.post('/dashboard/messages', payload);
       if (response.data.success) {
         setMessages(prev => [...prev, response.data.message]);
         setNewMessage('');
+        setSelectedFile(null);
         // Update conversation list
         setConversations(prev =>
           prev.map(c =>
             c.brandEmail === selectedBrand
-              ? { ...c, lastMessage: newMessage.trim(), lastMessageAt: new Date().toISOString() }
+              ? { 
+                  ...c, 
+                  lastMessage: selectedFile ? '📎 Attachment' : newMessage.trim(), 
+                  lastMessageAt: new Date().toISOString() 
+                }
               : c
           )
         );
@@ -152,6 +198,7 @@ const CreatorMessages = () => {
     setSelectedBrand(null);
     setMessages([]);
     setBrandInfo(null);
+    setSelectedFile(null);
   };
 
   if (loading) {
@@ -282,7 +329,45 @@ const CreatorMessages = () => {
                                 : 'bg-bg text-white rounded-bl-md border border-border'
                             }`}
                           >
-                            <p className="break-words">{msg.content}</p>
+                            {msg.content && <p className="break-words">{msg.content}</p>}
+                            
+                            {/* Render Attachments */}
+                            {msg.attachments && Array.isArray(msg.attachments) && msg.attachments.length > 0 && (
+                              <div className="mt-2 space-y-2">
+                                {msg.attachments.map((att, index) => {
+                                  if (att.type === 'image') {
+                                    return (
+                                      <a 
+                                        key={index} 
+                                        href={att.url} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer" 
+                                        className="block rounded-lg overflow-hidden border border-border/40 max-w-xs hover:opacity-90 transition-opacity"
+                                      >
+                                        <img src={att.url} alt={att.name || 'Attachment'} className="max-h-48 w-full object-cover" />
+                                      </a>
+                                    );
+                                  } else {
+                                    return (
+                                      <a 
+                                        key={index} 
+                                        href={att.url} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer" 
+                                        className="flex items-center gap-2 p-2 bg-black/30 hover:bg-black/50 border border-border/50 rounded-lg text-xs transition-colors text-white"
+                                      >
+                                        <FileText size={16} className="text-primary" />
+                                        <div className="min-w-0 flex-1">
+                                          <div className="truncate font-semibold">{att.name}</div>
+                                          {att.size && <div className="text-[10px] text-muted">{Math.round(att.size / 1024)} KB</div>}
+                                        </div>
+                                      </a>
+                                    );
+                                  }
+                                })}
+                              </div>
+                            )}
+
                             <p className={`text-[10px] mt-1 ${isCreator ? 'text-primary/60' : 'text-muted/60'} text-right`}>
                               {formatTime(msg.createdAt)}
                             </p>
@@ -294,20 +379,65 @@ const CreatorMessages = () => {
                   <div ref={messagesEndRef} />
                 </div>
 
+                {/* File Compose Preview */}
+                {selectedFile && (
+                  <div className="px-4 py-2 bg-bg/50 border-t border-border flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 text-xs text-white">
+                      {selectedFile.type === 'image' ? (
+                        <div className="w-10 h-10 rounded-lg overflow-hidden border border-border flex-shrink-0">
+                          <img src={selectedFile.url} alt="" className="w-full h-full object-cover" />
+                        </div>
+                      ) : (
+                        <div className="w-10 h-10 rounded-lg bg-black/40 border border-border flex items-center justify-center flex-shrink-0">
+                          <FileText size={16} className="text-primary" />
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-semibold">{selectedFile.name}</p>
+                        {selectedFile.size && <p className="text-[10px] text-muted">{Math.round(selectedFile.size / 1024)} KB</p>}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedFile(null)}
+                      className="w-8 h-8 rounded-lg bg-bg border border-border flex items-center justify-center text-muted hover:text-white hover:border-red-500/50 transition-colors"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                )}
+
                 {/* Compose */}
-                <form onSubmit={handleSend} className="p-4 border-t border-border flex gap-3">
+                <form onSubmit={handleSend} className="p-4 border-t border-border flex gap-2">
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    className="hidden"
+                    accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={sending || uploadingFile}
+                    className="w-10 h-10 rounded-lg bg-bg border border-border flex items-center justify-center text-muted hover:text-white hover:border-primary/50 transition-colors"
+                    title="Attach image or file"
+                  >
+                    <Paperclip size={18} />
+                  </button>
+
                   <input
                     type="text"
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
                     placeholder="Type a message..."
-                    className="flex-1 bg-bg border border-border rounded-lg px-4 py-2.5 text-white text-sm focus:outline-none focus:border-primary transition-colors"
+                    className="flex-1 bg-bg border border-border rounded-lg px-4 py-2 text-white text-sm focus:outline-none focus:border-primary transition-colors"
                     disabled={sending}
                   />
                   <button
                     type="submit"
-                    disabled={!newMessage.trim() || sending}
-                    className="btn-primary px-4 py-2.5 disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-2 text-sm"
+                    disabled={(!newMessage.trim() && !selectedFile) || sending || uploadingFile}
+                    className="btn-primary px-4 py-2 disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-2 text-sm"
                   >
                     <Send size={16} />
                     <span className="hidden sm:inline">Send</span>

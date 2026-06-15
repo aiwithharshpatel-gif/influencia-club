@@ -6,6 +6,7 @@ import { useNavigate, Outlet, useLocation } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import { subscribeUserToPush } from '../../services/pushNotification';
+import NotificationInbox from '../../components/NotificationInbox';
 
 const DashboardLayout = () => {
   const { user, logout } = useAuth();
@@ -105,6 +106,7 @@ const DashboardLayout = () => {
                       {user?.email || 'user@email.com'}
                     </div>
                   </div>
+                  <NotificationInbox />
                 </div>
 
                 {/* Navigation */}

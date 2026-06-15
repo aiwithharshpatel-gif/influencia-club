@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import { protect } from '../middleware/auth.js';
 import { brandProtect } from '../middleware/auth.js';
 import { sendPushNotification } from '../services/pushService.js';
+import { createNotification } from '../services/notificationInboxService.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -232,6 +233,19 @@ router.put('/brand/:milestoneId/review', brandProtect, async (req, res) => {
       }
     });
 
+    // Dispatch persistent in-app notification to creator
+    const io = req.app.get('io');
+    await createNotification({
+      recipientId: milestone.campaignCreator.creatorId,
+      recipientType: 'creator',
+      type: 'milestone',
+      title: action === 'approve' ? 'Milestone Approved! 🚀' : 'Revision Requested ⚠️',
+      message: action === 'approve'
+        ? `Your milestone "${milestone.title}" has been approved by ${milestone.campaignCreator.campaign.brandInquiry.brandName}.`
+        : `Revision requested for "${milestone.title}" by ${milestone.campaignCreator.campaign.brandInquiry.brandName}. Feedback: "${feedback || ''}"`,
+      link: '/dashboard/milestones'
+    }, io);
+
     res.json({
       success: true,
       message: `Milestone ${action === 'approve' ? 'approved' : 'sent back for revision'}`,
@@ -451,6 +465,17 @@ router.put('/creator/:milestoneId/submit', protect, async (req, res) => {
         url: '/brand/dashboard/milestones'
       }
     });
+
+    // Dispatch persistent in-app notification to brand
+    const io = req.app.get('io');
+    await createNotification({
+      recipientId: brandEmail,
+      recipientType: 'brand',
+      type: 'milestone',
+      title: 'New Milestone Submission 📁',
+      message: `${req.user.name || 'Creator'} submitted work for milestone "${milestone.title}".`,
+      link: '/brand/dashboard/milestones'
+    }, io);
 
     res.json({
       success: true,

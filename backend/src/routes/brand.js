@@ -4,6 +4,8 @@ import { brandProtect } from '../middleware/auth.js';
 import { findMatchingCreators } from '../services/matchmakingService.js';
 import { sendPushNotification } from '../services/pushService.js';
 import { searchCreators } from '../services/semanticSearchService.js';
+import { generateCampaignReport, refreshCampaignAnalytics } from '../services/analyticsService.js';
+import { upload, uploadToCloudinary } from '../services/uploadService.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -497,12 +499,12 @@ router.get('/messages/:creatorId', async (req, res) => {
  */
 router.post('/messages', async (req, res) => {
   try {
-    const { creatorId, content, campaignId } = req.body;
+    const { creatorId, content, campaignId, attachments } = req.body;
 
-    if (!creatorId || !content?.trim()) {
+    if (!creatorId || (!content?.trim() && (!attachments || attachments.length === 0))) {
       return res.status(400).json({
         success: false,
-        message: 'Creator ID and message content are required'
+        message: 'Creator ID and message content or attachments are required'
       });
     }
 
@@ -524,8 +526,9 @@ router.post('/messages', async (req, res) => {
         senderType: 'brand',
         recipientId: creatorId,
         recipientType: 'creator',
-        content: content.trim(),
-        campaignId: campaignId || null
+        content: content?.trim() || '',
+        campaignId: campaignId || null,
+        attachments: attachments || undefined
       }
     });
 
@@ -538,7 +541,7 @@ router.post('/messages', async (req, res) => {
     // Dispatch push notification to creator
     sendPushNotification(creator.email, 'creator', {
       title: `New Message from ${req.brand.brandName || 'Brand'}`,
-      body: content.trim(),
+      body: attachments?.length ? '📎 Sent an attachment' : content.trim(),
       data: {
         url: '/dashboard/messages'
       }
@@ -553,6 +556,47 @@ router.post('/messages', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to send message'
+    });
+  }
+});
+
+/**
+ * Upload a file attachment for brand chat
+ * POST /api/brand/messages/upload
+ */
+router.post('/messages/upload', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No file provided'
+      });
+    }
+
+    const isImage = req.file.mimetype.startsWith('image/');
+    const result = await uploadToCloudinary(
+      req.file.buffer,
+      'influenzia-chat',
+      isImage ? 'image' : 'raw'
+    );
+
+    res.json({
+      success: true,
+      attachment: {
+        url: result.url,
+        type: isImage ? 'image' : 'file',
+        name: req.file.originalname,
+        size: result.bytes,
+        format: result.format,
+        width: result.width || null,
+        height: result.height || null
+      }
+    });
+  } catch (error) {
+    console.error('Brand file upload error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to upload file'
     });
   }
 });
@@ -841,6 +885,79 @@ router.post('/applications/:id/action', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to process application action'
+    });
+  }
+});
+
+/**
+ * Generate printable HTML campaign report
+ * GET /api/brand/analytics/:campaignId/report
+ */
+router.get('/analytics/:campaignId/report', async (req, res) => {
+  try {
+    const { campaignId } = req.params;
+
+    // Verify this campaign belongs to the brand
+    const campaign = await prisma.campaign.findFirst({
+      where: {
+        id: campaignId,
+        brandInquiry: { email: req.brand.email }
+      }
+    });
+
+    if (!campaign) {
+      return res.status(404).json({
+        success: false,
+        message: 'Campaign not found'
+      });
+    }
+
+    const reportHtml = await generateCampaignReport(campaignId);
+    res.setHeader('Content-Type', 'text/html');
+    res.send(reportHtml);
+  } catch (error) {
+    console.error('Generate campaign report error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to generate campaign report'
+    });
+  }
+});
+
+/**
+ * Refresh/recalculate campaign analytics
+ * POST /api/brand/analytics/:campaignId/refresh
+ */
+router.post('/analytics/:campaignId/refresh', async (req, res) => {
+  try {
+    const { campaignId } = req.params;
+
+    // Verify this campaign belongs to the brand
+    const campaign = await prisma.campaign.findFirst({
+      where: {
+        id: campaignId,
+        brandInquiry: { email: req.brand.email }
+      }
+    });
+
+    if (!campaign) {
+      return res.status(404).json({
+        success: false,
+        message: 'Campaign not found'
+      });
+    }
+
+    const analytics = await refreshCampaignAnalytics(campaignId);
+    res.json({
+      success: true,
+      message: 'Analytics refreshed successfully',
+      analytics
+    });
+  } catch (error) {
+    console.error('Refresh campaign analytics error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to refresh analytics'
     });
   }
 });

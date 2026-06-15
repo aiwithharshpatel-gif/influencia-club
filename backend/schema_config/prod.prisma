@@ -455,3 +455,18 @@ model InstagramProfile {
   @@map("instagram_profiles")
 }
 
+model Notification {
+  id              String   @id @default(uuid())
+  recipientId     String   @db.VarChar(36)
+  recipientType   String   @db.VarChar(20)   // 'creator', 'brand', 'admin'
+  type            String   @db.VarChar(50)   // 'payment', 'milestone', 'payout', 'campaign', 'system', 'approval'
+  title           String   @db.VarChar(200)
+  message         String   @db.Text
+  link            String?  @db.VarChar(500)
+  isRead          Boolean  @default(false)
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@index([recipientId, recipientType])
+  @@map("notifications")
+}
+

@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import { protect } from '../middleware/auth.js';
 import { getPointsHistory, getReferralStats } from '../services/pointsService.js';
 import { sendPushNotification } from '../services/pushService.js';
+import { upload, uploadToCloudinary } from '../services/uploadService.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -388,12 +389,12 @@ router.get('/messages/:brandEmail', async (req, res) => {
 router.post('/messages', async (req, res) => {
   try {
     const creatorId = req.user.id;
-    const { brandEmail, content, campaignId } = req.body;
+    const { brandEmail, content, campaignId, attachments } = req.body;
 
-    if (!brandEmail || !content?.trim()) {
+    if (!brandEmail || (!content?.trim() && (!attachments || attachments.length === 0))) {
       return res.status(400).json({
         success: false,
-        message: 'Brand Email and message content are required'
+        message: 'Brand Email and message content or attachments are required'
       });
     }
 
@@ -403,8 +404,9 @@ router.post('/messages', async (req, res) => {
         senderType: 'creator',
         recipientId: brandEmail,
         recipientType: 'brand',
-        content: content.trim(),
-        campaignId: campaignId || null
+        content: content?.trim() || '',
+        campaignId: campaignId || null,
+        attachments: attachments || undefined
       }
     });
 
@@ -417,7 +419,7 @@ router.post('/messages', async (req, res) => {
     // Dispatch push notification to brand
     sendPushNotification(brandEmail, 'brand', {
       title: `New Message from ${req.user.name || 'Creator'}`,
-      body: content.trim(),
+      body: attachments?.length ? '📎 Sent an attachment' : content.trim(),
       data: {
         url: '/brand/dashboard/messages'
       }
@@ -432,6 +434,48 @@ router.post('/messages', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to send message'
+    });
+  }
+});
+
+/**
+ * Upload a file attachment for chat
+ * POST /api/dashboard/messages/upload
+ * Multipart form: file (max 5MB)
+ */
+router.post('/messages/upload', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No file provided'
+      });
+    }
+
+    const isImage = req.file.mimetype.startsWith('image/');
+    const result = await uploadToCloudinary(
+      req.file.buffer,
+      'influenzia-chat',
+      isImage ? 'image' : 'raw'
+    );
+
+    res.json({
+      success: true,
+      attachment: {
+        url: result.url,
+        type: isImage ? 'image' : 'file',
+        name: req.file.originalname,
+        size: result.bytes,
+        format: result.format,
+        width: result.width || null,
+        height: result.height || null
+      }
+    });
+  } catch (error) {
+    console.error('File upload error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to upload file'
     });
   }
 });
