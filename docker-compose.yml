@@ -11,6 +11,7 @@ services:
       - app-network
 
   backend_final: # RENAMED SERVICE
+    image: influencia-club-backend_final:v1.0.1
     build: 
       context: ./backend
       args:
@@ -45,6 +46,7 @@ services:
       - app-network
  
   frontend_final: # RENAMED SERVICE
+    image: influencia-club-frontend_final:v1.0.1
     build: 
       context: ./frontend
       args:
