@@ -11,11 +11,11 @@ services:
       - app-network
 
   backend_final: # RENAMED SERVICE
-    image: influencia-club-backend_final:v1.0.3
+    image: influencia-club-backend_final:v1.0.4
     build: 
       context: ./backend
       args:
-        - CACHEBUST=LAUNCH-FINAL-VER-120
+        - CACHEBUST=LAUNCH-FINAL-VER-121
     restart: always
     expose:
       - "5000"
@@ -46,12 +46,12 @@ services:
       - app-network
  
   frontend_final: # RENAMED SERVICE
-    image: influencia-club-frontend_final:v1.0.3
+    image: influencia-club-frontend_final:v1.0.4
     build: 
       context: ./frontend
       args:
         - VITE_API_URL=${VITE_API_URL:-/api}
-        - CACHEBUST=LAUNCH-FINAL-VER-120
+        - CACHEBUST=LAUNCH-FINAL-VER-121
     restart: always
     expose:
       - "80"

@@ -1,6 +1,8 @@
+import axios from 'axios';
+
 /**
  * Instagram Service
- * Simulates Meta Graph API authentication, data fetching, and engagement analytics calculation.
+ * Meta Graph API client integration and engagement analytics calculation.
  */
 
 // A curated collection of high-quality premium lifestyle and fashion images from Unsplash to display in the UI
@@ -87,18 +89,115 @@ export const generateMockProfile = (username) => {
 };
 
 /**
- * Simulates calling Facebook Graph API /v19.0/ endpoint
+ * Calls Meta Graph API endpoints to retrieve Instagram Business Profile and Media statistics
  */
 export const fetchInstagramData = async (accessToken, targetUsername) => {
-  console.log(`[Instagram Service] Connecting to Meta Graph API...`);
-  console.log(`[Instagram Service] GET /v19.0/me/accounts?access_token=${accessToken.substring(0, 8)}...`);
-  console.log(`[Instagram Service] GET /v19.0/instagram_business_account`);
-  
-  // Simulate network delay
-  await new Promise(resolve => setTimeout(resolve, 800));
+  // Fall back to mock profile if using a mock token or credentials are missing
+  const isMockToken = !accessToken || accessToken.startsWith('mock_');
+  const hasMetaCredentials = process.env.META_APP_ID && process.env.META_APP_SECRET;
 
-  console.log(`[Instagram Service] Connection successful! Retrieving profile data for: ${targetUsername}`);
-  
-  const mockProfile = generateMockProfile(targetUsername);
-  return mockProfile;
+  if (isMockToken || !hasMetaCredentials) {
+    console.log(`[Instagram Service] Running in Mock/Fallback mode for username: ${targetUsername}`);
+    // Simulate network delay
+    await new Promise(resolve => setTimeout(resolve, 300));
+    return generateMockProfile(targetUsername);
+  }
+
+  console.log(`[Instagram Service] Connecting to Facebook/Meta Graph API for username: ${targetUsername}...`);
+
+  try {
+    // Step 1: Fetch Facebook Pages managed by the user
+    const pagesResponse = await axios.get('https://graph.facebook.com/v19.0/me/accounts', {
+      params: { access_token: accessToken }
+    });
+
+    const pages = pagesResponse.data?.data || [];
+    if (pages.length === 0) {
+      throw new Error('No Facebook Pages found managed by this account');
+    }
+
+    let instagramBusinessAccountId = null;
+    let pageNameUsed = '';
+
+    // Step 2: Fetch linked Instagram Business Account ID
+    for (const page of pages) {
+      const pageDetailResponse = await axios.get(`https://graph.facebook.com/v19.0/${page.id}`, {
+        params: {
+          fields: 'instagram_business_account',
+          access_token: accessToken
+        }
+      });
+
+      if (pageDetailResponse.data?.instagram_business_account?.id) {
+        instagramBusinessAccountId = pageDetailResponse.data.instagram_business_account.id;
+        pageNameUsed = page.name;
+        break;
+      }
+    }
+
+    if (!instagramBusinessAccountId) {
+      throw new Error('No Instagram Business Account linked to any managed Facebook Page');
+    }
+
+    console.log(`[Instagram Service] Found Instagram Business Account: ${instagramBusinessAccountId} linked to Facebook Page: ${pageNameUsed}`);
+
+    // Step 3: Fetch Profile details and recent media
+    const igProfileResponse = await axios.get(`https://graph.facebook.com/v19.0/${instagramBusinessAccountId}`, {
+      params: {
+        fields: 'username,name,profile_picture_url,followers_count,media_count,media{id,caption,media_type,media_url,permalink,like_count,comments_count,timestamp}',
+        access_token: accessToken
+      }
+    });
+
+    const igData = igProfileResponse.data;
+    if (!igData || !igData.username) {
+      throw new Error('Failed to retrieve Instagram Business Account profile statistics');
+    }
+
+    // Step 4: Parse posts and calculate engagement metrics
+    const posts = igData.media?.data || [];
+    const recentPosts = posts.slice(0, 6).map(post => ({
+      id: post.id,
+      permalink: post.permalink || `https://instagram.com/p/mock_post_${post.id}`,
+      mediaType: post.media_type || 'IMAGE',
+      mediaUrl: post.media_url || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=500&auto=format&fit=crop&q=80',
+      caption: post.caption || '',
+      likeCount: post.like_count || 0,
+      commentsCount: post.comments_count || 0,
+      timestamp: post.timestamp || new Date().toISOString()
+    }));
+
+    // Calculate average likes, comments, and engagement rate
+    const totalPostsCount = recentPosts.length;
+    let avgLikes = 0;
+    let avgComments = 0;
+    let engagementRate = 0.0;
+
+    if (totalPostsCount > 0) {
+      const sumLikes = recentPosts.reduce((sum, p) => sum + p.likeCount, 0);
+      const sumComments = recentPosts.reduce((sum, p) => sum + p.commentsCount, 0);
+      avgLikes = Math.round(sumLikes / totalPostsCount);
+      avgComments = Math.round(sumComments / totalPostsCount);
+      
+      const followers = igData.followers_count || 1; // prevent divide-by-zero
+      const totalEngagement = avgLikes + avgComments;
+      engagementRate = parseFloat(((totalEngagement / followers) * 100).toFixed(2));
+    }
+
+    return {
+      username: igData.username,
+      fullName: igData.name || igData.username,
+      profilePicUrl: igData.profile_picture_url || `https://api.dicebear.com/7.x/adventurer/svg?seed=${igData.username}`,
+      followersCount: igData.followers_count || 0,
+      mediaCount: igData.media_count || 0,
+      engagementRate,
+      avgLikes,
+      avgComments,
+      recentPosts
+    };
+
+  } catch (error) {
+    console.error('[Instagram Service] Meta Graph API connection failed:', error.response?.data || error.message);
+    throw new Error(`Instagram sync failed: ${error.response?.data?.error?.message || error.message}`);
+  }
 };
