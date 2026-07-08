@@ -70,6 +70,56 @@ router.get('/', async (req, res) => {
   }
 });
 
+// Get Waitlist Leaderboard (Public)
+router.get('/leaderboard', async (req, res) => {
+  try {
+    const rawLeaderboard = await prisma.creator.findMany({
+      where: {
+        status: 'active'
+      },
+      select: {
+        id: true,
+        name: true,
+        photoUrl: true,
+        category: true,
+        city: true,
+        isVerified: true,
+        _count: {
+          select: { referrals: true }
+        }
+      },
+      orderBy: {
+        referrals: {
+          _count: 'desc'
+        }
+      },
+      take: 10
+    });
+
+    const leaderboard = rawLeaderboard.map((item, index) => ({
+      rank: index + 1,
+      id: item.id,
+      name: item.name,
+      photoUrl: item.photoUrl,
+      category: item.category,
+      city: item.city,
+      isVerified: item.isVerified,
+      referralsCount: item._count.referrals
+    }));
+
+    res.json({
+      success: true,
+      leaderboard
+    });
+  } catch (error) {
+    console.error('Waitlist leaderboard error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve waitlist leaderboard'
+    });
+  }
+});
+
 // Get single creator (public)
 router.get('/:id', async (req, res) => {
   try {

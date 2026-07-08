@@ -3,6 +3,191 @@ import { Award, Gift, Instagram, Ticket, Briefcase, CheckCircle, Trophy, Trendin
 import api from '../../utils/api';
 import toast from 'react-hot-toast';
 
+const PointsAnalyticsChart = ({ history = [], currentBalance = 0 }) => {
+  const [hoveredIndex, setHoveredIndex] = useState(null);
+
+  // Take last 8 transactions for graph readability
+  const activeTx = history.slice(0, 8);
+  if (activeTx.length === 0) {
+    return (
+      <div className="bg-bg-card border border-border rounded-2xl p-6 text-center text-muted text-sm flex flex-col items-center justify-center h-48 space-y-2">
+        <TrendingUp size={24} className="text-muted" />
+        <p>No transaction history to generate analytics chart.</p>
+      </div>
+    );
+  }
+
+  // Backtrack cumulative balance
+  let tempBalance = currentBalance;
+  const rawData = [{ balance: currentBalance, tx: null }];
+  
+  for (const tx of activeTx) {
+    tempBalance = tempBalance - tx.points;
+    rawData.push({ balance: tempBalance, tx });
+  }
+
+  // Reverse to make it chronological
+  const chartData = rawData.reverse();
+  const N = chartData.length;
+
+  // Chart dimensions
+  const width = 500;
+  const height = 160;
+  const paddingX = 45;
+  const paddingY = 25;
+  const chartWidth = width - 2 * paddingX;
+  const chartHeight = height - 2 * paddingY;
+
+  // Find min/max values
+  const balances = chartData.map(d => d.balance);
+  let maxBal = Math.max(...balances);
+  let minBal = Math.min(...balances);
+  if (maxBal === minBal) {
+    maxBal += 10;
+    minBal -= 10;
+  }
+  const range = maxBal - minBal;
+  const paddedMin = minBal - range * 0.15;
+  const paddedMax = maxBal + range * 0.15;
+  const paddedRange = paddedMax - paddedMin;
+
+  // Generate coordinates
+  const points = chartData.map((d, i) => {
+    const x = paddingX + (i / (N - 1)) * chartWidth;
+    const y = paddingY + chartHeight - ((d.balance - paddedMin) / paddedRange) * chartHeight;
+    return { x, y, balance: d.balance, tx: d.tx };
+  });
+
+  // Build path strings
+  const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+  const areaPath = `${linePath} L ${points[N - 1].x} ${height - paddingY} L ${points[0].x} ${height - paddingY} Z`;
+
+  return (
+    <div className="bg-bg-card border border-border rounded-2xl p-6 space-y-4 relative overflow-visible shadow-lg">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="font-display text-lg font-bold text-white flex items-center gap-2">
+            <TrendingUp className="text-purple-400" size={18} /> Points Growth Trend
+          </h3>
+          <p className="text-xs text-muted">Chronological history of your points balance</p>
+        </div>
+        <span className="text-xs font-semibold px-2.5 py-1 bg-purple-500/10 border border-purple-500/20 text-purple-400 rounded-full">
+          Last {N - 1} Transactions
+        </span>
+      </div>
+
+      <div className="relative h-40 w-full">
+        <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full overflow-visible animate-fadeIn">
+          <defs>
+            <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#a855f7" stopOpacity="0.25" />
+              <stop offset="100%" stopColor="#a855f7" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+
+          {/* Grid lines */}
+          {[0, 0.5, 1].map((ratio, index) => {
+            const y = paddingY + ratio * chartHeight;
+            const value = Math.round(paddedMax - ratio * paddedRange);
+            return (
+              <g key={index} className="opacity-25">
+                <line
+                  x1={paddingX}
+                  y1={y}
+                  x2={width - paddingX}
+                  y2={y}
+                  stroke="#4b5563"
+                  strokeWidth="1"
+                  strokeDasharray="4 4"
+                />
+                <text
+                  x={paddingX - 8}
+                  y={y + 3}
+                  fill="#9ca3af"
+                  fontSize="9"
+                  className="text-right font-semibold font-display"
+                  textAnchor="end"
+                >
+                  {value}
+                </text>
+              </g>
+            );
+          })}
+
+          {/* Area fill */}
+          <path d={areaPath} fill="url(#chartGradient)" />
+
+          {/* Line path */}
+          <path
+            d={linePath}
+            fill="none"
+            stroke="#a855f7"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+
+          {/* Interactive nodes */}
+          {points.map((p, i) => (
+            <g key={i} className="cursor-pointer">
+              {/* Invisible interactive hover zone */}
+              <circle
+                cx={p.x}
+                cy={p.y}
+                r="12"
+                fill="transparent"
+                onMouseEnter={() => setHoveredIndex(i)}
+                onMouseLeave={() => setHoveredIndex(null)}
+              />
+              {/* Visible dot */}
+              <circle
+                cx={p.x}
+                cy={p.y}
+                r={hoveredIndex === i ? '6' : '4'}
+                fill={hoveredIndex === i ? '#ffffff' : '#a855f7'}
+                stroke="#a855f7"
+                strokeWidth="2.5"
+                className="transition-all duration-150"
+              />
+            </g>
+          ))}
+        </svg>
+
+        {/* Floating Tooltip */}
+        {hoveredIndex !== null && points[hoveredIndex] && (
+          <div
+            className="absolute z-10 bg-slate-950/95 border border-purple-500/40 rounded-xl p-3 shadow-2xl pointer-events-none text-xs space-y-1 backdrop-blur-md animate-fadeIn"
+            style={{
+              left: `${(points[hoveredIndex].x / width) * 100}%`,
+              top: `${(points[hoveredIndex].y / height) * 100 - 45}%`,
+              transform: 'translateX(-50%)',
+            }}
+          >
+            <div className="font-extrabold text-white text-sm">
+              {points[hoveredIndex].balance} <span className="text-[10px] text-muted font-bold">pts</span>
+            </div>
+            {points[hoveredIndex].tx ? (
+              <>
+                <div className="text-purple-400 capitalize font-bold text-[10px]">
+                  {points[hoveredIndex].tx.reason.replace(/_/g, ' ')}
+                </div>
+                <div className="text-muted text-[9px] flex items-center justify-between gap-4">
+                  <span>{new Date(points[hoveredIndex].tx.createdAt).toLocaleDateString()}</span>
+                  <span className={points[hoveredIndex].tx.type === 'earn' ? 'text-emerald-400 font-extrabold' : 'text-rose-400 font-extrabold'}>
+                    {points[hoveredIndex].tx.type === 'earn' ? '+' : ''}{points[hoveredIndex].tx.points} pts
+                  </span>
+                </div>
+              </>
+            ) : (
+              <div className="text-muted text-[10px] italic">Initial State</div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const Points = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -104,7 +289,7 @@ const Points = () => {
       setPayoutSubmitting(true);
       setErrorMsg('');
       setSuccess(false);
-
+ 
       const response = await api.post('/payments/payout', {
         amount: amt,
         upiId
@@ -233,58 +418,64 @@ const Points = () => {
 
       {/* Top Section: Tier Progress & Stats */}
       <div className="grid lg:grid-cols-3 gap-6">
-        {/* Tier Card */}
-        <div className={`lg:col-span-2 rounded-2xl border p-8 flex flex-col justify-between transition-all duration-300 ${currentTierStyles.bg} ${currentTierStyles.glow}`}>
-          <div className="flex items-start justify-between">
-            <div className="space-y-1">
-              <span className="text-xs uppercase tracking-wider text-muted font-bold">Current Tier</span>
-              <div className="flex items-center gap-2 mt-1">
-                <span className={`px-4 py-1 rounded-full text-xs uppercase ${currentTierStyles.badge}`}>
-                  {creator?.tier}
-                </span>
-                {creator?.tier === 'platinum' && <Crown className="text-yellow-400 fill-yellow-400 animate-bounce" size={20} />}
+        {/* Tier Card & Analytics Trend Column */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Tier Card */}
+          <div className={`rounded-2xl border p-8 flex flex-col justify-between transition-all duration-300 ${currentTierStyles.bg} ${currentTierStyles.glow}`}>
+            <div className="flex items-start justify-between">
+              <div className="space-y-1">
+                <span className="text-xs uppercase tracking-wider text-muted font-bold">Current Tier</span>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className={`px-4 py-1 rounded-full text-xs uppercase ${currentTierStyles.badge}`}>
+                    {creator?.tier}
+                  </span>
+                  {creator?.tier === 'platinum' && <Crown className="text-yellow-400 fill-yellow-400 animate-bounce" size={20} />}
+                </div>
+              </div>
+              <div className="text-right">
+                <span className="text-xs uppercase tracking-wider text-muted font-bold">Available Balance</span>
+                <div className="text-4xl font-display font-black text-white mt-1 flex items-baseline justify-end gap-1">
+                  {creator?.pointsBalance} <span className="text-lg font-bold text-muted">pts</span>
+                </div>
               </div>
             </div>
-            <div className="text-right">
-              <span className="text-xs uppercase tracking-wider text-muted font-bold">Available Balance</span>
-              <div className="text-4xl font-display font-black text-white mt-1 flex items-baseline justify-end gap-1">
-                {creator?.pointsBalance} <span className="text-lg font-bold text-muted">pts</span>
-              </div>
-            </div>
-          </div>
 
-          {/* Progress Section */}
-          <div className="mt-8 space-y-4">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted font-medium">
-                Lifetime Points: <strong className="text-white">{progression?.lifetimePoints} pts</strong>
-              </span>
-              {progression?.nextTier !== 'max' ? (
-                <span className="text-white/80 font-semibold flex items-center gap-1">
-                  Next Tier: <span className="text-purple-400 uppercase font-extrabold">{progression?.nextTier}</span> ({progression?.pointsNeeded} pts needed)
+            {/* Progress Section */}
+            <div className="mt-8 space-y-4">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted font-medium">
+                  Lifetime Points: <strong className="text-white">{progression?.lifetimePoints} pts</strong>
                 </span>
-              ) : (
-                <span className="text-yellow-400 font-bold flex items-center gap-1">
-                  <Crown size={16} /> Maximum Tier Reached
-                </span>
+                {progression?.nextTier !== 'max' ? (
+                  <span className="text-white/80 font-semibold flex items-center gap-1">
+                    Next Tier: <span className="text-purple-400 uppercase font-extrabold">{progression?.nextTier}</span> ({progression?.pointsNeeded} pts needed)
+                  </span>
+                ) : (
+                  <span className="text-yellow-400 font-bold flex items-center gap-1">
+                    <Crown size={16} /> Maximum Tier Reached
+                  </span>
+                )}
+              </div>
+
+              {/* Progress Bar */}
+              <div className="relative w-full h-3 bg-slate-900 rounded-full overflow-hidden border border-white/5">
+                <div
+                  className={`absolute top-0 left-0 h-full rounded-full bg-gradient-to-r ${currentTierStyles.barColor} transition-all duration-1000 ease-out`}
+                  style={{ width: `${progression?.progressPercent}%` }}
+                />
+              </div>
+
+              {progression?.nextTier !== 'max' && (
+                <div className="flex justify-between text-xs text-muted">
+                  <span>{progression?.currentTierMin} pts</span>
+                  <span>{progression?.nextTierMin} pts</span>
+                </div>
               )}
             </div>
-
-            {/* Progress Bar */}
-            <div className="relative w-full h-3 bg-slate-900 rounded-full overflow-hidden border border-white/5">
-              <div
-                className={`absolute top-0 left-0 h-full rounded-full bg-gradient-to-r ${currentTierStyles.barColor} transition-all duration-1000 ease-out`}
-                style={{ width: `${progression?.progressPercent}%` }}
-              />
-            </div>
-
-            {progression?.nextTier !== 'max' && (
-              <div className="flex justify-between text-xs text-muted">
-                <span>{progression?.currentTierMin} pts</span>
-                <span>{progression?.nextTierMin} pts</span>
-              </div>
-            )}
           </div>
+
+          {/* Points Growth Chart */}
+          <PointsAnalyticsChart history={data?.history || []} currentBalance={creator?.pointsBalance || 0} />
         </div>
 
         {/* Highlight Stats Info */}

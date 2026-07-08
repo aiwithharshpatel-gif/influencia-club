@@ -1,7 +1,7 @@
 import express from 'express';
 import prisma from '../lib/prisma.js';
 import { protect } from '../middleware/auth.js';
-import { updateCreatorTier } from '../services/pointsService.js';
+import { updateCreatorTier, getPointsHistory } from '../services/pointsService.js';
 
 const router = express.Router();
 
@@ -131,6 +131,8 @@ router.get('/marketplace', async (req, res) => {
       take: 10
     });
 
+    const history = await getPointsHistory(creatorId);
+
     res.json({
       success: true,
       data: {
@@ -149,6 +151,7 @@ router.get('/marketplace', async (req, res) => {
         },
         leaderboard,
         redemptions,
+        history,
         catalog: REWARD_CATALOG
       }
     });

@@ -39,6 +39,7 @@ export const findMatchingCreators = async (brandInquiry, limit = 10) => {
       where,
       include: {
         creatorAnalytics: true,
+        instagramProfile: true,
         campaignCreators: {
           where: { status: 'completed' },
           include: {
@@ -84,6 +85,14 @@ export const findMatchingCreators = async (brandInquiry, limit = 10) => {
   }
 };
 
+const RELATED_CATEGORIES = {
+  influencer: ['creator', 'public_figure'],
+  creator: ['influencer', 'public_figure'],
+  model: ['actor', 'public_figure'],
+  actor: ['model', 'public_figure'],
+  public_figure: ['influencer', 'creator', 'model', 'actor']
+};
+
 /**
  * Calculate match score for a creator
  * Score is based on multiple factors (0-100)
@@ -91,12 +100,20 @@ export const findMatchingCreators = async (brandInquiry, limit = 10) => {
 const calculateMatchScore = (creator, budgetRange, brandInquiry) => {
   let score = 0;
 
-  // 1. Category Match (30 points)
-  if (brandInquiry.categories.includes(creator.category)) {
+  // 1. Category Match (30 points max)
+  const isDirectCategoryMatch = brandInquiry.categories.includes(creator.category);
+  if (isDirectCategoryMatch) {
     score += 30;
+  } else {
+    // Check for semantic related category match
+    const related = RELATED_CATEGORIES[creator.category] || [];
+    const isRelatedMatch = brandInquiry.categories.some(cat => related.includes(cat));
+    if (isRelatedMatch) {
+      score += 15; // Partial category match
+    }
   }
 
-  // 2. Location Match (15 points)
+  // 2. Location Match (15 points max)
   if (brandInquiry.city && brandInquiry.city === creator.city) {
     score += 15;
   } else if (creator.city === 'Ahmedabad') {
@@ -104,27 +121,49 @@ const calculateMatchScore = (creator, budgetRange, brandInquiry) => {
     score += 8;
   }
 
-  // 3. Follower Range Match (20 points)
+  // 3. Follower Range Match (20 points max)
   const followerScore = calculateFollowerMatch(creator.followerCount, budgetRange);
   score += followerScore;
 
-  // 4. Verification Status (10 points)
+  // 4. Verification Status (10 points max)
   if (creator.isVerified) {
     score += 10;
   }
 
-  // 5. Featured Status (5 points)
+  // 5. Featured Status (5 points max)
   if (creator.isFeatured) {
     score += 5;
   }
 
-  // 6. Past Performance (15 points)
+  // 6. Past Performance (15 points max)
   const performanceScore = calculatePerformanceScore(creator);
   score += performanceScore;
 
-  // 7. Response Time (5 points)
+  // 7. Response Time (5 points max)
   if (creator.creatorAnalytics && creator.creatorAnalytics.responseTime < 24) {
     score += 5;
+  }
+
+  // 8. Engagement Rate Score (10 points max)
+  if (creator.instagramProfile?.engagementRate) {
+    const er = parseFloat(creator.instagramProfile.engagementRate);
+    if (er >= 5.0) {
+      score += 10;
+    } else if (er >= 3.0) {
+      score += 7;
+    } else if (er >= 1.0) {
+      score += 4;
+    }
+  }
+
+  // 9. Success Rate Score (10 points max)
+  if (creator.creatorAnalytics?.successRate) {
+    const sr = parseFloat(creator.creatorAnalytics.successRate);
+    if (sr >= 90.0) {
+      score += 10;
+    } else if (sr >= 75.0) {
+      score += 7;
+    }
   }
 
   return Math.min(score, 100); // Cap at 100
