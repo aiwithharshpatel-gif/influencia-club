@@ -37,11 +37,10 @@ const PageTransition = ({ children }) => {
         } origin-left`}
       />
       
-      {/* Content with fade */}
       <div
         key={key}
         className={`transition-all duration-500 ${
-          isExiting ? 'opacity-0 blur-sm scale-95' : 'opacity-100 blur-none scale-100'
+          isExiting ? 'opacity-0 blur-sm' : 'opacity-100 blur-none'
         }`}
       >
         {currentChildren}

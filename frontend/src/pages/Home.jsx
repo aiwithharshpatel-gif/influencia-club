@@ -1,5 +1,6 @@
-import { Link } from 'react-router-dom';
-import { ArrowRight, Users, TrendingUp, DollarSign, Network, Star, Award, Zap, Heart, CheckCircle, Play } from 'lucide-react';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ArrowRight, Users, TrendingUp, DollarSign, Network, Star, Award, Zap, Heart, CheckCircle, Play, Instagram } from 'lucide-react';
 import CreatorCard from '../components/CreatorCard';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -14,6 +15,20 @@ import ChatWidget from '../components/ChatWidget';
 import logo from '../assets/logo.png';
 
 const Home = () => {
+  const [instagramHandle, setInstagramHandle] = useState('');
+  const [isShaking, setIsShaking] = useState(false);
+  const navigate = useNavigate();
+
+  const handleEarlyAccessSubmit = (e) => {
+    e.preventDefault();
+    if (!instagramHandle.trim()) {
+      setIsShaking(true);
+      setTimeout(() => setIsShaking(false), 500);
+      return;
+    }
+    const cleanHandle = instagramHandle.replace('@', '').trim();
+    navigate(`/join?handle=${encodeURIComponent(cleanHandle)}`);
+  };
   const categories = [
     { name: 'Influencers', icon: '📱', description: 'Social media stars' },
     { name: 'Actors', icon: '🎬', description: 'Film & TV talent' },
@@ -144,22 +159,101 @@ const Home = () => {
               Connect with luxury brands. Create legendary campaigns.
             </p>
 
-            {/* CTA Buttons with enhanced styling */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
-              <Link to="/join" className="btn-primary inline-flex items-center group px-8 py-4 text-lg relative overflow-hidden">
-                <span className="relative z-10 flex items-center">
-                  Join the Inner Circle
-                  <ArrowRight className="ml-2 group-hover:translate-x-2 transition-transform duration-300" size={20} />
-                </span>
-                <div className="absolute inset-0 bg-white/20 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+            {/* HashFame style Instagram Handle input bar in Gold & Black */}
+            <div className="max-w-xl mx-auto mb-10 px-4">
+              <form onSubmit={handleEarlyAccessSubmit} className="relative z-10">
+                <div className={`gold-handle-container transition-all duration-300 ${isShaking ? 'animate-[shake_0.5s_ease-in-out]' : ''}`}>
+                  <div className="absolute inset-0.5 rounded-[31px] bg-black/90 z-[2] flex items-center justify-between pl-5 pr-2">
+                    <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0 mr-2">
+                      <Instagram className="text-gold flex-shrink-0" size={20} />
+                      <span className="text-white/60 font-semibold text-sm sm:text-base hidden sm:inline select-none">instagram.com/</span>
+                      <span className="text-white/60 font-semibold text-sm sm:text-base inline sm:hidden select-none">@</span>
+                      <input
+                        type="text"
+                        placeholder="your_handle"
+                        value={instagramHandle}
+                        onChange={(e) => setInstagramHandle(e.target.value)}
+                        className="bg-transparent border-none outline-none text-white text-sm sm:text-base font-medium placeholder-white/30 w-full focus:ring-0 p-0"
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      className="bg-gold-gradient hover:opacity-95 text-black px-5 sm:px-6 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-bold uppercase tracking-wider transition-all duration-300 flex-shrink-0"
+                    >
+                      Get Invite
+                    </button>
+                  </div>
+                </div>
+              </form>
+              <p className="text-xs text-muted mt-3 tracking-wide">
+                ✦ Invite-only platform. Enter your handle to request an invitation.
+              </p>
+            </div>
+
+            {/* Sub CTAs */}
+            <div className="flex justify-center items-center space-x-6 mb-12 relative z-10">
+              <Link to="/login" className="text-white/80 hover:text-gold transition-colors text-xs font-semibold tracking-wider uppercase border-b border-white/5 hover:border-gold/30 pb-0.5">
+                Brand Portal
               </Link>
-              <Link to="/login" className="btn-outline inline-flex items-center px-8 py-4 text-lg group">
-                Sign In
-              </Link>
-              <Link to="/creators" className="text-white hover:text-gold transition-colors inline-flex items-center px-4 py-4 text-lg group">
-                <Play className="mr-2 fill-gold text-gold" size={18} />
+              <span className="text-white/10">|</span>
+              <Link to="/creators" className="text-white/80 hover:text-gold transition-colors text-xs font-semibold tracking-wider uppercase border-b border-white/5 hover:border-gold/30 pb-0.5">
                 Explore Creators
               </Link>
+            </div>
+
+            {/* Creator Floating Showcase - HashFame style mock-up preview */}
+            <div className="relative max-w-lg mx-auto mb-24 h-[340px] hidden md:block select-none">
+              {/* Central Phone Mockup Background Glow */}
+              <div className="absolute inset-0 bg-gold/5 blur-3xl rounded-full"></div>
+              
+              {/* Stacked Cards */}
+              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-60 h-[300px] bg-gradient-to-b from-[#141414] to-black border border-gold/30 rounded-[28px] p-3.5 shadow-gold-glow/5 z-20 flex flex-col justify-between transition-all duration-300">
+                <div className="aspect-square rounded-xl overflow-hidden bg-white/5 relative">
+                  <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=300" alt="Priya Sharma" className="w-full h-full object-cover" />
+                  <div className="absolute top-2 right-2 bg-gold-gradient text-black text-[8px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                    Elite
+                  </div>
+                </div>
+                <div className="flex justify-between items-center mt-3 text-left">
+                  <div>
+                    <h4 className="text-xs font-bold text-white tracking-wide">Priya Sharma</h4>
+                    <p className="text-[10px] text-gold/80">@priyasharma</p>
+                  </div>
+                  <span className="bg-gold/15 text-gold border border-gold/25 px-2 py-0.5 rounded-full text-[9px] font-bold">
+                    50K+
+                  </span>
+                </div>
+              </div>
+
+              <div className="absolute left-[calc(50%-190px)] top-1/2 -translate-y-1/2 w-52 h-[260px] bg-gradient-to-b from-[#0a0a0a] to-black border border-white/5 rounded-[24px] p-3 opacity-40 z-10 -rotate-[8deg] transition-all duration-500 hover:rotate-0 hover:opacity-100 hover:z-30 flex flex-col justify-between">
+                <div className="aspect-square rounded-lg overflow-hidden bg-white/5">
+                  <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=300" alt="Rahul Mehta" className="w-full h-full object-cover" />
+                </div>
+                <div className="flex justify-between items-center mt-2 text-left">
+                  <div>
+                    <h4 className="text-[11px] font-semibold text-white tracking-wide">Rahul Mehta</h4>
+                    <p className="text-[9px] text-muted">@rahulmehta</p>
+                  </div>
+                  <span className="bg-white/5 text-white/80 border border-white/10 px-2 py-0.5 rounded-full text-[8px]">
+                    75K+
+                  </span>
+                </div>
+              </div>
+
+              <div className="absolute left-[calc(50%+10px)] top-1/2 -translate-y-1/2 w-52 h-[260px] bg-gradient-to-b from-[#0a0a0a] to-black border border-white/5 rounded-[24px] p-3 opacity-40 z-10 rotate-[8deg] transition-all duration-500 hover:rotate-0 hover:opacity-100 hover:z-30 flex flex-col justify-between">
+                <div className="aspect-square rounded-lg overflow-hidden bg-white/5">
+                  <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=300" alt="Ananya Patel" className="w-full h-full object-cover" />
+                </div>
+                <div className="flex justify-between items-center mt-2 text-left">
+                  <div>
+                    <h4 className="text-[11px] font-semibold text-white tracking-wide">Ananya Patel</h4>
+                    <p className="text-[9px] text-muted">@ananyapatel</p>
+                  </div>
+                  <span className="bg-white/5 text-white/80 border border-white/10 px-2 py-0.5 rounded-full text-[8px]">
+                    1.2L+
+                  </span>
+                </div>
+              </div>
             </div>
           </FadeIn>
 

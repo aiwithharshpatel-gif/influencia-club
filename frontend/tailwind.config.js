@@ -30,7 +30,7 @@ export default {
         },
       },
       fontFamily: {
-        display: ['Playfair Display', 'serif'],
+        display: ['Outfit', 'sans-serif'],
         body: ['DM Sans', 'sans-serif'],
       },
       backgroundImage: {

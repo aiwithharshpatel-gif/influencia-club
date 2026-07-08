@@ -35,9 +35,12 @@ const Join = () => {
     fetchLeaderboard();
   }, []);
 
+  const handleFromUrl = searchParams.get('handle') || '';
+
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
     defaultValues: {
-      referralCode: referralCodeFromUrl
+      referralCode: referralCodeFromUrl,
+      instagram: handleFromUrl
     }
   });
 
