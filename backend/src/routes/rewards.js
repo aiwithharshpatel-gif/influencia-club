@@ -238,6 +238,9 @@ router.post('/redeem', async (req, res) => {
 
 // Test endpoint to grant points during E2E automation
 router.post('/test-grant', async (req, res) => {
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(403).json({ success: false, message: 'Forbidden in production' });
+  }
   try {
     const { secret, points } = req.body;
     if (secret !== (process.env.JWT_ADMIN_SECRET || process.env.JWT_SECRET)) {

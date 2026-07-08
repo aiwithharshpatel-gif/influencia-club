@@ -136,7 +136,7 @@ router.post('/verify-payment', anyPaymentUserProtect, async (req, res) => {
 
     // Verify Razorpay signature (with test bypass for E2E automation)
     let isVerified = false;
-    if (req.headers['x-test-bypass'] === 'true' || razorpay_payment_id?.startsWith('pay_mock')) {
+    if (process.env.NODE_ENV !== 'production' && (req.headers['x-test-bypass'] === 'true' || razorpay_payment_id?.startsWith('pay_mock'))) {
       isVerified = true;
     } else {
       const verification = await verifyPayment(

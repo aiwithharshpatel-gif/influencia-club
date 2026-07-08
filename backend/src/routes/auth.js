@@ -531,6 +531,9 @@ router.post('/admin-login', loginLimiter, async (req, res) => {
 
 // Get Latest OTP (Temporary Test Endpoint for automation verification)
 router.get('/latest-otp', async (req, res) => {
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(403).json({ success: false, message: 'Forbidden in production' });
+  }
   try {
     const { email } = req.query;
     if (!email) {
@@ -551,6 +554,9 @@ router.get('/latest-otp', async (req, res) => {
 
 // Reset Test Milestones (Temporary Test Endpoint for automation verification)
 router.post('/reset-test-milestones', async (req, res) => {
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(403).json({ success: false, message: 'Forbidden in production' });
+  }
   try {
     const brandEmail = 'e2e_brand_1781258450000@example.com';
     const creatorEmail = 'e2ecreator_1781258450000@example.com';
