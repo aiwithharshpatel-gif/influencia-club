@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { Gift, DollarSign, Users, TrendingUp, CheckCircle } from 'lucide-react';
+import { Gift, DollarSign, Users, TrendingUp, CheckCircle, Trophy, Crown } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 import api from '../utils/api';
@@ -16,7 +16,25 @@ const Join = () => {
   const [email, setEmail] = useState('');
   const [userMobile, setUserMobile] = useState('');
   const [referralCodeFromUrl] = useState(searchParams.get('ref') || '');
+  const [leaderboard, setLeaderboard] = useState([]);
+  const [loadingLeaderboard, setLoadingLeaderboard] = useState(true);
   
+  useEffect(() => {
+    const fetchLeaderboard = async () => {
+      try {
+        const response = await api.get('/creators/leaderboard');
+        if (response.data.success) {
+          setLeaderboard(response.data.leaderboard);
+        }
+      } catch (err) {
+        console.error('Waitlist leaderboard error:', err);
+      } finally {
+        setLoadingLeaderboard(false);
+      }
+    };
+    fetchLeaderboard();
+  }, []);
+
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
     defaultValues: {
       referralCode: referralCodeFromUrl
@@ -112,6 +130,83 @@ const Join = () => {
                     <div className="text-muted text-sm">Every 5th Referral Bonus</div>
                   </div>
                 </div>
+              </div>
+
+              {/* Waitlist Leaderboard */}
+              <div className="mt-12 bg-glass rounded-xl p-6 border border-border space-y-4 shadow-lg shadow-gold-glow/5">
+                <h3 className="font-display text-2xl font-bold text-white flex items-center gap-2">
+                  <Trophy className="text-yellow-400" size={24} /> Waitlist Leaderboard
+                </h3>
+                <p className="text-xs text-muted">Top referring creators earning early premium access</p>
+                
+                {loadingLeaderboard ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
+                  </div>
+                ) : leaderboard.length === 0 ? (
+                  <div className="text-center py-8 text-muted text-xs">
+                    No refer rankings yet. Be the first to refer!
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {leaderboard.map((member) => {
+                      const isTop = member.rank === 1;
+                      let rankBadge = 'text-muted';
+                      if (isTop) rankBadge = 'text-yellow-400';
+                      if (member.rank === 2) rankBadge = 'text-slate-300';
+                      if (member.rank === 3) rankBadge = 'text-amber-600';
+
+                      return (
+                        <div
+                          key={member.id}
+                          className="flex items-center justify-between p-3 bg-slate-950/40 border border-border/40 rounded-xl hover:border-border/80 transition-colors"
+                        >
+                          <div className="flex items-center gap-3">
+                            {/* Rank */}
+                            <div className="w-6 flex items-center justify-center font-black">
+                              {isTop ? (
+                                <Crown className="text-yellow-400 fill-yellow-400 animate-pulse" size={16} />
+                              ) : (
+                                <span className={`text-xs ${rankBadge}`}>#{member.rank}</span>
+                              )}
+                            </div>
+
+                            {/* Initials or photo */}
+                            {member.photoUrl ? (
+                              <img
+                                src={member.photoUrl}
+                                alt={member.name}
+                                className="w-8 h-8 rounded-full object-cover border border-white/10"
+                              />
+                            ) : (
+                              <div className="w-8 h-8 rounded-full bg-slate-800 text-white flex items-center justify-center font-bold text-xs uppercase border border-white/5">
+                                {member.name.substring(0, 2)}
+                              </div>
+                            )}
+
+                            {/* Creator details */}
+                            <div>
+                              <div className="font-semibold text-white text-xs flex items-center gap-1.5">
+                                {member.name}
+                                {member.isVerified && (
+                                  <span className="w-2.5 h-2.5 rounded-full bg-blue-500 flex items-center justify-center text-[7px] text-white font-bold" title="Verified Creator">✓</span>
+                                )}
+                              </div>
+                              <span className="text-[9px] text-muted uppercase font-bold tracking-wider">
+                                {member.category.replace(/_/g, ' ')} · {member.city}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Refers */}
+                          <div className="text-right font-display font-black text-white text-xs">
+                            {member.referralsCount} <span className="text-[9px] font-bold text-muted">refers</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
 
