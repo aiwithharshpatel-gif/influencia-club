@@ -99,7 +99,16 @@ router.get('/inquiries/:id/matches', async (req, res) => {
       });
     }
 
-    const matchResult = await findMatchingCreators(brandInquiry, 10);
+    // Extract custom weights from query params
+    const { wCategory, wLocation, wFollowers, wPerformance, wEngagement } = req.query;
+    const customWeights = {};
+    if (wCategory !== undefined) customWeights.wCategory = Number(wCategory);
+    if (wLocation !== undefined) customWeights.wLocation = Number(wLocation);
+    if (wFollowers !== undefined) customWeights.wFollowers = Number(wFollowers);
+    if (wPerformance !== undefined) customWeights.wPerformance = Number(wPerformance);
+    if (wEngagement !== undefined) customWeights.wEngagement = Number(wEngagement);
+
+    const matchResult = await findMatchingCreators(brandInquiry, 10, customWeights);
     
     // Find or create Campaign record
     let campaign = await prisma.campaign.findFirst({
@@ -154,6 +163,7 @@ router.get('/inquiries/:id/matches', async (req, res) => {
           isFeatured: creator.isFeatured,
           matchScore: creator.matchScore,
           matchPercentage: creator.matchPercentage,
+          matchBreakdown: creator.matchBreakdown,
           inviteStatus
         };
       });

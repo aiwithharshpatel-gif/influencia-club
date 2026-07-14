@@ -75,7 +75,8 @@ router.get('/leaderboard', async (req, res) => {
   try {
     const rawLeaderboard = await prisma.creator.findMany({
       where: {
-        status: 'active'
+        status: 'active',
+        isApproved: true
       },
       select: {
         id: true,
@@ -84,16 +85,18 @@ router.get('/leaderboard', async (req, res) => {
         category: true,
         city: true,
         isVerified: true,
+        tier: true,
+        pointsBalance: true,
+        referralCode: true,
         _count: {
           select: { referrals: true }
         }
       },
-      orderBy: {
-        referrals: {
-          _count: 'desc'
-        }
-      },
-      take: 10
+      orderBy: [
+        { pointsBalance: 'desc' },
+        { referrals: { _count: 'desc' } }
+      ],
+      take: 50
     });
 
     const leaderboard = rawLeaderboard.map((item, index) => ({
@@ -104,6 +107,9 @@ router.get('/leaderboard', async (req, res) => {
       category: item.category,
       city: item.city,
       isVerified: item.isVerified,
+      tier: item.tier,
+      pointsBalance: item.pointsBalance,
+      referralCode: item.referralCode,
       referralsCount: item._count.referrals
     }));
 

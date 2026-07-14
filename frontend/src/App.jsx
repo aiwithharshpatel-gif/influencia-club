@@ -49,6 +49,7 @@ const AdminCreators = lazy(() => import('./pages/dashboard/AdminCreators'));
 const AdminInquiries = lazy(() => import('./pages/dashboard/AdminInquiries'));
 const AdminRedemptions = lazy(() => import('./pages/dashboard/AdminRedemptions'));
 const AdminPoints = lazy(() => import('./pages/dashboard/AdminPoints'));
+const Leaderboard = lazy(() => import('./pages/Leaderboard'));
 
 
 function App() {
@@ -98,6 +99,11 @@ function App() {
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/terms" element={<Terms />} />
             <Route path="/oauth/instagram/mock" element={<InstagramMockOAuth />} />
+            <Route path="/leaderboard" element={
+              <Suspense fallback={<LoadingScreen />}>
+                <Leaderboard />
+              </Suspense>
+            } />
 
             {/* Dashboard Routes */}
             <Route path="/dashboard" element={

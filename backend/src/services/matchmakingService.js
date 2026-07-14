@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
  * Matches brands with suitable creators based on multiple factors
  */
 
-export const findMatchingCreators = async (brandInquiry, limit = 10) => {
+export const findMatchingCreators = async (brandInquiry, limit = 10, customWeights = {}) => {
   try {
     const { categories, budgetRange, city } = brandInquiry;
 
@@ -57,18 +57,19 @@ export const findMatchingCreators = async (brandInquiry, limit = 10) => {
 
     // Score each creator
     const scoredCreators = creators.map(creator => {
-      const score = calculateMatchScore(creator, budgetToFollowerRange, brandInquiry);
-      return { ...creator, matchScore: score };
+      const { score, breakdown } = calculateMatchScore(creator, budgetToFollowerRange, brandInquiry, customWeights);
+      return { ...creator, matchScore: score, matchBreakdown: breakdown };
     });
 
     // Sort by match score and return top matches
     const sortedCreators = scoredCreators
       .sort((a, b) => b.matchScore - a.matchScore)
       .slice(0, limit)
-      .map(({ matchScore, ...creator }) => ({
+      .map(({ matchScore, matchBreakdown, ...creator }) => ({
         ...creator,
         matchScore: Math.round(matchScore),
-        matchPercentage: `${Math.round(matchScore)}%`
+        matchPercentage: `${Math.round(matchScore)}%`,
+        matchBreakdown
       }));
 
     return {
@@ -94,90 +95,11 @@ const RELATED_CATEGORIES = {
 };
 
 /**
- * Calculate match score for a creator
- * Score is based on multiple factors (0-100)
+ * Calculate follower match score ratio (0 to 1)
  */
-const calculateMatchScore = (creator, budgetRange, brandInquiry) => {
-  let score = 0;
-
-  // 1. Category Match (30 points max)
-  const isDirectCategoryMatch = brandInquiry.categories.includes(creator.category);
-  if (isDirectCategoryMatch) {
-    score += 30;
-  } else {
-    // Check for semantic related category match
-    const related = RELATED_CATEGORIES[creator.category] || [];
-    const isRelatedMatch = brandInquiry.categories.some(cat => related.includes(cat));
-    if (isRelatedMatch) {
-      score += 15; // Partial category match
-    }
-  }
-
-  // 2. Location Match (15 points max)
-  if (brandInquiry.city && brandInquiry.city === creator.city) {
-    score += 15;
-  } else if (creator.city === 'Ahmedabad') {
-    // Prefer Ahmedabad creators (HQ advantage)
-    score += 8;
-  }
-
-  // 3. Follower Range Match (20 points max)
-  const followerScore = calculateFollowerMatch(creator.followerCount, budgetRange);
-  score += followerScore;
-
-  // 4. Verification Status (10 points max)
-  if (creator.isVerified) {
-    score += 10;
-  }
-
-  // 5. Featured Status (5 points max)
-  if (creator.isFeatured) {
-    score += 5;
-  }
-
-  // 6. Past Performance (15 points max)
-  const performanceScore = calculatePerformanceScore(creator);
-  score += performanceScore;
-
-  // 7. Response Time (5 points max)
-  if (creator.creatorAnalytics && creator.creatorAnalytics.responseTime < 24) {
-    score += 5;
-  }
-
-  // 8. Engagement Rate Score (10 points max)
-  if (creator.instagramProfile?.engagementRate) {
-    const er = parseFloat(creator.instagramProfile.engagementRate);
-    if (er >= 5.0) {
-      score += 10;
-    } else if (er >= 3.0) {
-      score += 7;
-    } else if (er >= 1.0) {
-      score += 4;
-    }
-  }
-
-  // 9. Success Rate Score (10 points max)
-  if (creator.creatorAnalytics?.successRate) {
-    const sr = parseFloat(creator.creatorAnalytics.successRate);
-    if (sr >= 90.0) {
-      score += 10;
-    } else if (sr >= 75.0) {
-      score += 7;
-    }
-  }
-
-  return Math.min(score, 100); // Cap at 100
-};
-
-/**
- * Calculate follower match score
- */
-const calculateFollowerMatch = (followerCount, budgetRange) => {
+const getFollowerMatchRatio = (followerCount, budgetRange) => {
   if (!followerCount) return 0;
-
-  // Parse follower count (e.g., "50K+", "1.2L+")
   const followers = parseFollowerCount(followerCount);
-  
   const ranges = {
     '<5000': { min: 0, max: 5000 },
     '5000-15000': { min: 5000, max: 15000 },
@@ -185,35 +107,142 @@ const calculateFollowerMatch = (followerCount, budgetRange) => {
     '30000-50000': { min: 30000, max: 50000 },
     '50000+': { min: 50000, max: Infinity }
   };
-
   const targetRange = ranges[budgetRange];
-  if (!targetRange) return 10;
+  if (!targetRange) return 0.5;
 
   if (followers >= targetRange.min && followers <= targetRange.max) {
-    return 20; // Perfect match
+    return 1.0; // Perfect match
   } else if (followers >= targetRange.min * 0.8 && followers <= targetRange.max * 1.2) {
-    return 15; // Close match
+    return 0.75; // Close match
   }
-  
-  return 5; // Partial match
+  return 0.25; // Partial match
 };
 
 /**
- * Calculate performance score based on past collaborations
+ * Calculate performance ratio (0 to 1)
  */
-const calculatePerformanceScore = (creator) => {
+const getPerformanceRatio = (creator) => {
   if (!creator.campaignCreators || creator.campaignCreators.length === 0) {
-    return 5; // No history, neutral score
+    return 0.33; // No history, default lower score
+  }
+  const completedCampaigns = creator.campaignCreators.length;
+  if (completedCampaigns >= 10) return 1.0;
+  if (completedCampaigns >= 5) return 0.8;
+  if (completedCampaigns >= 2) return 0.67;
+  return 0.53;
+};
+
+/**
+ * Calculate match score for a creator with dynamic weights (0-100)
+ */
+const calculateMatchScore = (creator, budgetRange, brandInquiry, weights = {}) => {
+  const {
+    wCategory = 30,
+    wLocation = 15,
+    wFollowers = 20,
+    wPerformance = 15,
+    wEngagement = 10,
+    wVerification = 10,
+    wFeatured = 5,
+    wResponseTime = 5,
+    wSuccessRate = 10
+  } = weights;
+
+  const totalPossible = Number(wCategory) + Number(wLocation) + Number(wFollowers) + 
+                       Number(wPerformance) + Number(wEngagement) + Number(wVerification) + 
+                       Number(wFeatured) + Number(wResponseTime) + Number(wSuccessRate);
+
+  let categoryPoints = 0;
+  let locationPoints = 0;
+  let followerPoints = 0;
+  let performancePoints = 0;
+  let engagementPoints = 0;
+  let verificationPoints = 0;
+  let featuredPoints = 0;
+  let responseTimePoints = 0;
+  let successRatePoints = 0;
+
+  // 1. Category Match
+  const isDirectCategoryMatch = brandInquiry.categories.includes(creator.category);
+  if (isDirectCategoryMatch) {
+    categoryPoints = Number(wCategory);
+  } else {
+    const related = RELATED_CATEGORIES[creator.category] || [];
+    const isRelatedMatch = brandInquiry.categories.some(cat => related.includes(cat));
+    if (isRelatedMatch) {
+      categoryPoints = Math.round(Number(wCategory) * 0.5);
+    }
   }
 
-  const completedCampaigns = creator.campaignCreators.length;
-  
-  // More campaigns = more experience
-  if (completedCampaigns >= 10) return 15;
-  if (completedCampaigns >= 5) return 12;
-  if (completedCampaigns >= 2) return 10;
-  
-  return 8;
+  // 2. Location Match
+  if (brandInquiry.city && brandInquiry.city === creator.city) {
+    locationPoints = Number(wLocation);
+  } else if (creator.city === 'Ahmedabad') {
+    locationPoints = Math.round(Number(wLocation) * 0.53);
+  }
+
+  // 3. Follower Match
+  const followerRatio = getFollowerMatchRatio(creator.followerCount, budgetRange);
+  followerPoints = Math.round(followerRatio * Number(wFollowers));
+
+  // 4. Past Performance
+  const performanceRatio = getPerformanceRatio(creator);
+  performancePoints = Math.round(performanceRatio * Number(wPerformance));
+
+  // 5. Engagement Rate
+  if (creator.instagramProfile?.engagementRate) {
+    const er = parseFloat(creator.instagramProfile.engagementRate);
+    let erRatio = 0.1;
+    if (er >= 5.0) erRatio = 1.0;
+    else if (er >= 3.0) erRatio = 0.7;
+    else if (er >= 1.0) erRatio = 0.4;
+    engagementPoints = Math.round(erRatio * Number(wEngagement));
+  }
+
+  // 6. Verification Status
+  if (creator.isVerified) {
+    verificationPoints = Number(wVerification);
+  }
+
+  // 7. Featured Status
+  if (creator.isFeatured) {
+    featuredPoints = Number(wFeatured);
+  }
+
+  // 8. Response Time
+  if (creator.creatorAnalytics && creator.creatorAnalytics.responseTime < 24) {
+    responseTimePoints = Number(wResponseTime);
+  }
+
+  // 9. Success Rate
+  if (creator.creatorAnalytics?.successRate) {
+    const sr = parseFloat(creator.creatorAnalytics.successRate);
+    let srRatio = 0.1;
+    if (sr >= 90.0) srRatio = 1.0;
+    else if (sr >= 75.0) srRatio = 0.7;
+    successRatePoints = Math.round(srRatio * Number(wSuccessRate));
+  }
+
+  const rawScore = categoryPoints + locationPoints + followerPoints + performancePoints + 
+                   engagementPoints + verificationPoints + featuredPoints + responseTimePoints + 
+                   successRatePoints;
+
+  const scorePercentage = totalPossible > 0 ? Math.min(100, Math.round((rawScore / totalPossible) * 100)) : 0;
+
+  return {
+    score: scorePercentage,
+    breakdown: {
+      category: { points: categoryPoints, max: Number(wCategory) },
+      location: { points: locationPoints, max: Number(wLocation) },
+      followers: { points: followerPoints, max: Number(wFollowers) },
+      performance: { points: performancePoints, max: Number(wPerformance) },
+      engagement: { points: engagementPoints, max: Number(wEngagement) },
+      verification: { points: verificationPoints, max: Number(wVerification) },
+      featured: { points: featuredPoints, max: Number(wFeatured) },
+      responseTime: { points: responseTimePoints, max: Number(wResponseTime) },
+      successRate: { points: successRatePoints, max: Number(wSuccessRate) }
+    }
+  };
 };
 
 /**

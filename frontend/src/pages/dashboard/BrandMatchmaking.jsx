@@ -16,14 +16,25 @@ const BrandMatchmaking = () => {
   const [updatingRecruitment, setUpdatingRecruitment] = useState(false);
   const [processingActionId, setProcessingActionId] = useState(null);
   const [budgetInput, setBudgetInput] = useState('');
+  const [expandedCreatorId, setExpandedCreatorId] = useState(null);
+  const [weights, setWeights] = useState({
+    wCategory: 30,
+    wLocation: 15,
+    wFollowers: 20,
+    wPerformance: 15,
+    wEngagement: 10
+  });
 
-  useEffect(() => {
-    fetchMatches();
-  }, [id]);
-
-  const fetchMatches = async () => {
+  const fetchMatches = async (customWeights = weights) => {
     try {
-      const response = await api.get(`/brand/inquiries/${id}/matches`);
+      const params = {
+        wCategory: customWeights.wCategory,
+        wLocation: customWeights.wLocation,
+        wFollowers: customWeights.wFollowers,
+        wPerformance: customWeights.wPerformance,
+        wEngagement: customWeights.wEngagement
+      };
+      const response = await api.get(`/brand/inquiries/${id}/matches`, { params });
       if (response.data.success) {
         setMatches(response.data.matches);
         setCampaign(response.data.campaign);
@@ -39,6 +50,13 @@ const BrandMatchmaking = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      fetchMatches();
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [id, weights.wCategory, weights.wLocation, weights.wFollowers, weights.wPerformance, weights.wEngagement]);
 
   const fetchApplications = async (campaignId) => {
     try {
@@ -201,10 +219,18 @@ const BrandMatchmaking = () => {
                   key={creator.id}
                   className="bg-bg-card rounded-xl p-6 border border-border flex flex-col justify-between relative overflow-hidden group hover:border-primary/50 transition-colors"
                 >
-                  {/* Score Badge */}
-                  <div className="absolute top-4 right-4 bg-primary/20 border border-primary/40 text-primary px-3 py-1 rounded-full text-xs font-bold font-display flex items-center">
-                    <Sparkles size={12} className="mr-1.5 animate-pulse" />
-                    {creator.matchPercentage} Match
+                  {/* Score Badge with toggle breakdown */}
+                  <div className="absolute top-4 right-4 z-10">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setExpandedCreatorId(expandedCreatorId === creator.id ? null : creator.id);
+                      }}
+                      className="bg-primary/25 hover:bg-primary/35 border border-primary/40 text-primary px-3 py-1.5 rounded-full text-xs font-bold font-display flex items-center shadow-lg transition-colors cursor-pointer group"
+                    >
+                      <Sparkles size={12} className="mr-1.5 text-primary group-hover:scale-125 transition-transform" />
+                      {creator.matchPercentage} Match
+                    </button>
                   </div>
 
                   <div className="space-y-4">
@@ -251,6 +277,38 @@ const BrandMatchmaking = () => {
                         </span>
                       )}
                     </div>
+
+                    {/* Expandable Match Breakdown Details */}
+                    {expandedCreatorId === creator.id && creator.matchBreakdown && (
+                      <div className="p-4 bg-black/60 rounded-xl border border-border/80 space-y-3 animate-fadeIn text-xs">
+                        <h4 className="font-bold text-white flex items-center gap-1 text-[10px] uppercase tracking-wider">
+                          <Sparkles size={10} className="text-primary" /> Matching Points Breakdown
+                        </h4>
+                        
+                        <div className="space-y-2">
+                          {Object.entries(creator.matchBreakdown)
+                            .filter(([_, value]) => value.max > 0)
+                            .map(([key, val]) => {
+                              const percent = val.max > 0 ? Math.round((val.points / val.max) * 100) : 0;
+                              const title = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+                              return (
+                                <div key={key} className="space-y-1">
+                                  <div className="flex justify-between text-[10px]">
+                                    <span className="text-muted">{title}</span>
+                                    <span className="text-white font-medium">{val.points} / {val.max} pts</span>
+                                  </div>
+                                  <div className="w-full bg-border/40 h-1.5 rounded-full overflow-hidden">
+                                    <div 
+                                      className="bg-primary-gradient h-full rounded-full transition-all duration-500" 
+                                      style={{ width: `${percent}%` }}
+                                    />
+                                  </div>
+                                </div>
+                              );
+                            })}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Actions */}
@@ -290,6 +348,98 @@ const BrandMatchmaking = () => {
 
         {/* Right Column: Public Recruitment Panel */}
         <div className="space-y-6">
+          {/* AI Matchmaker Tuner Card */}
+          <div className="bg-bg-card rounded-2xl border border-border p-6 shadow-xl space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Sparkles className="text-primary animate-pulse" size={20} />
+                <h2 className="font-display text-lg font-bold text-white">Matchmaker Tuner</h2>
+              </div>
+              <button 
+                onClick={() => setWeights({ wCategory: 30, wLocation: 15, wFollowers: 20, wPerformance: 15, wEngagement: 10 })}
+                className="text-xs text-primary hover:underline transition-colors font-bold uppercase tracking-wider cursor-pointer"
+              >
+                Reset
+              </button>
+            </div>
+            
+            <p className="text-muted text-xs leading-relaxed">
+              Fine-tune matching priorities. Sliding a weight to 0 ignores that factor. Results recalculate automatically.
+            </p>
+
+            <div className="space-y-4">
+              {/* Category weight */}
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-xs">
+                  <span className="font-medium text-white/80">Category Affinity</span>
+                  <span className="text-primary font-bold">{weights.wCategory} pts</span>
+                </div>
+                <input 
+                  type="range" min="0" max="50" 
+                  value={weights.wCategory} 
+                  onChange={(e) => setWeights(prev => ({ ...prev, wCategory: parseInt(e.target.value) }))}
+                  className="w-full h-1 bg-border rounded-lg appearance-none cursor-pointer accent-primary focus:outline-none"
+                />
+              </div>
+
+              {/* Location weight */}
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-xs">
+                  <span className="font-medium text-white/80">Location Match</span>
+                  <span className="text-primary font-bold">{weights.wLocation} pts</span>
+                </div>
+                <input 
+                  type="range" min="0" max="50" 
+                  value={weights.wLocation} 
+                  onChange={(e) => setWeights(prev => ({ ...prev, wLocation: parseInt(e.target.value) }))}
+                  className="w-full h-1 bg-border rounded-lg appearance-none cursor-pointer accent-primary focus:outline-none"
+                />
+              </div>
+
+              {/* Followers weight */}
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-xs">
+                  <span className="font-medium text-white/80">Follower Range</span>
+                  <span className="text-primary font-bold">{weights.wFollowers} pts</span>
+                </div>
+                <input 
+                  type="range" min="0" max="50" 
+                  value={weights.wFollowers} 
+                  onChange={(e) => setWeights(prev => ({ ...prev, wFollowers: parseInt(e.target.value) }))}
+                  className="w-full h-1 bg-border rounded-lg appearance-none cursor-pointer accent-primary focus:outline-none"
+                />
+              </div>
+
+              {/* Performance weight */}
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-xs">
+                  <span className="font-medium text-white/80">Past Performance</span>
+                  <span className="text-primary font-bold">{weights.wPerformance} pts</span>
+                </div>
+                <input 
+                  type="range" min="0" max="50" 
+                  value={weights.wPerformance} 
+                  onChange={(e) => setWeights(prev => ({ ...prev, wPerformance: parseInt(e.target.value) }))}
+                  className="w-full h-1 bg-border rounded-lg appearance-none cursor-pointer accent-primary focus:outline-none"
+                />
+              </div>
+
+              {/* Engagement weight */}
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-xs">
+                  <span className="font-medium text-white/80">Instagram Engagement</span>
+                  <span className="text-primary font-bold">{weights.wEngagement} pts</span>
+                </div>
+                <input 
+                  type="range" min="0" max="50" 
+                  value={weights.wEngagement} 
+                  onChange={(e) => setWeights(prev => ({ ...prev, wEngagement: parseInt(e.target.value) }))}
+                  className="w-full h-1 bg-border rounded-lg appearance-none cursor-pointer accent-primary focus:outline-none"
+                />
+              </div>
+            </div>
+          </div>
+
           <div className="bg-bg-card rounded-2xl border border-border p-6 shadow-xl space-y-6">
             <div className="flex items-center gap-2">
               <Globe className="text-primary" size={20} />
