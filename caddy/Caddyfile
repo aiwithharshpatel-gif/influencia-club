@@ -1,0 +1,7 @@
+test.influenziaclub.com {
+    reverse_proxy frontend_final:80
+}
+
+influenziaclub.com, www.influenziaclub.com {
+    reverse_proxy frontend_final:80
+}
