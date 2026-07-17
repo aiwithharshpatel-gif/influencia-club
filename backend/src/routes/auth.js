@@ -882,8 +882,8 @@ router.get('/instagram/auth-url', (req, res) => {
   const hasMetaCredentials = process.env.META_APP_ID && process.env.META_APP_SECRET;
   if (hasMetaCredentials) {
     const redirectUri = encodeURIComponent(`${process.env.FRONTEND_URL}/oauth/instagram/callback`);
-    const scopes = 'instagram_business_basic,instagram_business_manage_insights,pages_show_list,pages_read_engagement';
-    const authUrl = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${process.env.META_APP_ID}&redirect_uri=${redirectUri}&scope=${scopes}&response_type=code&state=influenzia_connect`;
+    const scopes = 'instagram_business_basic,instagram_business_manage_insights';
+    const authUrl = `https://www.instagram.com/oauth/authorize?enable_fb_login=0&force_authentication=1&client_id=${process.env.META_APP_ID}&redirect_uri=${redirectUri}&scope=${scopes}&response_type=code&state=influenzia_connect`;
     return res.json({ success: true, isMock: false, url: authUrl });
   } else {
     return res.json({ success: true, isMock: true, url: '/oauth/instagram/mock' });

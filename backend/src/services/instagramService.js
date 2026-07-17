@@ -106,52 +106,111 @@ export const fetchInstagramData = async (accessToken, targetUsername) => {
   console.log(`[Instagram Service] Connecting to Facebook/Meta Graph API for username: ${targetUsername}...`);
 
   try {
-    // Step 1: Fetch Facebook Pages managed by the user
-    const pagesResponse = await axios.get('https://graph.facebook.com/v19.0/me/accounts', {
-      params: { access_token: accessToken }
-    });
+    let igData = null;
+    let directFetchSuccess = false;
 
-    const pages = pagesResponse.data?.data || [];
-    if (pages.length === 0) {
-      throw new Error('No Facebook Pages found managed by this account');
+    // Try direct Instagram user profile fetch via graph.facebook.com/me (supported for Instagram Business Login tokens)
+    try {
+      console.log('[Instagram Service] Attempting direct profile fetch via graph.facebook.com/me...');
+      const directResponse = await axios.get('https://graph.facebook.com/v19.0/me', {
+        params: {
+          fields: 'username,name,profile_picture_url,followers_count,media_count,media{id,caption,media_type,media_url,permalink,like_count,comments_count,timestamp}',
+          access_token: accessToken
+        }
+      });
+      igData = directResponse.data;
+      if (igData && igData.username && igData.followers_count !== undefined) {
+        directFetchSuccess = true;
+        console.log(`[Instagram Service] Direct profile fetch successful for user: ${igData.username}`);
+      }
+    } catch (directError) {
+      console.log('[Instagram Service] Direct fetch on graph.facebook.com failed, trying graph.instagram.com/me...', directError.message);
+      try {
+        const directIgResponse = await axios.get('https://graph.instagram.com/v19.0/me', {
+          params: {
+            fields: 'id,username,name,profile_picture_url,followers_count,media_count',
+            access_token: accessToken
+          }
+        });
+        if (directIgResponse.data && directIgResponse.data.username) {
+          igData = directIgResponse.data;
+          
+          // Since graph.instagram.com/me does not return media details with likes/comments, fetch media separately
+          console.log('[Instagram Service] Direct basic profile fetched. Fetching media separately...');
+          try {
+            const mediaResponse = await axios.get('https://graph.facebook.com/v19.0/me/media', {
+              params: {
+                fields: 'id,caption,media_url,media_type,permalink,like_count,comments_count,timestamp',
+                access_token: accessToken
+              }
+            });
+            igData.media = mediaResponse.data;
+          } catch (mediaError) {
+            console.log('[Instagram Service] Separate media fetch failed, trying graph.instagram.com/me/media as fallback...', mediaError.message);
+            const basicMediaResponse = await axios.get('https://graph.instagram.com/v19.0/me/media', {
+              params: {
+                fields: 'id,caption,media_url,media_type,permalink,timestamp',
+                access_token: accessToken
+              }
+            });
+            igData.media = basicMediaResponse.data;
+          }
+          directFetchSuccess = true;
+          console.log(`[Instagram Service] Direct Instagram Login profile & media fetch successful for user: ${igData.username}`);
+        }
+      } catch (igError) {
+        console.log('[Instagram Service] Direct fetch on graph.instagram.com/me failed. Falling back to Pages lookup...', igError.message);
+      }
     }
 
-    let instagramBusinessAccountId = null;
-    let pageNameUsed = '';
+    // Fallback: Use standard Facebook Login Pages lookup flow
+    if (!directFetchSuccess) {
+      console.log('[Instagram Service] Running fallback Facebook Pages lookup flow...');
+      const pagesResponse = await axios.get('https://graph.facebook.com/v19.0/me/accounts', {
+        params: { access_token: accessToken }
+      });
 
-    // Step 2: Fetch linked Instagram Business Account ID
-    for (const page of pages) {
-      const pageDetailResponse = await axios.get(`https://graph.facebook.com/v19.0/${page.id}`, {
+      const pages = pagesResponse.data?.data || [];
+      if (pages.length === 0) {
+        throw new Error('No Facebook Pages found managed by this account');
+      }
+
+      let instagramBusinessAccountId = null;
+      let pageNameUsed = '';
+
+      for (const page of pages) {
+        const pageDetailResponse = await axios.get(`https://graph.facebook.com/v19.0/${page.id}`, {
+          params: {
+            fields: 'instagram_business_account',
+            access_token: accessToken
+          }
+        });
+
+        if (pageDetailResponse.data?.instagram_business_account?.id) {
+          instagramBusinessAccountId = pageDetailResponse.data.instagram_business_account.id;
+          pageNameUsed = page.name;
+          break;
+        }
+      }
+
+      if (!instagramBusinessAccountId) {
+        throw new Error('No Instagram Business Account linked to any managed Facebook Page');
+      }
+
+      console.log(`[Instagram Service] Found Instagram Business Account: ${instagramBusinessAccountId} linked to Facebook Page: ${pageNameUsed}`);
+
+      const igProfileResponse = await axios.get(`https://graph.facebook.com/v19.0/${instagramBusinessAccountId}`, {
         params: {
-          fields: 'instagram_business_account',
+          fields: 'username,name,profile_picture_url,followers_count,media_count,media{id,caption,media_type,media_url,permalink,like_count,comments_count,timestamp}',
           access_token: accessToken
         }
       });
 
-      if (pageDetailResponse.data?.instagram_business_account?.id) {
-        instagramBusinessAccountId = pageDetailResponse.data.instagram_business_account.id;
-        pageNameUsed = page.name;
-        break;
-      }
+      igData = igProfileResponse.data;
     }
 
-    if (!instagramBusinessAccountId) {
-      throw new Error('No Instagram Business Account linked to any managed Facebook Page');
-    }
-
-    console.log(`[Instagram Service] Found Instagram Business Account: ${instagramBusinessAccountId} linked to Facebook Page: ${pageNameUsed}`);
-
-    // Step 3: Fetch Profile details and recent media
-    const igProfileResponse = await axios.get(`https://graph.facebook.com/v19.0/${instagramBusinessAccountId}`, {
-      params: {
-        fields: 'username,name,profile_picture_url,followers_count,media_count,media{id,caption,media_type,media_url,permalink,like_count,comments_count,timestamp}',
-        access_token: accessToken
-      }
-    });
-
-    const igData = igProfileResponse.data;
     if (!igData || !igData.username) {
-      throw new Error('Failed to retrieve Instagram Business Account profile statistics');
+      throw new Error('Failed to retrieve Instagram profile statistics');
     }
 
     // Step 4: Parse posts and calculate engagement metrics
@@ -219,12 +278,16 @@ export const getLongLivedAccessToken = async (authCode, redirectUri) => {
     console.log('[Instagram Service] Exchanging authorization code for short-lived user token...');
     
     // Step 1: Exchange code for short-lived access token
-    const tokenExchangeResponse = await axios.get('https://graph.facebook.com/v19.0/oauth/access_token', {
-      params: {
-        client_id: process.env.META_APP_ID,
-        client_secret: process.env.META_APP_SECRET,
-        redirect_uri: redirectUri,
-        code: authCode
+    const tokenParams = new URLSearchParams();
+    tokenParams.append('client_id', process.env.META_APP_ID);
+    tokenParams.append('client_secret', process.env.META_APP_SECRET);
+    tokenParams.append('grant_type', 'authorization_code');
+    tokenParams.append('redirect_uri', redirectUri);
+    tokenParams.append('code', authCode);
+
+    const tokenExchangeResponse = await axios.post('https://api.instagram.com/oauth/access_token', tokenParams, {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
       }
     });
 
@@ -236,12 +299,14 @@ export const getLongLivedAccessToken = async (authCode, redirectUri) => {
     console.log('[Instagram Service] Exchanging short-lived user token for long-lived user token...');
     
     // Step 2: Exchange short-lived token for long-lived token (60 days)
-    const longLivedTokenResponse = await axios.get('https://graph.facebook.com/v19.0/oauth/access_token', {
-      params: {
-        grant_type: 'fb_exchange_token',
-        client_id: process.env.META_APP_ID,
-        client_secret: process.env.META_APP_SECRET,
-        fb_exchange_token: shortLivedToken
+    const longLivedParams = new URLSearchParams();
+    longLivedParams.append('grant_type', 'ig_exchange_token');
+    longLivedParams.append('client_secret', process.env.META_APP_SECRET);
+    longLivedParams.append('access_token', shortLivedToken);
+
+    const longLivedTokenResponse = await axios.post('https://graph.instagram.com/access_token', longLivedParams, {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
       }
     });
 
@@ -253,7 +318,7 @@ export const getLongLivedAccessToken = async (authCode, redirectUri) => {
     return longLivedToken;
   } catch (error) {
     console.error('[Instagram Service] Token exchange failed:', error.response?.data || error.message);
-    throw new Error(`Instagram token exchange failed: ${error.response?.data?.error?.message || error.message}`);
+    throw new Error(`Instagram token exchange failed: ${error.response?.data?.error_message || error.response?.data?.error?.message || error.message}`);
   }
 };
 
