@@ -8,6 +8,7 @@ import { generateOTP, generateReferralCode } from '../utils/helpers.js';
 import { sendVerificationEmail, sendWelcomeEmail, sendPasswordResetEmail, sendEmail } from '../services/otp_master.js';
 import { creditPoints, processReferral } from '../services/pointsService.js';
 import { validateCreator, safeErrorMessage } from '../middleware/errorHandler.js';
+import { fetchInstagramData } from '../services/instagramService.js';
 
 const router = express.Router();
 
@@ -858,6 +859,283 @@ router.get('/me', async (req, res) => {
     res.status(500).json({
       success: false,
       message: error.message
+    });
+  }
+});
+
+// Helper to format follower count beautifully (e.g. 75K, 1.2L, 2.5M)
+const formatFollowers = (count) => {
+  if (count >= 1000000) {
+    return (count / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+  }
+  if (count >= 100000) {
+    return (count / 100000).toFixed(1).replace(/\.0$/, '') + 'L';
+  }
+  if (count >= 1000) {
+    return (count / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+  }
+  return count.toString();
+};
+
+// Check if creator exists by Instagram handle, if so log in, else return profile info for signup
+router.post('/instagram/authenticate', async (req, res) => {
+  try {
+    const { code, username } = req.body;
+    if (!username) {
+      return res.status(400).json({ success: false, message: 'Instagram username is required' });
+    }
+
+    const cleanedUsername = username.replace(/^@/, '').trim().toLowerCase();
+    
+    // Call Instagram Service (fetches mock or real data)
+    const igData = await fetchInstagramData(code || 'mock_access_token_123', cleanedUsername);
+
+    // Find if creator with this Instagram handle exists
+    const creator = await prisma.creator.findFirst({
+      where: { instagram: cleanedUsername }
+    });
+
+    if (creator) {
+      // Sync InstagramProfile statistics
+      const updatedProfile = await prisma.instagramProfile.upsert({
+        where: { creatorId: creator.id },
+        update: {
+          username: igData.username,
+          fullName: igData.fullName,
+          profilePicUrl: igData.profilePicUrl,
+          followersCount: igData.followersCount,
+          mediaCount: igData.mediaCount,
+          engagementRate: igData.engagementRate,
+          avgLikes: igData.avgLikes,
+          avgComments: igData.avgComments,
+          recentPosts: igData.recentPosts,
+          accessToken: code || 'mock_access_token_123'
+        },
+        create: {
+          creatorId: creator.id,
+          username: igData.username,
+          fullName: igData.fullName,
+          profilePicUrl: igData.profilePicUrl,
+          followersCount: igData.followersCount,
+          mediaCount: igData.mediaCount,
+          engagementRate: igData.engagementRate,
+          avgLikes: igData.avgLikes,
+          avgComments: igData.avgComments,
+          recentPosts: igData.recentPosts,
+          accessToken: code || 'mock_access_token_123'
+        }
+      });
+
+      // Update creator follower count and picture if empty
+      const formatted = formatFollowers(igData.followersCount);
+      await prisma.creator.update({
+        where: { id: creator.id },
+        data: {
+          followerCount: formatted,
+          photoUrl: creator.photoUrl || igData.profilePicUrl
+        }
+      });
+
+      // Generate tokens
+      const accessToken = jwt.sign(
+        { id: creator.id, email: creator.email, role: 'creator', version: creator.passwordVersion },
+        process.env.JWT_SECRET,
+        { expiresIn: '15m' }
+      );
+
+      const refreshToken = jwt.sign(
+        { id: creator.id, version: creator.passwordVersion },
+        process.env.JWT_REFRESH_SECRET,
+        { expiresIn: '30d' }
+      );
+
+      // Set cookies
+      const cookieOptions = {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 15 * 60 * 1000,
+        path: '/api'
+      };
+
+      res.cookie('accessToken', accessToken, cookieOptions);
+      res.cookie('refreshToken', refreshToken, { ...cookieOptions, maxAge: 30 * 24 * 60 * 60 * 1000 });
+
+      return res.json({
+        success: true,
+        existingUser: true,
+        creator: {
+          id: creator.id,
+          name: creator.name,
+          email: creator.email,
+          instagram: creator.instagram,
+          category: creator.category,
+          city: creator.city,
+          pointsBalance: creator.pointsBalance,
+          tier: creator.tier,
+          photoUrl: creator.photoUrl || igData.profilePicUrl
+        }
+      });
+    } else {
+      // Return details for pre-filling the registration form
+      return res.json({
+        success: false,
+        existingUser: false,
+        registrationRequired: true,
+        igProfile: igData
+      });
+    }
+  } catch (error) {
+    console.error('Instagram Authentication error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to authenticate with Instagram'
+    });
+  }
+});
+
+// Complete registration for a creator authenticated via Instagram
+router.post('/instagram/register-complete', async (req, res) => {
+  try {
+    const { name, email, mobile, category, city, instagram, referralCode: inputReferralCode, code } = req.body;
+
+    if (!name || !email || !mobile || !category || !city || !instagram) {
+      return res.status(400).json({
+        success: false,
+        message: 'All fields are required to complete registration'
+      });
+    }
+
+    const cleanedUsername = instagram.toLowerCase().replace('@', '').trim();
+
+    // Check email uniqueness
+    const existingEmail = await prisma.creator.findUnique({
+      where: { email }
+    });
+    if (existingEmail) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email address is already registered'
+      });
+    }
+
+    // Check Instagram uniqueness
+    const existingInsta = await prisma.creator.findFirst({
+      where: { instagram: cleanedUsername }
+    });
+    if (existingInsta) {
+      return res.status(400).json({
+        success: false,
+        message: 'Instagram handle is already linked to another account'
+      });
+    }
+
+    // Fetch Instagram data again to populate the database
+    const igData = await fetchInstagramData(code || 'mock_access_token_123', cleanedUsername);
+
+    // Hash password (using mobile number as default password)
+    const passwordHash = await bcrypt.hash(mobile, 10);
+    const referralCode = generateReferralCode(name);
+
+    // Check referral
+    let referrer = null;
+    if (inputReferralCode) {
+      referrer = await prisma.creator.findUnique({
+        where: { referralCode: inputReferralCode }
+      });
+    }
+
+    // Create Creator
+    const creator = await prisma.creator.create({
+      data: {
+        name,
+        email,
+        passwordHash,
+        mobile,
+        instagram: cleanedUsername,
+        category,
+        city,
+        referralCode,
+        referredBy: referrer?.id || null,
+        photoUrl: igData.profilePicUrl,
+        followerCount: formatFollowers(igData.followersCount),
+        isApproved: true
+      }
+    });
+
+    // Create Instagram Profile record
+    await prisma.instagramProfile.create({
+      data: {
+        creatorId: creator.id,
+        username: igData.username,
+        fullName: igData.fullName,
+        profilePicUrl: igData.profilePicUrl,
+        followersCount: igData.followersCount,
+        mediaCount: igData.mediaCount,
+        engagementRate: igData.engagementRate,
+        avgLikes: igData.avgLikes,
+        avgComments: igData.avgComments,
+        recentPosts: igData.recentPosts,
+        accessToken: code || 'mock_access_token_123'
+      }
+    });
+
+    // Credit signup bonus
+    await creditPoints(creator.id, 10, 'signup', 'Signup bonus');
+
+    // Process referral if exists
+    if (referrer) {
+      await processReferral(referrer.id, creator.id);
+    }
+
+    // Send welcome email
+    await sendWelcomeEmail(email, name, referralCode);
+
+    // Generate tokens
+    const accessToken = jwt.sign(
+      { id: creator.id, email: creator.email, role: 'creator', version: creator.passwordVersion },
+      process.env.JWT_SECRET,
+      { expiresIn: '15m' }
+    );
+
+    const refreshToken = jwt.sign(
+      { id: creator.id, version: creator.passwordVersion },
+      process.env.JWT_REFRESH_SECRET,
+      { expiresIn: '30d' }
+    );
+
+    // Set cookies
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 15 * 60 * 1000,
+      path: '/api'
+    };
+
+    res.cookie('accessToken', accessToken, cookieOptions);
+    res.cookie('refreshToken', refreshToken, { ...cookieOptions, maxAge: 30 * 24 * 60 * 60 * 1000 });
+
+    res.json({
+      success: true,
+      message: 'Registration successful! Welcome to Influenzia Club',
+      creator: {
+        id: creator.id,
+        name: creator.name,
+        email: creator.email,
+        instagram: creator.instagram,
+        category: creator.category,
+        city: creator.city,
+        pointsBalance: 10,
+        tier: 'silver',
+        photoUrl: creator.photoUrl
+      }
+    });
+  } catch (error) {
+    console.error('Complete Instagram Registration error:', error);
+    res.status(500).json({
+      success: false,
+      message: safeErrorMessage(error, process.env.NODE_ENV === 'production')
     });
   }
 });
