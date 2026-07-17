@@ -1,3 +1,8 @@
+{
+    acme_ca https://acme.zerossl.com/v2/DV90
+    email no-reply@influenziaclub.com
+}
+
 test.influenziaclub.com {
     reverse_proxy frontend_final:80
 }
