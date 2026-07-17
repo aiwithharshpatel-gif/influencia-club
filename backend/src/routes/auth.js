@@ -894,11 +894,6 @@ router.get('/instagram/auth-url', (req, res) => {
 router.post('/instagram/authenticate', async (req, res) => {
   try {
     const { code, username } = req.body;
-    if (!username) {
-      return res.status(400).json({ success: false, message: 'Instagram username is required' });
-    }
-
-    const cleanedUsername = username.replace(/^@/, '').trim().toLowerCase();
     
     // Exchange auth code for long-lived access token if not mock
     const isMock = !code || code.startsWith('mock_');
@@ -906,7 +901,14 @@ router.post('/instagram/authenticate', async (req, res) => {
     const accessToken = isMock ? (code || 'mock_access_token_123') : await getLongLivedAccessToken(code, redirectUri);
     
     // Call Instagram Service (fetches mock or real data)
-    const igData = await fetchInstagramData(accessToken, cleanedUsername);
+    // Real Meta tokens resolve the username automatically via the /me endpoint
+    const igData = await fetchInstagramData(accessToken, username || '');
+
+    if (!igData || !igData.username) {
+      return res.status(400).json({ success: false, message: 'Failed to resolve Instagram profile username' });
+    }
+
+    const cleanedUsername = igData.username.replace(/^@/, '').trim().toLowerCase();
 
     // Find if creator with this Instagram handle exists
     const creator = await prisma.creator.findFirst({
