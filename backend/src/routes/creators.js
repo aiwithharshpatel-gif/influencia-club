@@ -1,7 +1,7 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import { protect } from '../middleware/auth.js';
-import { fetchInstagramData } from '../services/instagramService.js';
+import { fetchInstagramData, getLongLivedAccessToken } from '../services/instagramService.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -220,8 +220,13 @@ router.post('/instagram/connect', protect, async (req, res) => {
 
     const cleanedUsername = username.replace(/^@/, '').trim();
 
-    // Call mock Meta API service to get stats
-    const igData = await fetchInstagramData(code || 'mock_access_token_123', cleanedUsername);
+    // Exchange auth code for long-lived access token if not mock
+    const isMock = !code || code.startsWith('mock_');
+    const redirectUri = `${process.env.FRONTEND_URL}/oauth/instagram/callback`;
+    const accessToken = isMock ? (code || 'mock_access_token_123') : await getLongLivedAccessToken(code, redirectUri);
+
+    // Call mock/real Meta API service to get stats
+    const igData = await fetchInstagramData(accessToken, cleanedUsername);
 
     // Save or update Instagram Profile data
     const profile = await prisma.instagramProfile.upsert({
@@ -236,7 +241,7 @@ router.post('/instagram/connect', protect, async (req, res) => {
         avgLikes: igData.avgLikes,
         avgComments: igData.avgComments,
         recentPosts: igData.recentPosts,
-        accessToken: code || 'mock_access_token_123'
+        accessToken: accessToken
       },
       create: {
         creatorId: req.user.id,
@@ -249,7 +254,7 @@ router.post('/instagram/connect', protect, async (req, res) => {
         avgLikes: igData.avgLikes,
         avgComments: igData.avgComments,
         recentPosts: igData.recentPosts,
-        accessToken: code || 'mock_access_token_123'
+        accessToken: accessToken
       }
     });
 

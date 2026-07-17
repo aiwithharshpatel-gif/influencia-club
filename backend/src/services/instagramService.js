@@ -201,3 +201,59 @@ export const fetchInstagramData = async (accessToken, targetUsername) => {
     throw new Error(`Instagram sync failed: ${error.response?.data?.error?.message || error.message}`);
   }
 };
+
+/**
+ * Exchanges the OAuth authorization code for a long-lived access token.
+ * Falls back to mock if Meta credentials are not configured or code is mock.
+ */
+export const getLongLivedAccessToken = async (authCode, redirectUri) => {
+  const isMock = !authCode || authCode.startsWith('mock_');
+  const hasMetaCredentials = process.env.META_APP_ID && process.env.META_APP_SECRET;
+
+  if (isMock || !hasMetaCredentials) {
+    console.log('[Instagram Service] Mock/Fallback token exchange');
+    return authCode || 'mock_access_token_123';
+  }
+
+  try {
+    console.log('[Instagram Service] Exchanging authorization code for short-lived user token...');
+    
+    // Step 1: Exchange code for short-lived access token
+    const tokenExchangeResponse = await axios.get('https://graph.facebook.com/v19.0/oauth/access_token', {
+      params: {
+        client_id: process.env.META_APP_ID,
+        client_secret: process.env.META_APP_SECRET,
+        redirect_uri: redirectUri,
+        code: authCode
+      }
+    });
+
+    const shortLivedToken = tokenExchangeResponse.data.access_token;
+    if (!shortLivedToken) {
+      throw new Error('No short-lived access token received from Meta');
+    }
+
+    console.log('[Instagram Service] Exchanging short-lived user token for long-lived user token...');
+    
+    // Step 2: Exchange short-lived token for long-lived token (60 days)
+    const longLivedTokenResponse = await axios.get('https://graph.facebook.com/v19.0/oauth/access_token', {
+      params: {
+        grant_type: 'fb_exchange_token',
+        client_id: process.env.META_APP_ID,
+        client_secret: process.env.META_APP_SECRET,
+        fb_exchange_token: shortLivedToken
+      }
+    });
+
+    const longLivedToken = longLivedTokenResponse.data.access_token;
+    if (!longLivedToken) {
+      throw new Error('No long-lived access token received from Meta');
+    }
+
+    return longLivedToken;
+  } catch (error) {
+    console.error('[Instagram Service] Token exchange failed:', error.response?.data || error.message);
+    throw new Error(`Instagram token exchange failed: ${error.response?.data?.error?.message || error.message}`);
+  }
+};
+

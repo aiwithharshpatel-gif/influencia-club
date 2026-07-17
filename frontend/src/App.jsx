@@ -20,6 +20,7 @@ import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
 import NotFound from './pages/NotFound';
 import InstagramMockOAuth from './pages/InstagramMockOAuth';
+import InstagramCallback from './pages/InstagramCallback';
 
 // Dashboard Pages
 const DashboardLayout = lazy(() => import('./pages/dashboard/DashboardLayout'));
@@ -99,6 +100,7 @@ function App() {
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/terms" element={<Terms />} />
             <Route path="/oauth/instagram/mock" element={<InstagramMockOAuth />} />
+            <Route path="/oauth/instagram/callback" element={<InstagramCallback />} />
             <Route path="/leaderboard" element={
               <Suspense fallback={<LoadingScreen />}>
                 <Leaderboard />

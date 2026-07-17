@@ -14,16 +14,27 @@ const Login = () => {
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm();
   const [igConnecting, setIgConnecting] = useState(false);
 
-  const handleInstagramLogin = () => {
-    const width = 520;
-    const height = 680;
-    const left = window.screen.width / 2 - width / 2;
-    const top = window.screen.height / 2 - height / 2;
-    window.open(
-      '/oauth/instagram/mock',
-      'Instagram Login Sandbox',
-      `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes`
-    );
+  const handleInstagramLogin = async () => {
+    try {
+      setIgConnecting(true);
+      const res = await api.get('/auth/instagram/auth-url');
+      const authUrl = res.data.url;
+
+      const width = 520;
+      const height = 680;
+      const left = window.screen.width / 2 - width / 2;
+      const top = window.screen.height / 2 - height / 2;
+      window.open(
+        authUrl,
+        'Instagram Login',
+        `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes`
+      );
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to initiate Instagram login');
+    } finally {
+      setIgConnecting(false);
+    }
   };
 
   useEffect(() => {

@@ -60,16 +60,27 @@ const Join = () => {
     }
   });
 
-  const handleInstagramConnect = () => {
-    const width = 520;
-    const height = 680;
-    const left = window.screen.width / 2 - width / 2;
-    const top = window.screen.height / 2 - height / 2;
-    window.open(
-      '/oauth/instagram/mock',
-      'Instagram OAuth Sandbox',
-      `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes`
-    );
+  const handleInstagramConnect = async () => {
+    try {
+      setIgConnecting(true);
+      const res = await api.get('/auth/instagram/auth-url');
+      const authUrl = res.data.url;
+
+      const width = 520;
+      const height = 680;
+      const left = window.screen.width / 2 - width / 2;
+      const top = window.screen.height / 2 - height / 2;
+      window.open(
+        authUrl,
+        'Instagram OAuth Connect',
+        `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes`
+      );
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to initiate Instagram connection');
+    } finally {
+      setIgConnecting(false);
+    }
   };
 
   useEffect(() => {
@@ -90,7 +101,7 @@ const Join = () => {
               fullName: res.data.igProfile.fullName,
               profilePicUrl: res.data.igProfile.profilePicUrl,
               followersCount: res.data.igProfile.followersCount,
-              code: code
+              code: res.data.igProfile.accessToken || code
             });
             setValue('instagram', res.data.igProfile.username);
             setValue('name', res.data.igProfile.fullName);
@@ -124,7 +135,7 @@ const Join = () => {
               fullName: res.data.igProfile.fullName,
               profilePicUrl: res.data.igProfile.profilePicUrl,
               followersCount: res.data.igProfile.followersCount,
-              code: codeFromUrl
+              code: res.data.igProfile.accessToken || codeFromUrl
             });
             setValue('instagram', res.data.igProfile.username);
             setValue('name', res.data.igProfile.fullName);

@@ -8,7 +8,7 @@ import { generateOTP, generateReferralCode } from '../utils/helpers.js';
 import { sendVerificationEmail, sendWelcomeEmail, sendPasswordResetEmail, sendEmail } from '../services/otp_master.js';
 import { creditPoints, processReferral } from '../services/pointsService.js';
 import { validateCreator, safeErrorMessage } from '../middleware/errorHandler.js';
-import { fetchInstagramData } from '../services/instagramService.js';
+import { fetchInstagramData, getLongLivedAccessToken } from '../services/instagramService.js';
 
 const router = express.Router();
 
@@ -877,6 +877,19 @@ const formatFollowers = (count) => {
   return count.toString();
 };
 
+// Get Instagram OAuth URL or Mock URL
+router.get('/instagram/auth-url', (req, res) => {
+  const hasMetaCredentials = process.env.META_APP_ID && process.env.META_APP_SECRET;
+  if (hasMetaCredentials) {
+    const redirectUri = encodeURIComponent(`${process.env.FRONTEND_URL}/oauth/instagram/callback`);
+    const scopes = 'instagram_basic,instagram_manage_insights,pages_show_list,pages_read_engagement';
+    const authUrl = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${process.env.META_APP_ID}&redirect_uri=${redirectUri}&scope=${scopes}&response_type=code&state=influenzia_connect`;
+    return res.json({ success: true, isMock: false, url: authUrl });
+  } else {
+    return res.json({ success: true, isMock: true, url: '/oauth/instagram/mock' });
+  }
+});
+
 // Check if creator exists by Instagram handle, if so log in, else return profile info for signup
 router.post('/instagram/authenticate', async (req, res) => {
   try {
@@ -887,8 +900,13 @@ router.post('/instagram/authenticate', async (req, res) => {
 
     const cleanedUsername = username.replace(/^@/, '').trim().toLowerCase();
     
+    // Exchange auth code for long-lived access token if not mock
+    const isMock = !code || code.startsWith('mock_');
+    const redirectUri = `${process.env.FRONTEND_URL}/oauth/instagram/callback`;
+    const accessToken = isMock ? (code || 'mock_access_token_123') : await getLongLivedAccessToken(code, redirectUri);
+    
     // Call Instagram Service (fetches mock or real data)
-    const igData = await fetchInstagramData(code || 'mock_access_token_123', cleanedUsername);
+    const igData = await fetchInstagramData(accessToken, cleanedUsername);
 
     // Find if creator with this Instagram handle exists
     const creator = await prisma.creator.findFirst({
@@ -909,7 +927,7 @@ router.post('/instagram/authenticate', async (req, res) => {
           avgLikes: igData.avgLikes,
           avgComments: igData.avgComments,
           recentPosts: igData.recentPosts,
-          accessToken: code || 'mock_access_token_123'
+          accessToken: accessToken
         },
         create: {
           creatorId: creator.id,
@@ -922,7 +940,7 @@ router.post('/instagram/authenticate', async (req, res) => {
           avgLikes: igData.avgLikes,
           avgComments: igData.avgComments,
           recentPosts: igData.recentPosts,
-          accessToken: code || 'mock_access_token_123'
+          accessToken: accessToken
         }
       });
 
@@ -1031,7 +1049,12 @@ router.post('/instagram/register-complete', async (req, res) => {
     }
 
     // Fetch Instagram data again to populate the database
-    const igData = await fetchInstagramData(code || 'mock_access_token_123', cleanedUsername);
+    const isMock = !code || code.startsWith('mock_');
+    const isToken = code && (code.startsWith('EAAC') || code.startsWith('mock_') || code.length > 50);
+    const redirectUri = `${process.env.FRONTEND_URL}/oauth/instagram/callback`;
+    const accessToken = isToken ? code : (isMock ? 'mock_access_token_123' : await getLongLivedAccessToken(code, redirectUri));
+
+    const igData = await fetchInstagramData(accessToken, cleanedUsername);
 
     // Hash password (using mobile number as default password)
     const passwordHash = await bcrypt.hash(mobile, 10);
@@ -1076,7 +1099,7 @@ router.post('/instagram/register-complete', async (req, res) => {
         avgLikes: igData.avgLikes,
         avgComments: igData.avgComments,
         recentPosts: igData.recentPosts,
-        accessToken: code || 'mock_access_token_123'
+        accessToken: accessToken
       }
     });
 
