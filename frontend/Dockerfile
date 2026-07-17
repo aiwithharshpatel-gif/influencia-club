@@ -1,6 +1,7 @@
 # Stage 1: Build
 FROM node:20 AS build-stage
 ARG CACHEBUST=1
+RUN echo "Busting cache: $CACHEBUST"
 WORKDIR /app
 COPY package*.json ./
 RUN npm install --legacy-peer-deps
