@@ -1052,9 +1052,9 @@ router.post('/instagram/register-complete', async (req, res) => {
     const isMock = !code || code.startsWith('mock_');
     const isToken = code && (code.startsWith('EAAC') || code.startsWith('mock_') || code.length > 50);
     const redirectUri = `${process.env.FRONTEND_URL}/oauth/instagram/callback`;
-    const accessToken = isToken ? code : (isMock ? 'mock_access_token_123' : await getLongLivedAccessToken(code, redirectUri));
+    const igAccessToken = isToken ? code : (isMock ? 'mock_access_token_123' : await getLongLivedAccessToken(code, redirectUri));
 
-    const igData = await fetchInstagramData(accessToken, cleanedUsername);
+    const igData = await fetchInstagramData(igAccessToken, cleanedUsername);
 
     // Hash password (using mobile number as default password)
     const passwordHash = await bcrypt.hash(mobile, 10);
@@ -1099,7 +1099,7 @@ router.post('/instagram/register-complete', async (req, res) => {
         avgLikes: igData.avgLikes,
         avgComments: igData.avgComments,
         recentPosts: igData.recentPosts,
-        accessToken: accessToken
+        accessToken: igAccessToken
       }
     });
 
