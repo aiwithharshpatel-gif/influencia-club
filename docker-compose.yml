@@ -15,7 +15,7 @@ services:
     build: 
       context: ./backend
       args:
-        - CACHEBUST=LAUNCH-FINAL-VER-122
+        - CACHEBUST=LAUNCH-FINAL-VER-123
     restart: always
     expose:
       - "5000"
@@ -51,7 +51,7 @@ services:
       context: ./frontend
       args:
         - VITE_API_URL=${VITE_API_URL:-/api}
-        - CACHEBUST=LAUNCH-FINAL-VER-122
+        - CACHEBUST=LAUNCH-FINAL-VER-123
     restart: always
     expose:
       - "80"
