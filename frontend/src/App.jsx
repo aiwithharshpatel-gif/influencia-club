@@ -6,6 +6,7 @@ import { Toaster } from 'react-hot-toast';
 // Components
 import LoadingScreen from './components/LoadingScreen';
 import PageTransition from './components/PageTransition';
+import PWAPrompt from './components/PWAPrompt';
 
 // Public Pages
 import Home from './pages/Home';
@@ -83,6 +84,7 @@ function App() {
           style: { background: '#111', color: '#fff', border: '1px solid rgba(212, 175, 55, 0.2)' }
         }} 
       />
+      <PWAPrompt />
       <Router future={{
         v7_startTransition: true,
         v7_relativeSplatPath: true
