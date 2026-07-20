@@ -63,15 +63,15 @@ const Home = () => {
   const featuredCreators = [
     {
       id: '1',
-      name: 'Priya Sharma',
+      name: 'Harsh Patel',
       photoUrl: null,
-      category: 'influencer',
-      city: 'Ahmedabad',
-      instagram: 'priyasharma',
-      followerCount: '50K+',
+      category: 'creator',
+      city: 'Mumbai',
+      instagram: 'explorer_harshpatel',
+      followerCount: '120K+',
       isVerified: true,
       isFeatured: true,
-      bio: 'Lifestyle & Fashion Creator | Ahmedabad'
+      bio: 'Travel & Lifestyle Creator | Mumbai'
     },
     {
       id: '2',
@@ -87,15 +87,15 @@ const Home = () => {
     },
     {
       id: '3',
-      name: 'Ananya Patel',
+      name: 'Priya Sharma',
       photoUrl: null,
-      category: 'model',
-      city: 'Vadodara',
-      instagram: 'ananyapatel',
-      followerCount: '1.2L+',
+      category: 'influencer',
+      city: 'Ahmedabad',
+      instagram: 'priyasharma',
+      followerCount: '50K+',
       isVerified: true,
       isFeatured: true,
-      bio: 'Fashion Model | Brand Ambassador'
+      bio: 'Lifestyle & Fashion Creator | Ahmedabad'
     },
   ];
 
@@ -209,18 +209,18 @@ const Home = () => {
               {/* Stacked Cards */}
               <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-60 h-[300px] bg-gradient-to-b from-[#141414] to-black border border-gold/30 rounded-[28px] p-3.5 shadow-gold-glow/5 z-20 flex flex-col justify-between transition-all duration-300">
                 <div className="aspect-square rounded-xl overflow-hidden bg-white/5 relative">
-                  <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=300" alt="Priya Sharma" className="w-full h-full object-cover" />
+                  <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=300" alt="Harsh Patel" className="w-full h-full object-cover" />
                   <div className="absolute top-2 right-2 bg-gold-gradient text-black text-[8px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
                     Elite
                   </div>
                 </div>
                 <div className="flex justify-between items-center mt-3 text-left">
                   <div>
-                    <h4 className="text-xs font-bold text-white tracking-wide">Priya Sharma</h4>
-                    <p className="text-[10px] text-gold/80">@priyasharma</p>
+                    <h4 className="text-xs font-bold text-white tracking-wide">Harsh Patel</h4>
+                    <p className="text-[10px] text-gold/80">@explorer_harshpatel</p>
                   </div>
                   <span className="bg-gold/15 text-gold border border-gold/25 px-2 py-0.5 rounded-full text-[9px] font-bold">
-                    50K+
+                    120K+
                   </span>
                 </div>
               </div>
@@ -242,15 +242,15 @@ const Home = () => {
 
               <div className="absolute left-[calc(50%+10px)] top-1/2 -translate-y-1/2 w-52 h-[260px] bg-gradient-to-b from-[#0a0a0a] to-black border border-white/5 rounded-[24px] p-3 opacity-40 z-10 rotate-[8deg] transition-all duration-500 hover:rotate-0 hover:opacity-100 hover:z-30 flex flex-col justify-between">
                 <div className="aspect-square rounded-lg overflow-hidden bg-white/5">
-                  <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=300" alt="Ananya Patel" className="w-full h-full object-cover" />
+                  <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=300" alt="Priya Sharma" className="w-full h-full object-cover" />
                 </div>
                 <div className="flex justify-between items-center mt-2 text-left">
                   <div>
-                    <h4 className="text-[11px] font-semibold text-white tracking-wide">Ananya Patel</h4>
-                    <p className="text-[9px] text-muted">@ananyapatel</p>
+                    <h4 className="text-[11px] font-semibold text-white tracking-wide">Priya Sharma</h4>
+                    <p className="text-[9px] text-muted">@priyasharma</p>
                   </div>
                   <span className="bg-white/5 text-white/80 border border-white/10 px-2 py-0.5 rounded-full text-[8px]">
-                    1.2L+
+                    50K+
                   </span>
                 </div>
               </div>
