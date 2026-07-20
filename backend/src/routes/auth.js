@@ -14,7 +14,7 @@ const router = express.Router();
 
 const safeUrl = (url, username) => {
   if (!url) return null;
-  if (url.length <= 500) return url;
+  if (url.length <= 5000) return url;
   return username ? `https://api.dicebear.com/7.x/adventurer/svg?seed=${username}` : null;
 };
 

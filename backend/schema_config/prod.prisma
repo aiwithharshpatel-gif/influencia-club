@@ -108,7 +108,7 @@ model Creator {
   category       Category
   city           String          @db.VarChar(50)
   bio            String?         @db.VarChar(200)
-  photoUrl       String?         @db.VarChar(500)
+  photoUrl       String?         @db.Text
   followerCount  String?         @db.VarChar(20)
   isVerified     Boolean         @default(false)
   isFeatured     Boolean         @default(false)
@@ -441,7 +441,7 @@ model InstagramProfile {
   creator         Creator  @relation(fields: [creatorId], references: [id], onDelete: Cascade)
   username        String   @db.VarChar(100)
   fullName        String?  @db.VarChar(150)
-  profilePicUrl   String?  @db.VarChar(500)
+  profilePicUrl   String?  @db.Text
   followersCount  Int      @default(0)
   mediaCount      Int      @default(0)
   engagementRate  Decimal  @db.Decimal(5, 2) @default(0)
