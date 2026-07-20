@@ -11,7 +11,7 @@ services:
       - app-network
 
   backend_final: # RENAMED SERVICE
-    image: influencia-club-backend_final:v1.1.7
+    image: influencia-club-backend_final:v1.1.8
     build: 
       context: ./backend
       args:
@@ -48,7 +48,7 @@ services:
       - app-network
  
   frontend_final: # RENAMED SERVICE
-    image: influencia-club-frontend_final:v1.1.7
+    image: influencia-club-frontend_final:v1.1.8
     build: 
       context: ./frontend
       args:
@@ -63,7 +63,7 @@ services:
       - app-network
 
   caddy:
-    image: influencia-club-caddy:v1.1.7
+    image: influencia-club-caddy:v1.1.8
     build:
       context: ./caddy
     restart: always
