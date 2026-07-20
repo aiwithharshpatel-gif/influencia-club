@@ -1003,7 +1003,10 @@ router.post('/instagram/authenticate', async (req, res) => {
         success: false,
         existingUser: false,
         registrationRequired: true,
-        igProfile: igData
+        igProfile: {
+          ...igData,
+          accessToken: igAccessToken
+        }
       });
     }
   } catch (error) {
@@ -1053,7 +1056,7 @@ router.post('/instagram/register-complete', async (req, res) => {
 
     // Fetch Instagram data again to populate the database
     const isMock = !code || code.startsWith('mock_');
-    const isToken = code && (code.startsWith('EAAC') || code.startsWith('mock_') || code.length > 50);
+    const isToken = code && (code.startsWith('IG') || code.startsWith('EAAC') || code.startsWith('mock_access_token'));
     const redirectUri = `${process.env.FRONTEND_URL}/oauth/instagram/callback`;
     const igAccessToken = isToken ? code : (isMock ? 'mock_access_token_123' : await getLongLivedAccessToken(code, redirectUri));
 
