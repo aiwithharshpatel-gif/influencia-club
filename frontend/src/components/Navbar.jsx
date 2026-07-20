@@ -2,8 +2,10 @@ import { Link, useLocation } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import logo from '../assets/logo.png';
+import { useAuth } from '../context/AuthContext';
 
 const Navbar = () => {
+  const { user, role, logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const location = useLocation();
@@ -71,18 +73,40 @@ const Navbar = () => {
               </Link>
             ))}
             <div className="flex items-center space-x-4 border-l border-white/10 pl-6 ml-4">
-              <Link
-                to="/login"
-                className="px-5 py-2 rounded-full border border-gold/40 text-gold hover:bg-gold-gradient hover:text-black hover:border-transparent transition-all text-xs font-bold uppercase tracking-wider"
-              >
-                Sign In
-              </Link>
-              <Link
-                to="/join"
-                className="btn-primary text-xs px-6 py-2.5 rounded-full uppercase tracking-wider font-bold"
-              >
-                Join Now
-              </Link>
+              {user ? (
+                <>
+                  <Link
+                    to={role === 'admin' ? '/admin-dashboard' : role === 'brand' ? '/brand-dashboard' : '/dashboard'}
+                    className="px-5 py-2 rounded-full border border-gold/40 text-gold hover:bg-gold-gradient hover:text-black hover:border-transparent transition-all text-xs font-bold uppercase tracking-wider"
+                  >
+                    Dashboard
+                  </Link>
+                  <button
+                    onClick={async () => {
+                      await logout();
+                      window.location.href = '/';
+                    }}
+                    className="btn-primary text-xs px-6 py-2.5 rounded-full uppercase tracking-wider font-bold"
+                  >
+                    Logout
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link
+                    to="/login"
+                    className="px-5 py-2 rounded-full border border-gold/40 text-gold hover:bg-gold-gradient hover:text-black hover:border-transparent transition-all text-xs font-bold uppercase tracking-wider"
+                  >
+                    Sign In
+                  </Link>
+                  <Link
+                    to="/join"
+                    className="btn-primary text-xs px-6 py-2.5 rounded-full uppercase tracking-wider font-bold"
+                  >
+                    Join Now
+                  </Link>
+                </>
+              )}
             </div>
           </div>
 
@@ -114,27 +138,51 @@ const Navbar = () => {
                 </Link>
               ))}
               <div className="pt-4 space-y-3 border-t border-white/10">
-                <Link
-                  to="/login"
-                  onClick={() => setIsOpen(false)}
-                  className="block px-4 py-3 rounded-lg text-sm font-medium text-white/80 hover:bg-white/5 hover:text-white transition-all text-center"
-                >
-                  Sign In
-                </Link>
-                <Link
-                  to="/brand-login"
-                  onClick={() => setIsOpen(false)}
-                  className="block px-4 py-3 rounded-lg text-sm font-medium text-gold/80 hover:bg-white/5 hover:text-gold transition-all text-center border border-gold/20"
-                >
-                  Brand Portal
-                </Link>
-                <Link
-                  to="/join"
-                  onClick={() => setIsOpen(false)}
-                  className="block btn-primary text-center py-3 rounded-lg"
-                >
-                  Join Now
-                </Link>
+                {user ? (
+                  <>
+                    <Link
+                      to={role === 'admin' ? '/admin-dashboard' : role === 'brand' ? '/brand-dashboard' : '/dashboard'}
+                      onClick={() => setIsOpen(false)}
+                      className="block px-4 py-3 rounded-lg text-sm font-medium text-white/80 hover:bg-white/5 hover:text-white transition-all text-center"
+                    >
+                      Dashboard
+                    </Link>
+                    <button
+                      onClick={async () => {
+                        setIsOpen(false);
+                        await logout();
+                        window.location.href = '/';
+                      }}
+                      className="block w-full btn-primary text-center py-3 rounded-lg font-bold"
+                    >
+                      Logout
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <Link
+                      to="/login"
+                      onClick={() => setIsOpen(false)}
+                      className="block px-4 py-3 rounded-lg text-sm font-medium text-white/80 hover:bg-white/5 hover:text-white transition-all text-center"
+                    >
+                      Sign In
+                    </Link>
+                    <Link
+                      to="/brand-login"
+                      onClick={() => setIsOpen(false)}
+                      className="block px-4 py-3 rounded-lg text-sm font-medium text-gold/80 hover:bg-white/5 hover:text-gold transition-all text-center border border-gold/20"
+                    >
+                      Brand Portal
+                    </Link>
+                    <Link
+                      to="/join"
+                      onClick={() => setIsOpen(false)}
+                      className="block btn-primary text-center py-3 rounded-lg"
+                    >
+                      Join Now
+                    </Link>
+                  </>
+                )}
               </div>
             </div>
           </div>
