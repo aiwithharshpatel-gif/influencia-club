@@ -135,26 +135,86 @@ export const fetchInstagramData = async (accessToken, targetUsername) => {
         if (directIgResponse.data && directIgResponse.data.username) {
           igData = directIgResponse.data;
           
-          // Since graph.instagram.com/me does not return media details with likes/comments, fetch media separately
-          console.log('[Instagram Service] Direct basic profile fetched. Fetching media separately...');
+          // Fetch media with engagement metrics using the user's IG numeric ID
+          const igUserId = igData.id;
+          console.log(`[Instagram Service] Direct basic profile fetched (ID: ${igUserId}). Fetching media with engagement metrics...`);
+
+          // Strategy 1: Try graph.instagram.com/{user-id}/media with like_count,comments_count
+          let mediaFetched = false;
           try {
-            const mediaResponse = await axios.get('https://graph.facebook.com/v19.0/me/media', {
+            const mediaResponse = await axios.get(`https://graph.instagram.com/v19.0/${igUserId}/media`, {
               params: {
                 fields: 'id,caption,media_url,media_type,permalink,like_count,comments_count,timestamp',
                 access_token: accessToken
               }
             });
             igData.media = mediaResponse.data;
-          } catch (mediaError) {
-            console.log('[Instagram Service] Separate media fetch failed, trying graph.instagram.com/me/media as fallback...', mediaError.message);
-            const basicMediaResponse = await axios.get('https://graph.instagram.com/v19.0/me/media', {
-              params: {
-                fields: 'id,caption,media_url,media_type,permalink,timestamp',
-                access_token: accessToken
-              }
-            });
-            igData.media = basicMediaResponse.data;
+            mediaFetched = true;
+            console.log('[Instagram Service] Media fetched with engagement fields via /{user-id}/media');
+          } catch (mediaError1) {
+            console.log('[Instagram Service] /{user-id}/media with engagement fields failed:', mediaError1.response?.data?.error?.message || mediaError1.message);
           }
+
+          // Strategy 2: Fetch basic media list, then fetch each post's details individually for like_count
+          if (!mediaFetched) {
+            try {
+              console.log('[Instagram Service] Trying basic media list + per-post detail fetch...');
+              const basicMediaResponse = await axios.get(`https://graph.instagram.com/v19.0/${igUserId}/media`, {
+                params: {
+                  fields: 'id,caption,media_url,media_type,permalink,timestamp',
+                  access_token: accessToken
+                }
+              });
+              const basicPosts = basicMediaResponse.data?.data || [];
+              
+              // Fetch like_count and comments_count for each post individually
+              const enrichedPosts = [];
+              for (const post of basicPosts.slice(0, 6)) {
+                try {
+                  const postDetail = await axios.get(`https://graph.instagram.com/v19.0/${post.id}`, {
+                    params: {
+                      fields: 'id,like_count,comments_count',
+                      access_token: accessToken
+                    }
+                  });
+                  enrichedPosts.push({
+                    ...post,
+                    like_count: postDetail.data.like_count || 0,
+                    comments_count: postDetail.data.comments_count || 0,
+                  });
+                  console.log(`[Instagram Service] Post ${post.id}: likes=${postDetail.data.like_count}, comments=${postDetail.data.comments_count}`);
+                } catch (postError) {
+                  console.log(`[Instagram Service] Could not fetch details for post ${post.id}:`, postError.response?.data?.error?.message || postError.message);
+                  enrichedPosts.push({ ...post, like_count: 0, comments_count: 0 });
+                }
+              }
+              
+              igData.media = { data: enrichedPosts };
+              mediaFetched = true;
+              console.log('[Instagram Service] Media enriched with per-post engagement data');
+            } catch (mediaError2) {
+              console.log('[Instagram Service] Basic media + per-post detail fetch failed:', mediaError2.response?.data?.error?.message || mediaError2.message);
+            }
+          }
+
+          // Strategy 3: Last resort - basic media list without engagement metrics
+          if (!mediaFetched) {
+            try {
+              console.log('[Instagram Service] Last resort: fetching basic media without engagement metrics...');
+              const fallbackMediaResponse = await axios.get(`https://graph.instagram.com/v19.0/me/media`, {
+                params: {
+                  fields: 'id,caption,media_url,media_type,permalink,timestamp',
+                  access_token: accessToken
+                }
+              });
+              igData.media = fallbackMediaResponse.data;
+              console.log('[Instagram Service] Basic media fetched (no engagement data available)');
+            } catch (lastError) {
+              console.log('[Instagram Service] All media fetch strategies failed:', lastError.message);
+              igData.media = { data: [] };
+            }
+          }
+
           directFetchSuccess = true;
           console.log(`[Instagram Service] Direct Instagram Login profile & media fetch successful for user: ${igData.username}`);
         }

@@ -395,7 +395,7 @@ const Profile = () => {
               <button
                 onClick={handleSyncInstagram}
                 disabled={igLoading}
-                className="bg-primary hover:bg-primary-soft text-black px-5 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center space-x-1.5 transition-all disabled:opacity-50"
+                className="btn-primary text-xs px-5 py-2.5 rounded-xl font-bold flex items-center justify-center space-x-1.5 transition-all disabled:opacity-50"
                 id="sync-instagram-btn"
               >
                 <RefreshCw size={14} className={igLoading ? 'animate-spin' : ''} />
