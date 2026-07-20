@@ -215,6 +215,9 @@ export const fetchInstagramData = async (accessToken, targetUsername) => {
 
     // Step 4: Parse posts and calculate engagement metrics
     const posts = igData.media?.data || [];
+    if (posts.length > 0) {
+      console.log('[Instagram Service] First post raw data from Meta Graph:', JSON.stringify(posts[0], null, 2));
+    }
     const recentPosts = posts.slice(0, 6).map(post => ({
       id: post.id,
       permalink: post.permalink || `https://instagram.com/p/mock_post_${post.id}`,
