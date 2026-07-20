@@ -15,7 +15,7 @@ services:
     build: 
       context: ./backend
       args:
-        - CACHEBUST=FORCE-REBUILD-20260717-v15
+        - CACHEBUST=FORCE-REBUILD-20260720-v18
     restart: always
     expose:
       - "5000"
@@ -53,7 +53,7 @@ services:
       context: ./frontend
       args:
         - VITE_API_URL=${VITE_API_URL:-/api}
-        - CACHEBUST=FORCE-REBUILD-20260717-v15
+        - CACHEBUST=FORCE-REBUILD-20260720-v18
     restart: always
     expose:
       - "80"
