@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, Users, TrendingUp, DollarSign, Network, Star, Award, Zap, Heart, CheckCircle, Play, Instagram } from 'lucide-react';
 import CreatorCard from '../components/CreatorCard';
@@ -13,11 +13,77 @@ import BrandLogos from '../components/BrandLogos';
 import TiltCard from '../components/TiltCard';
 import ChatWidget from '../components/ChatWidget';
 import logo from '../assets/logo.png';
+import api from '../utils/api';
+
+const DEFAULT_CREATORS = [
+  {
+    id: 'default-1',
+    name: 'Harsh Patel',
+    photoUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=300',
+    category: 'creator',
+    city: 'Mumbai',
+    instagram: 'explorer_harshpatel',
+    followerCount: '43K',
+    isVerified: true,
+    isFeatured: true,
+    bio: 'Travel & Lifestyle Creator | Mumbai',
+    tier: 'Elite'
+  },
+  {
+    id: 'default-2',
+    name: 'Rahul Mehta',
+    photoUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=300',
+    category: 'creator',
+    city: 'Surat',
+    instagram: 'rahulmehta',
+    followerCount: '75K+',
+    isVerified: true,
+    isFeatured: true,
+    bio: 'Tech Reviewer | Content Creator',
+    tier: 'Elite'
+  },
+  {
+    id: 'default-3',
+    name: 'Priya Sharma',
+    photoUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=300',
+    category: 'influencer',
+    city: 'Ahmedabad',
+    instagram: 'priyasharma',
+    followerCount: '50K+',
+    isVerified: true,
+    isFeatured: true,
+    bio: 'Lifestyle & Fashion Creator | Ahmedabad',
+    tier: 'Elite'
+  }
+];
 
 const Home = () => {
   const [instagramHandle, setInstagramHandle] = useState('');
   const [isShaking, setIsShaking] = useState(false);
+  const [creatorsList, setCreatorsList] = useState([]);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchCreators = async () => {
+      try {
+        const response = await api.get('/creators');
+        if (response.data.success && response.data.creators.length > 0) {
+          setCreatorsList(response.data.creators);
+        }
+      } catch (error) {
+        console.error('Failed to fetch creators from directory:', error);
+      }
+    };
+    fetchCreators();
+  }, []);
+
+  // Merge directory creators with high-fidelity fallbacks
+  const activeFeaturedCreators = creatorsList.length >= 3 
+    ? creatorsList.slice(0, 3) 
+    : [
+        ...creatorsList,
+        ...DEFAULT_CREATORS.slice(creatorsList.length)
+      ];
 
   const handleEarlyAccessSubmit = (e) => {
     e.preventDefault();
@@ -57,45 +123,6 @@ const Home = () => {
       icon: Award,
       title: 'Monetization',
       description: 'Turn your passion into profit with our Refer & Earn program.'
-    },
-  ];
-
-  const featuredCreators = [
-    {
-      id: '1',
-      name: 'Harsh Patel',
-      photoUrl: null,
-      category: 'creator',
-      city: 'Mumbai',
-      instagram: 'explorer_harshpatel',
-      followerCount: '120K+',
-      isVerified: true,
-      isFeatured: true,
-      bio: 'Travel & Lifestyle Creator | Mumbai'
-    },
-    {
-      id: '2',
-      name: 'Rahul Mehta',
-      photoUrl: null,
-      category: 'creator',
-      city: 'Surat',
-      instagram: 'rahulmehta',
-      followerCount: '75K+',
-      isVerified: true,
-      isFeatured: true,
-      bio: 'Tech Reviewer | Content Creator'
-    },
-    {
-      id: '3',
-      name: 'Priya Sharma',
-      photoUrl: null,
-      category: 'influencer',
-      city: 'Ahmedabad',
-      instagram: 'priyasharma',
-      followerCount: '50K+',
-      isVerified: true,
-      isFeatured: true,
-      bio: 'Lifestyle & Fashion Creator | Ahmedabad'
     },
   ];
 
@@ -207,53 +234,71 @@ const Home = () => {
               <div className="absolute inset-0 bg-gold/5 blur-3xl rounded-full"></div>
               
               {/* Stacked Cards */}
-              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-60 h-[300px] bg-gradient-to-b from-[#141414] to-black border border-gold/30 rounded-[28px] p-3.5 shadow-gold-glow/5 z-20 flex flex-col justify-between transition-all duration-300">
-                <div className="aspect-square rounded-xl overflow-hidden bg-white/5 relative">
-                  <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=300" alt="Harsh Patel" className="w-full h-full object-cover" />
-                  <div className="absolute top-2 right-2 bg-gold-gradient text-black text-[8px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
-                    Elite
+              {activeFeaturedCreators[0] && (
+                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-60 h-[300px] bg-gradient-to-b from-[#141414] to-black border border-gold/30 rounded-[28px] p-3.5 shadow-gold-glow/5 z-20 flex flex-col justify-between transition-all duration-300">
+                  <div className="aspect-square rounded-xl overflow-hidden bg-white/5 relative">
+                    <img 
+                      src={activeFeaturedCreators[0].photoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(activeFeaturedCreators[0].name)}&background=111&color=D4AF37&size=400`} 
+                      alt={activeFeaturedCreators[0].name} 
+                      className="w-full h-full object-cover" 
+                    />
+                    <div className="absolute top-2 right-2 bg-gold-gradient text-black text-[8px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                      {activeFeaturedCreators[0].tier || 'Elite'}
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center mt-3 text-left">
+                    <div>
+                      <h4 className="text-xs font-bold text-white tracking-wide">{activeFeaturedCreators[0].name}</h4>
+                      <p className="text-[10px] text-gold/80">@{activeFeaturedCreators[0].instagram}</p>
+                    </div>
+                    <span className="bg-gold/15 text-gold border border-gold/25 px-2 py-0.5 rounded-full text-[9px] font-bold">
+                      {activeFeaturedCreators[0].followerCount}
+                    </span>
                   </div>
                 </div>
-                <div className="flex justify-between items-center mt-3 text-left">
-                  <div>
-                    <h4 className="text-xs font-bold text-white tracking-wide">Harsh Patel</h4>
-                    <p className="text-[10px] text-gold/80">@explorer_harshpatel</p>
-                  </div>
-                  <span className="bg-gold/15 text-gold border border-gold/25 px-2 py-0.5 rounded-full text-[9px] font-bold">
-                    120K+
-                  </span>
-                </div>
-              </div>
+              )}
 
-              <div className="absolute left-[calc(50%-190px)] top-1/2 -translate-y-1/2 w-52 h-[260px] bg-gradient-to-b from-[#0a0a0a] to-black border border-white/5 rounded-[24px] p-3 opacity-40 z-10 -rotate-[8deg] transition-all duration-500 hover:rotate-0 hover:opacity-100 hover:z-30 flex flex-col justify-between">
-                <div className="aspect-square rounded-lg overflow-hidden bg-white/5">
-                  <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=300" alt="Rahul Mehta" className="w-full h-full object-cover" />
-                </div>
-                <div className="flex justify-between items-center mt-2 text-left">
-                  <div>
-                    <h4 className="text-[11px] font-semibold text-white tracking-wide">Rahul Mehta</h4>
-                    <p className="text-[9px] text-muted">@rahulmehta</p>
+              {activeFeaturedCreators[1] && (
+                <div className="absolute left-[calc(50%-190px)] top-1/2 -translate-y-1/2 w-52 h-[260px] bg-gradient-to-b from-[#0a0a0a] to-black border border-white/5 rounded-[24px] p-3 opacity-40 z-10 -rotate-[8deg] transition-all duration-500 hover:rotate-0 hover:opacity-100 hover:z-30 flex flex-col justify-between">
+                  <div className="aspect-square rounded-lg overflow-hidden bg-white/5">
+                    <img 
+                      src={activeFeaturedCreators[1].photoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(activeFeaturedCreators[1].name)}&background=111&color=D4AF37&size=400`} 
+                      alt={activeFeaturedCreators[1].name} 
+                      className="w-full h-full object-cover" 
+                    />
                   </div>
-                  <span className="bg-white/5 text-white/80 border border-white/10 px-2 py-0.5 rounded-full text-[8px]">
-                    75K+
-                  </span>
+                  <div className="flex justify-between items-center mt-2 text-left">
+                    <div>
+                      <h4 className="text-[11px] font-semibold text-white tracking-wide">{activeFeaturedCreators[1].name}</h4>
+                      <p className="text-[9px] text-muted">@{activeFeaturedCreators[1].instagram}</p>
+                    </div>
+                    <span className="bg-white/5 text-white/80 border border-white/10 px-2 py-0.5 rounded-full text-[8px]">
+                      {activeFeaturedCreators[1].followerCount}
+                    </span>
+                  </div>
                 </div>
-              </div>
+              )}
 
-              <div className="absolute left-[calc(50%+10px)] top-1/2 -translate-y-1/2 w-52 h-[260px] bg-gradient-to-b from-[#0a0a0a] to-black border border-white/5 rounded-[24px] p-3 opacity-40 z-10 rotate-[8deg] transition-all duration-500 hover:rotate-0 hover:opacity-100 hover:z-30 flex flex-col justify-between">
-                <div className="aspect-square rounded-lg overflow-hidden bg-white/5">
-                  <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=300" alt="Priya Sharma" className="w-full h-full object-cover" />
-                </div>
-                <div className="flex justify-between items-center mt-2 text-left">
-                  <div>
-                    <h4 className="text-[11px] font-semibold text-white tracking-wide">Priya Sharma</h4>
-                    <p className="text-[9px] text-muted">@priyasharma</p>
+              {activeFeaturedCreators[2] && (
+                <div className="absolute left-[calc(50%+10px)] top-1/2 -translate-y-1/2 w-52 h-[260px] bg-gradient-to-b from-[#0a0a0a] to-black border border-white/5 rounded-[24px] p-3 opacity-40 z-10 rotate-[8deg] transition-all duration-500 hover:rotate-0 hover:opacity-100 hover:z-30 flex flex-col justify-between">
+                  <div className="aspect-square rounded-lg overflow-hidden bg-white/5">
+                    <img 
+                      src={activeFeaturedCreators[2].photoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(activeFeaturedCreators[2].name)}&background=111&color=D4AF37&size=400`} 
+                      alt={activeFeaturedCreators[2].name} 
+                      className="w-full h-full object-cover" 
+                    />
                   </div>
-                  <span className="bg-white/5 text-white/80 border border-white/10 px-2 py-0.5 rounded-full text-[8px]">
-                    50K+
-                  </span>
+                  <div className="flex justify-between items-center mt-2 text-left">
+                    <div>
+                      <h4 className="text-[11px] font-semibold text-white tracking-wide">{activeFeaturedCreators[2].name}</h4>
+                      <p className="text-[9px] text-muted">@{activeFeaturedCreators[2].instagram}</p>
+                    </div>
+                    <span className="bg-white/5 text-white/80 border border-white/10 px-2 py-0.5 rounded-full text-[8px]">
+                      {activeFeaturedCreators[2].followerCount}
+                    </span>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </FadeIn>
 
@@ -428,7 +473,7 @@ const Home = () => {
           </FadeIn>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {featuredCreators.map((creator, index) => (
+            {activeFeaturedCreators.map((creator, index) => (
               <FadeIn key={creator.id} delay={index * 150}>
                 <CreatorCard creator={creator} />
               </FadeIn>
