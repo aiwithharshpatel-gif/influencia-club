@@ -959,7 +959,9 @@ router.post('/instagram/authenticate', async (req, res) => {
         where: { id: creator.id },
         data: {
           followerCount: formatted,
-          photoUrl: creator.photoUrl || safeUrl(igData.profilePicUrl, cleanedUsername)
+          photoUrl: (!creator.photoUrl || creator.photoUrl.startsWith('https://api.dicebear.com/')) 
+            ? safeUrl(igData.profilePicUrl, cleanedUsername) 
+            : creator.photoUrl
         }
       });
 
