@@ -12,30 +12,29 @@ const PWAPrompt = () => {
       window.matchMedia('(display-mode: standalone)').matches || 
       window.navigator.standalone === true;
 
-    if (isStandalone) {
-      return; // Already running as an app
-    }
+    if (isStandalone) return;
 
     // 2. Check if dismissed recently
     const isDismissed = localStorage.getItem('pwa_prompt_dismissed') === 'true';
-    if (isDismissed) {
-      return;
-    }
+    if (isDismissed) return;
 
     // 3. Detect Platform
     const userAgent = window.navigator.userAgent.toLowerCase();
     const isIOS = /iphone|ipad|ipod/.test(userAgent);
     setPlatform(isIOS ? 'ios' : 'android');
 
-    // 4. Detect mobile/tablet screen sizes (width < 1024px)
-    const handleResize = () => {
-      const isMobileOrTablet = window.innerWidth < 1024;
+    // Detect if mobile/tablet via User-Agent or window width
+    const isMobileDevice = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
+
+    let timer = null;
+
+    const checkSizeAndShow = () => {
+      const isMobileOrTablet = isMobileDevice || window.innerWidth < 1024;
       if (isMobileOrTablet) {
-        // Allow a small delay on page load before showing the prompt for better UX
-        const timer = setTimeout(() => {
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(() => {
           setShowPrompt(true);
-        }, 3000);
-        return () => clearTimeout(timer);
+        }, 2000);
       } else {
         setShowPrompt(false);
       }
@@ -44,21 +43,20 @@ const PWAPrompt = () => {
     // Listen for the native beforeinstallprompt (Android/Chrome)
     const handleBeforeInstallPrompt = (e) => {
       e.preventDefault();
-      // Store the event so it can be triggered later.
       setDeferredPrompt(e);
-      // Show prompt if on mobile/tablet
-      if (window.innerWidth < 1024) {
-        setShowPrompt(true);
-      }
+      checkSizeAndShow();
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    handleResize(); // Initial check
-    window.addEventListener('resize', handleResize);
+    window.addEventListener('resize', checkSizeAndShow);
+    
+    // Initial check
+    checkSizeAndShow();
 
     return () => {
+      if (timer) clearTimeout(timer);
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('resize', checkSizeAndShow);
     };
   }, []);
 
@@ -89,7 +87,7 @@ const PWAPrompt = () => {
 
   return (
     <div className="fixed bottom-6 left-4 right-4 z-[9999] max-w-md mx-auto md:left-auto md:right-6 animate-fade-in-up">
-      <div className="luxury-card rounded-2xl p-4 pr-12 relative overflow-hidden bg-black/90 border border-gold/40 shadow-[0_10px_30px_rgba(212,175,55,0.15)] backdrop-blur-md">
+      <div className="luxury-card rounded-2xl p-4 pr-12 relative overflow-hidden bg-black/95 border border-gold/40 shadow-[0_10px_30px_rgba(212,175,55,0.2)] backdrop-blur-md">
         {/* Subtle background glow */}
         <div className="absolute -top-10 -left-10 w-24 h-24 bg-gold/10 rounded-full blur-2xl"></div>
         
