@@ -50,10 +50,10 @@ router.get('/', async (req, res) => {
         bio: true,
         createdAt: true
       },
-      orderBy: {
-        isFeatured: 'desc',
-        createdAt: 'desc'
-      }
+      orderBy: [
+        { isFeatured: 'desc' },
+        { createdAt: 'desc' }
+      ]
     });
 
     res.json({
