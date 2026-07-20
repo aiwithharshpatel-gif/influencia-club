@@ -276,6 +276,7 @@ export const getLongLivedAccessToken = async (authCode, redirectUri) => {
 
   try {
     console.log('[Instagram Service] Exchanging authorization code for short-lived user token...');
+    console.log(`[Instagram Service] App ID: ${process.env.META_APP_ID}, Redirect URI: ${redirectUri}`);
     
     // Step 1: Exchange code for short-lived access token
     const tokenParams = new URLSearchParams();
@@ -285,11 +286,14 @@ export const getLongLivedAccessToken = async (authCode, redirectUri) => {
     tokenParams.append('redirect_uri', redirectUri);
     tokenParams.append('code', authCode);
 
+    console.log('[Instagram Service] Step 1 Request to api.instagram.com/oauth/access_token...');
     const tokenExchangeResponse = await axios.post('https://api.instagram.com/oauth/access_token', tokenParams, {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded'
       }
     });
+
+    console.log('[Instagram Service] Step 1 Response Data:', JSON.stringify(tokenExchangeResponse.data));
 
     const shortLivedToken = tokenExchangeResponse.data.access_token;
     if (!shortLivedToken) {
@@ -297,18 +301,18 @@ export const getLongLivedAccessToken = async (authCode, redirectUri) => {
     }
 
     console.log('[Instagram Service] Exchanging short-lived user token for long-lived user token...');
+    console.log(`[Instagram Service] Short-lived token starts with: ${shortLivedToken.substring(0, 10)}...`);
     
     // Step 2: Exchange short-lived token for long-lived token (60 days)
-    const longLivedParams = new URLSearchParams();
-    longLivedParams.append('grant_type', 'ig_exchange_token');
-    longLivedParams.append('client_secret', process.env.META_APP_SECRET);
-    longLivedParams.append('access_token', shortLivedToken);
-
-    const longLivedTokenResponse = await axios.post('https://graph.instagram.com/access_token', longLivedParams, {
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
+    const longLivedTokenResponse = await axios.get('https://graph.instagram.com/access_token', {
+      params: {
+        grant_type: 'ig_exchange_token',
+        client_secret: process.env.META_APP_SECRET,
+        access_token: shortLivedToken
       }
     });
+
+    console.log('[Instagram Service] Step 2 Response status:', longLivedTokenResponse.status);
 
     const longLivedToken = longLivedTokenResponse.data.access_token;
     if (!longLivedToken) {
@@ -317,7 +321,14 @@ export const getLongLivedAccessToken = async (authCode, redirectUri) => {
 
     return longLivedToken;
   } catch (error) {
-    console.error('[Instagram Service] Token exchange failed:', error.response?.data || error.message);
+    console.error('[Instagram Service] Token exchange failed. Detailed error response:');
+    if (error.response) {
+      console.error('[Instagram Service] Status:', error.response.status);
+      console.error('[Instagram Service] Headers:', JSON.stringify(error.response.headers));
+      console.error('[Instagram Service] Data:', JSON.stringify(error.response.data));
+    } else {
+      console.error('[Instagram Service] Message:', error.message);
+    }
     throw new Error(`Instagram token exchange failed: ${error.response?.data?.error_message || error.response?.data?.error?.message || error.message}`);
   }
 };

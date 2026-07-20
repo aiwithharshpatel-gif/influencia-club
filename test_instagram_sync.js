@@ -2,7 +2,7 @@ import { chromium } from 'playwright';
 import path from 'path';
 import fs from 'fs';
 
-const targetUrl = 'https://test.influenziaclub.com';
+const targetUrl = 'http://localhost:5173';
 const outputDir = path.resolve('C:/Users/Harsh patel/.gemini/antigravity-ide/brain/5cb4e729-c13f-4aa6-b147-b4f46a260496');
 
 if (!fs.existsSync(outputDir)) {

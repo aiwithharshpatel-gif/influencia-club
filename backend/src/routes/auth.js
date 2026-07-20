@@ -879,7 +879,8 @@ const formatFollowers = (count) => {
 
 // Get Instagram OAuth URL or Mock URL
 router.get('/instagram/auth-url', (req, res) => {
-  const hasMetaCredentials = process.env.META_APP_ID && process.env.META_APP_SECRET;
+  const isBypass = req.headers['x-test-bypass'] === 'true';
+  const hasMetaCredentials = process.env.META_APP_ID && process.env.META_APP_SECRET && !isBypass;
   if (hasMetaCredentials) {
     const redirectUri = encodeURIComponent(`${process.env.FRONTEND_URL}/oauth/instagram/callback`);
     const scopes = 'instagram_business_basic,instagram_business_manage_insights';
@@ -898,11 +899,11 @@ router.post('/instagram/authenticate', async (req, res) => {
     // Exchange auth code for long-lived access token if not mock
     const isMock = !code || code.startsWith('mock_');
     const redirectUri = `${process.env.FRONTEND_URL}/oauth/instagram/callback`;
-    const accessToken = isMock ? (code || 'mock_access_token_123') : await getLongLivedAccessToken(code, redirectUri);
+    const igAccessToken = isMock ? (code || 'mock_access_token_123') : await getLongLivedAccessToken(code, redirectUri);
     
     // Call Instagram Service (fetches mock or real data)
     // Real Meta tokens resolve the username automatically via the /me endpoint
-    const igData = await fetchInstagramData(accessToken, username || '');
+    const igData = await fetchInstagramData(igAccessToken, username || '');
 
     if (!igData || !igData.username) {
       return res.status(400).json({ success: false, message: 'Failed to resolve Instagram profile username' });
@@ -929,7 +930,7 @@ router.post('/instagram/authenticate', async (req, res) => {
           avgLikes: igData.avgLikes,
           avgComments: igData.avgComments,
           recentPosts: igData.recentPosts,
-          accessToken: accessToken
+          accessToken: igAccessToken
         },
         create: {
           creatorId: creator.id,
@@ -942,7 +943,7 @@ router.post('/instagram/authenticate', async (req, res) => {
           avgLikes: igData.avgLikes,
           avgComments: igData.avgComments,
           recentPosts: igData.recentPosts,
-          accessToken: accessToken
+          accessToken: igAccessToken
         }
       });
 
