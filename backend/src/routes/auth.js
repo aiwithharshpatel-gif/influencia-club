@@ -12,6 +12,12 @@ import { fetchInstagramData, getLongLivedAccessToken } from '../services/instagr
 
 const router = express.Router();
 
+const safeUrl = (url, username) => {
+  if (!url) return null;
+  if (url.length <= 500) return url;
+  return username ? `https://api.dicebear.com/7.x/adventurer/svg?seed=${username}` : null;
+};
+
 // Rate limiters
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -923,7 +929,7 @@ router.post('/instagram/authenticate', async (req, res) => {
         update: {
           username: igData.username,
           fullName: igData.fullName,
-          profilePicUrl: igData.profilePicUrl,
+          profilePicUrl: safeUrl(igData.profilePicUrl, igData.username),
           followersCount: igData.followersCount,
           mediaCount: igData.mediaCount,
           engagementRate: igData.engagementRate,
@@ -936,7 +942,7 @@ router.post('/instagram/authenticate', async (req, res) => {
           creatorId: creator.id,
           username: igData.username,
           fullName: igData.fullName,
-          profilePicUrl: igData.profilePicUrl,
+          profilePicUrl: safeUrl(igData.profilePicUrl, igData.username),
           followersCount: igData.followersCount,
           mediaCount: igData.mediaCount,
           engagementRate: igData.engagementRate,
@@ -953,7 +959,7 @@ router.post('/instagram/authenticate', async (req, res) => {
         where: { id: creator.id },
         data: {
           followerCount: formatted,
-          photoUrl: creator.photoUrl || igData.profilePicUrl
+          photoUrl: creator.photoUrl || safeUrl(igData.profilePicUrl, cleanedUsername)
         }
       });
 
@@ -994,7 +1000,7 @@ router.post('/instagram/authenticate', async (req, res) => {
           city: creator.city,
           pointsBalance: creator.pointsBalance,
           tier: creator.tier,
-          photoUrl: creator.photoUrl || igData.profilePicUrl
+          photoUrl: creator.photoUrl || safeUrl(igData.profilePicUrl, cleanedUsername)
         }
       });
     } else {
@@ -1086,7 +1092,7 @@ router.post('/instagram/register-complete', async (req, res) => {
         city,
         referralCode,
         referredBy: referrer?.id || null,
-        photoUrl: igData.profilePicUrl,
+        photoUrl: safeUrl(igData.profilePicUrl, cleanedUsername),
         followerCount: formatFollowers(igData.followersCount),
         isApproved: true
       }
@@ -1098,7 +1104,7 @@ router.post('/instagram/register-complete', async (req, res) => {
         creatorId: creator.id,
         username: igData.username,
         fullName: igData.fullName,
-        profilePicUrl: igData.profilePicUrl,
+        profilePicUrl: safeUrl(igData.profilePicUrl, igData.username),
         followersCount: igData.followersCount,
         mediaCount: igData.mediaCount,
         engagementRate: igData.engagementRate,
