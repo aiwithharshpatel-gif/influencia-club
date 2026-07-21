@@ -42,6 +42,9 @@ services:
       - CASHFREE_SECRET_KEY=${CASHFREE_SECRET_KEY:-}
       - META_APP_ID=${META_APP_ID:-}
       - META_APP_SECRET=${META_APP_SECRET:-}
+      - META_APP_LIVE=${META_APP_LIVE:-false}
+      - VAPID_PUBLIC_KEY=${VAPID_PUBLIC_KEY:-}
+      - VAPID_PRIVATE_KEY=${VAPID_PRIVATE_KEY:-}
     depends_on:
       - database
     networks:
