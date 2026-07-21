@@ -392,18 +392,22 @@ export const getLongLivedAccessToken = async (authCode, redirectUri) => {
       console.log('[Instagram Service] Step 2 Response status:', longLivedTokenResponse.status);
       longLivedToken = longLivedTokenResponse.data.access_token;
     } catch (postError) {
-      console.log('[Instagram Service] Step 2 POST failed, trying GET fallback...', postError.response?.data?.error_message || postError.message);
-      // GET fallback (legacy Meta API behavior)
-      const longLivedTokenResponse = await axios.get('https://graph.instagram.com/access_token', {
-        params: {
-          grant_type: 'ig_exchange_token',
-          client_secret: process.env.META_APP_SECRET,
-          access_token: shortLivedToken
-        }
-      });
+      console.log('[Instagram Service] Step 2 POST failed, trying GET fallback...', postError.response?.data?.error?.message || postError.message);
+      try {
+        // GET fallback (legacy Meta API behavior)
+        const longLivedTokenResponse = await axios.get('https://graph.instagram.com/access_token', {
+          params: {
+            grant_type: 'ig_exchange_token',
+            client_secret: process.env.META_APP_SECRET,
+            access_token: shortLivedToken
+          }
+        });
 
-      console.log('[Instagram Service] Step 2 GET Response status:', longLivedTokenResponse.status);
-      longLivedToken = longLivedTokenResponse.data.access_token;
+        console.log('[Instagram Service] Step 2 GET Response status:', longLivedTokenResponse.status);
+        longLivedToken = longLivedTokenResponse.data.access_token;
+      } catch (getError) {
+        console.warn('[Instagram Service] Both long-lived token exchange methods failed. Falling back to short-lived token.', getError.response?.data?.error?.message || getError.message);
+      }
     }
 
     if (!longLivedToken) {
