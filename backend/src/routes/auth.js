@@ -884,7 +884,8 @@ const formatFollowers = (count) => {
 // Get Instagram OAuth URL or Mock URL
 router.get('/instagram/auth-url', (req, res) => {
   const isBypass = req.headers['x-test-bypass'] === 'true';
-  const hasMetaCredentials = process.env.META_APP_ID && process.env.META_APP_SECRET && !isBypass;
+  const isLive = process.env.META_APP_LIVE === 'true';
+  const hasMetaCredentials = process.env.META_APP_ID && process.env.META_APP_SECRET && isLive && !isBypass;
   if (hasMetaCredentials) {
     const redirectUri = encodeURIComponent(`${process.env.FRONTEND_URL}/oauth/instagram/callback`);
     const scopes = 'instagram_business_basic,instagram_business_manage_insights';
@@ -902,8 +903,10 @@ router.post('/instagram/authenticate', async (req, res) => {
     
     // Exchange auth code for long-lived access token if not mock
     const isMock = !code || code.startsWith('mock_');
+    const isLive = process.env.META_APP_LIVE === 'true';
+    const hasMetaCredentials = process.env.META_APP_ID && process.env.META_APP_SECRET && isLive;
     const redirectUri = `${process.env.FRONTEND_URL}/oauth/instagram/callback`;
-    const igAccessToken = isMock ? (code || 'mock_access_token_123') : await getLongLivedAccessToken(code, redirectUri);
+    const igAccessToken = (isMock || !hasMetaCredentials) ? (code || 'mock_access_token_123') : await getLongLivedAccessToken(code, redirectUri);
     
     // Call Instagram Service (fetches mock or real data)
     // Real Meta tokens resolve the username automatically via the /me endpoint
@@ -1017,9 +1020,17 @@ router.post('/instagram/authenticate', async (req, res) => {
     }
   } catch (error) {
     console.error('Instagram Authentication error:', error);
+    // Provide a user-friendly error message instead of raw API errors
+    let userMessage = 'Failed to authenticate with Instagram. Please try again.';
+    if (error.message?.includes('token exchange')) {
+      userMessage = 'Instagram login session expired or was invalid. Please try connecting with Instagram again.';
+    } else if (error.message?.includes('sync failed')) {
+      userMessage = 'Could not retrieve your Instagram profile data. Please ensure your account is a Professional or Business account and try again.';
+    }
     res.status(500).json({
       success: false,
-      message: error.message || 'Failed to authenticate with Instagram'
+      message: userMessage,
+      debug: process.env.NODE_ENV !== 'production' ? error.message : undefined
     });
   }
 });
@@ -1063,8 +1074,10 @@ router.post('/instagram/register-complete', async (req, res) => {
     // Fetch Instagram data again to populate the database
     const isMock = !code || code.startsWith('mock_');
     const isToken = code && (code.startsWith('IG') || code.startsWith('EAAC') || code.startsWith('mock_access_token'));
+    const isLive = process.env.META_APP_LIVE === 'true';
+    const hasMetaCredentials = process.env.META_APP_ID && process.env.META_APP_SECRET && isLive;
     const redirectUri = `${process.env.FRONTEND_URL}/oauth/instagram/callback`;
-    const igAccessToken = isToken ? code : (isMock ? 'mock_access_token_123' : await getLongLivedAccessToken(code, redirectUri));
+    const igAccessToken = isToken ? code : ((isMock || !hasMetaCredentials) ? 'mock_access_token_123' : await getLongLivedAccessToken(code, redirectUri));
 
     const igData = await fetchInstagramData(igAccessToken, cleanedUsername);
 

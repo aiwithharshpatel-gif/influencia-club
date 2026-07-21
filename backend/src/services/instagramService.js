@@ -92,9 +92,10 @@ export const generateMockProfile = (username) => {
  * Calls Meta Graph API endpoints to retrieve Instagram Business Profile and Media statistics
  */
 export const fetchInstagramData = async (accessToken, targetUsername) => {
-  // Fall back to mock profile if using a mock token or credentials are missing
+  // Fall back to mock profile if using a mock token, credentials are missing, or app is not live
   const isMockToken = !accessToken || accessToken.startsWith('mock_');
-  const hasMetaCredentials = process.env.META_APP_ID && process.env.META_APP_SECRET;
+  const isLive = process.env.META_APP_LIVE === 'true';
+  const hasMetaCredentials = process.env.META_APP_ID && process.env.META_APP_SECRET && isLive;
 
   if (isMockToken || !hasMetaCredentials) {
     console.log(`[Instagram Service] Running in Mock/Fallback mode for username: ${targetUsername}`);
@@ -330,7 +331,8 @@ export const fetchInstagramData = async (accessToken, targetUsername) => {
  */
 export const getLongLivedAccessToken = async (authCode, redirectUri) => {
   const isMock = !authCode || authCode.startsWith('mock_');
-  const hasMetaCredentials = process.env.META_APP_ID && process.env.META_APP_SECRET;
+  const isLive = process.env.META_APP_LIVE === 'true';
+  const hasMetaCredentials = process.env.META_APP_ID && process.env.META_APP_SECRET && isLive;
 
   if (isMock || !hasMetaCredentials) {
     console.log('[Instagram Service] Mock/Fallback token exchange');
@@ -338,18 +340,21 @@ export const getLongLivedAccessToken = async (authCode, redirectUri) => {
   }
 
   try {
+    // Clean the authorization code — Instagram appends #_ to the redirect URL
+    const cleanCode = authCode.replace(/#_$/, '').trim();
     console.log('[Instagram Service] Exchanging authorization code for short-lived user token...');
     console.log(`[Instagram Service] App ID: ${process.env.META_APP_ID}, Redirect URI: ${redirectUri}`);
+    console.log(`[Instagram Service] Auth code (cleaned): ${cleanCode.substring(0, 20)}...`);
     
-    // Step 1: Exchange code for short-lived access token
+    // Step 1: Exchange code for short-lived access token (MUST be POST)
     const tokenParams = new URLSearchParams();
     tokenParams.append('client_id', process.env.META_APP_ID);
     tokenParams.append('client_secret', process.env.META_APP_SECRET);
     tokenParams.append('grant_type', 'authorization_code');
     tokenParams.append('redirect_uri', redirectUri);
-    tokenParams.append('code', authCode);
+    tokenParams.append('code', cleanCode);
 
-    console.log('[Instagram Service] Step 1 Request to api.instagram.com/oauth/access_token...');
+    console.log('[Instagram Service] Step 1: POST to api.instagram.com/oauth/access_token...');
     const tokenExchangeResponse = await axios.post('https://api.instagram.com/oauth/access_token', tokenParams, {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded'
@@ -367,19 +372,45 @@ export const getLongLivedAccessToken = async (authCode, redirectUri) => {
     console.log(`[Instagram Service] Short-lived token starts with: ${shortLivedToken.substring(0, 10)}...`);
     
     // Step 2: Exchange short-lived token for long-lived token (60 days)
-    const longLivedTokenResponse = await axios.get('https://graph.instagram.com/access_token', {
-      params: {
-        grant_type: 'ig_exchange_token',
-        client_secret: process.env.META_APP_SECRET,
-        access_token: shortLivedToken
-      }
-    });
+    // Try POST first (newer Meta API behavior), fall back to GET if POST fails
+    let longLivedToken = null;
 
-    console.log('[Instagram Service] Step 2 Response status:', longLivedTokenResponse.status);
+    try {
+      // POST method (required by newer Meta API versions)
+      const llTokenParams = new URLSearchParams();
+      llTokenParams.append('grant_type', 'ig_exchange_token');
+      llTokenParams.append('client_secret', process.env.META_APP_SECRET);
+      llTokenParams.append('access_token', shortLivedToken);
 
-    const longLivedToken = longLivedTokenResponse.data.access_token;
+      console.log('[Instagram Service] Step 2: POST to graph.instagram.com/access_token...');
+      const longLivedTokenResponse = await axios.post('https://graph.instagram.com/access_token', llTokenParams, {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        }
+      });
+
+      console.log('[Instagram Service] Step 2 Response status:', longLivedTokenResponse.status);
+      longLivedToken = longLivedTokenResponse.data.access_token;
+    } catch (postError) {
+      console.log('[Instagram Service] Step 2 POST failed, trying GET fallback...', postError.response?.data?.error_message || postError.message);
+      // GET fallback (legacy Meta API behavior)
+      const longLivedTokenResponse = await axios.get('https://graph.instagram.com/access_token', {
+        params: {
+          grant_type: 'ig_exchange_token',
+          client_secret: process.env.META_APP_SECRET,
+          access_token: shortLivedToken
+        }
+      });
+
+      console.log('[Instagram Service] Step 2 GET Response status:', longLivedTokenResponse.status);
+      longLivedToken = longLivedTokenResponse.data.access_token;
+    }
+
     if (!longLivedToken) {
-      throw new Error('No long-lived access token received from Meta');
+      // If long-lived token exchange fails entirely, use the short-lived token
+      // It will work for ~1 hour, which is enough to fetch profile data
+      console.warn('[Instagram Service] Long-lived token exchange failed, using short-lived token as fallback');
+      return shortLivedToken;
     }
 
     return longLivedToken;

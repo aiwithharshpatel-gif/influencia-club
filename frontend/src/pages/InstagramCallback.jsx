@@ -5,11 +5,15 @@ const InstagramCallback = () => {
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
-    const code = searchParams.get('code');
+    // Instagram appends #_ to the code param — strip it
+    let code = searchParams.get('code');
+    if (code) {
+      code = code.replace(/#_$/, '').trim();
+    }
     
     if (window.opener) {
       if (code) {
-        // Send the authorization code to the parent window
+        // Send the cleaned authorization code to the parent window
         window.opener.postMessage(
           {
             type: 'instagram-oauth-success',
@@ -23,8 +27,13 @@ const InstagramCallback = () => {
       }
       window.close();
     } else {
-      document.body.innerHTML = '<div style="color:white;text-align:center;margin-top:100px;font-family:sans-serif;">Instagram connection successful! Closing...</div>';
-      setTimeout(() => window.close(), 1500);
+      // No opener — user may have navigated here directly or popup was blocked
+      // Redirect to login page with the code as a query param so the parent page can pick it up
+      if (code) {
+        window.location.href = `/login?igcode=${encodeURIComponent(code)}`;
+      } else {
+        document.body.innerHTML = '<div style="color:white;text-align:center;margin-top:100px;font-family:sans-serif;">Instagram connection failed. Please close this window and try again.</div>';
+      }
     }
   }, [searchParams]);
 
@@ -39,3 +48,4 @@ const InstagramCallback = () => {
 };
 
 export default InstagramCallback;
+
