@@ -2,7 +2,7 @@ import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import { protect } from '../middleware/auth.js';
 import { fetchInstagramData, getLongLivedAccessToken } from '../services/instagramService.js';
-import { formatFollowers, safeUrl } from '../utils/helpers.js';
+import { safeUrl } from '../utils/helpers.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();
