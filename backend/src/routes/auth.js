@@ -4,19 +4,13 @@ import jwt from 'jsonwebtoken';
 import { timingSafeEqual } from 'crypto';
 import rateLimit from 'express-rate-limit';
 import prisma from '../lib/prisma.js';
-import { generateOTP, generateReferralCode } from '../utils/helpers.js';
+import { generateOTP, generateReferralCode, safeUrl } from '../utils/helpers.js';
 import { sendVerificationEmail, sendWelcomeEmail, sendPasswordResetEmail, sendEmail } from '../services/otp_master.js';
 import { creditPoints, processReferral } from '../services/pointsService.js';
 import { validateCreator, safeErrorMessage } from '../middleware/errorHandler.js';
 import { fetchInstagramData, getLongLivedAccessToken } from '../services/instagramService.js';
 
 const router = express.Router();
-
-const safeUrl = (url, username) => {
-  if (!url) return null;
-  if (url.length <= 5000) return url;
-  return username ? `https://api.dicebear.com/7.x/adventurer/svg?seed=${username}` : null;
-};
 
 // Rate limiters
 const loginLimiter = rateLimit({
@@ -954,15 +948,13 @@ router.post('/instagram/authenticate', async (req, res) => {
         }
       });
 
-      // Update creator follower count and picture if empty
+      // Update creator follower count and sync profile picture
       const formatted = formatFollowers(igData.followersCount);
       await prisma.creator.update({
         where: { id: creator.id },
         data: {
           followerCount: formatted,
-          photoUrl: (!creator.photoUrl || creator.photoUrl.startsWith('https://api.dicebear.com/')) 
-            ? safeUrl(igData.profilePicUrl, cleanedUsername) 
-            : creator.photoUrl
+          photoUrl: safeUrl(igData.profilePicUrl, cleanedUsername)
         }
       });
 
@@ -1003,7 +995,7 @@ router.post('/instagram/authenticate', async (req, res) => {
           city: creator.city,
           pointsBalance: creator.pointsBalance,
           tier: creator.tier,
-          photoUrl: creator.photoUrl || safeUrl(igData.profilePicUrl, cleanedUsername)
+          photoUrl: safeUrl(igData.profilePicUrl, cleanedUsername)
         }
       });
     } else {

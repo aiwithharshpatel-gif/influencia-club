@@ -33,3 +33,9 @@ export const validateInstagramHandle = (handle) => {
   const regex = /^(?=[a-zA-Z0-9_.]{1,30}$)(?!.*\.$)[a-zA-Z0-9][a-zA-Z0-9_.]*[a-zA-Z0-9]$|^[a-zA-Z0-9]$/;
   return regex.test(cleanHandle);
 };
+
+export const safeUrl = (url, username) => {
+  if (!url) return null;
+  if (url.length <= 5000) return url;
+  return username ? `https://api.dicebear.com/7.x/adventurer/svg?seed=${username}` : null;
+};

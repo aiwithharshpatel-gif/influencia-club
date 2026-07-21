@@ -2,6 +2,7 @@ import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import { protect } from '../middleware/auth.js';
 import { fetchInstagramData, getLongLivedAccessToken } from '../services/instagramService.js';
+import { formatFollowers, safeUrl } from '../utils/helpers.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -259,13 +260,14 @@ router.post('/instagram/connect', protect, async (req, res) => {
       }
     });
 
-    // Update Creator table's follower count and handle
+    // Update Creator table's follower count, handle, and profile picture
     const formattedFollowers = formatFollowers(igData.followersCount);
     await prisma.creator.update({
       where: { id: req.user.id },
       data: {
         instagram: cleanedUsername,
-        followerCount: formattedFollowers
+        followerCount: formattedFollowers,
+        photoUrl: safeUrl(igData.profilePicUrl, cleanedUsername)
       }
     });
 
