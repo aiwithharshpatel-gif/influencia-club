@@ -79,7 +79,7 @@ const BrandDashboard = () => {
 
   return (
     <div>
-      <h1 className="font-display text-3xl font-bold text-white mb-8">
+      <h1 className="font-display text-3xl font-bold text-text-primary mb-8">
         Campaign Hub
       </h1>
 
@@ -97,7 +97,7 @@ const BrandDashboard = () => {
                   <Icon size={24} className={stat.color} />
                 </div>
               </div>
-              <div className="text-3xl font-display font-bold text-white mb-1">
+              <div className="text-3xl font-display font-bold text-text-primary mb-1">
                 {stat.value}
               </div>
               <div className="text-muted text-sm">{stat.label}</div>
@@ -108,7 +108,7 @@ const BrandDashboard = () => {
 
       {/* Campaign List */}
       <div className="bg-bg-card rounded-xl p-6 border border-border">
-        <h2 className="font-display text-xl font-bold text-white mb-6">
+        <h2 className="font-display text-xl font-bold text-text-primary mb-6">
           Your Staged Campaigns
         </h2>
 
@@ -133,7 +133,7 @@ const BrandDashboard = () => {
                 >
                   <div className="space-y-3 flex-1">
                     <div className="flex flex-wrap items-center gap-3">
-                      <h3 className="font-display text-lg font-bold text-white">
+                      <h3 className="font-display text-lg font-bold text-text-primary">
                         {inq.brandName} Campaign
                       </h3>
                       {getStatusBadge(inq.status)}
@@ -145,10 +145,10 @@ const BrandDashboard = () => {
                         {new Date(inq.createdAt).toLocaleDateString()}
                       </span>
                       <span>
-                        Budget: <span className="text-white font-medium">{inq.budgetRange}</span>
+                        Budget: <span className="text-text-primary font-medium">{inq.budgetRange}</span>
                       </span>
                       <span>
-                        Target: <span className="text-white font-medium capitalize">{categories.join(', ')}</span>
+                        Target: <span className="text-text-primary font-medium capitalize">{categories.join(', ')}</span>
                       </span>
                     </div>
 

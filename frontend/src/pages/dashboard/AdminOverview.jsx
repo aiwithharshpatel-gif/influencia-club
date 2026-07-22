@@ -80,7 +80,7 @@ const AdminOverview = () => {
     <div className="space-y-8 pb-10 text-left">
       {/* Header title */}
       <div>
-        <h1 className="font-display text-3xl font-bold text-white flex items-center gap-2">
+        <h1 className="font-display text-3xl font-bold text-text-primary flex items-center gap-2">
           System Overview <Sparkles size={24} className="text-gold" />
         </h1>
         <p className="text-muted text-sm mt-1">
@@ -101,7 +101,7 @@ const AdminOverview = () => {
                 <span className="text-muted text-xs font-semibold uppercase tracking-wider">{card.title}</span>
                 <Icon size={20} className={card.color} />
               </div>
-              <div className="text-2xl md:text-3xl font-bold text-white mt-3 font-display">
+              <div className="text-2xl md:text-3xl font-bold text-text-primary mt-3 font-display">
                 {card.value}
               </div>
               <div className="text-[10px] text-muted font-medium mt-1">

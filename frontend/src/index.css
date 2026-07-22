@@ -117,6 +117,46 @@
   border-color: rgba(212, 175, 55, 0.3) !important;
 }
 
+/* Global Light Theme Typography & Element Overrides for 100% Coverage */
+[data-theme="light"] h1:not(.dark-card *):not(.bg-primary *):not(.btn-primary *):not([class*="bg-gradient-"] *),
+[data-theme="light"] h2:not(.dark-card *):not(.bg-primary *):not(.btn-primary *):not([class*="bg-gradient-"] *),
+[data-theme="light"] h3:not(.dark-card *):not(.bg-primary *):not(.btn-primary *):not([class*="bg-gradient-"] *),
+[data-theme="light"] h4:not(.dark-card *):not(.bg-primary *):not(.btn-primary *):not([class*="bg-gradient-"] *),
+[data-theme="light"] h5:not(.dark-card *):not(.bg-primary *):not(.btn-primary *):not([class*="bg-gradient-"] *),
+[data-theme="light"] h6:not(.dark-card *):not(.bg-primary *):not(.btn-primary *):not([class*="bg-gradient-"] *) {
+  color: #0F172A !important;
+}
+
+[data-theme="light"] .text-white:not(.dark-card *):not(.bg-primary *):not(.btn-primary *):not([class*="bg-gradient-"] *):not(.bg-slate-700 *):not(.bg-slate-800 *):not(.bg-black *) {
+  color: #0F172A !important;
+}
+
+[data-theme="light"] .bg-purple-glow\/20,
+[data-theme="light"] .bg-purple-glow {
+  background-color: rgba(147, 51, 234, 0.12) !important;
+}
+
+[data-theme="light"] .bg-purple-glow\/20 .text-white,
+[data-theme="light"] .bg-purple-glow .text-white,
+[data-theme="light"] .bg-purple-glow svg {
+  color: #9333EA !important;
+}
+
+/* Modal overlays in Light Mode */
+[data-theme="light"] .fixed.inset-0.bg-black\/50,
+[data-theme="light"] .fixed.inset-0.bg-black\/60,
+[data-theme="light"] .fixed.inset-0.bg-black\/70,
+[data-theme="light"] .fixed.inset-0.bg-black\/80 {
+  background-color: rgba(15, 23, 42, 0.6) !important;
+  backdrop-filter: blur(4px);
+}
+
+[data-theme="light"] .luxury-card {
+  background-color: #FFFFFF !important;
+  border-color: #E2E8F0 !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05) !important;
+}
+
 * {
   margin: 0;
   padding: 0;

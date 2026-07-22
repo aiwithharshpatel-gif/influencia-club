@@ -60,7 +60,7 @@ const Collaborations = () => {
 
   return (
     <div>
-      <h1 className="font-display text-3xl font-bold text-white mb-8">
+      <h1 className="font-display text-3xl font-bold text-text-primary mb-8">
         Collaborations
       </h1>
 
@@ -69,7 +69,7 @@ const Collaborations = () => {
           <div className="w-20 h-20 bg-purple-glow/20 rounded-full flex items-center justify-center mx-auto mb-6">
             <Briefcase size={40} className="text-primary" />
           </div>
-          <h2 className="font-display text-2xl font-bold text-white mb-2">
+          <h2 className="font-display text-2xl font-bold text-text-primary mb-2">
             No Collaborations Yet
           </h2>
           <p className="text-muted mb-6">

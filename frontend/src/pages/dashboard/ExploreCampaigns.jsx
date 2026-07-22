@@ -101,7 +101,7 @@ const ExploreCampaigns = () => {
       {/* Header section */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="font-display text-3xl font-bold text-white flex items-center gap-2">
+          <h1 className="font-display text-3xl font-bold text-text-primary flex items-center gap-2">
             Campaign Hub <Sparkles size={24} className="text-primary animate-pulse" />
           </h1>
           <p className="text-muted text-sm mt-1">
