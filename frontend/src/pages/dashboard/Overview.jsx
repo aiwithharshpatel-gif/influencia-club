@@ -71,7 +71,7 @@ const DashboardOverview = () => {
 
   return (
     <div>
-      <h1 className="font-display text-3xl font-bold text-white mb-8">
+      <h1 className="font-display text-3xl font-bold text-text-primary mb-8">
         Dashboard Overview
       </h1>
 
@@ -100,7 +100,7 @@ const DashboardOverview = () => {
 
       {/* Quick Actions */}
       <div className="bg-bg-card rounded-xl p-6 border border-border mb-8">
-        <h2 className="font-display text-xl font-bold text-white mb-4">
+        <h2 className="font-display text-xl font-bold text-text-primary mb-4">
           Quick Actions
         </h2>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -108,21 +108,21 @@ const DashboardOverview = () => {
             to="/dashboard/profile"
             className="flex items-center justify-between p-4 bg-bg rounded-lg hover:bg-bg-card transition-colors border border-border"
           >
-            <span className="text-white font-medium">Edit Profile</span>
+            <span className="text-text-primary font-medium">Edit Profile</span>
             <ArrowRight size={18} className="text-muted" />
           </Link>
           <Link
             to="/dashboard/referrals"
             className="flex items-center justify-between p-4 bg-bg rounded-lg hover:bg-bg-card transition-colors border border-border"
           >
-            <span className="text-white font-medium">Share Referral</span>
+            <span className="text-text-primary font-medium">Share Referral</span>
             <ArrowRight size={18} className="text-muted" />
           </Link>
           <Link
             to="/dashboard/points"
             className="flex items-center justify-between p-4 bg-bg rounded-lg hover:bg-bg-card transition-colors border border-border"
           >
-            <span className="text-white font-medium">Redeem Points</span>
+            <span className="text-text-primary font-medium">Redeem Points</span>
             <ArrowRight size={18} className="text-muted" />
           </Link>
         </div>
@@ -130,7 +130,7 @@ const DashboardOverview = () => {
 
       {/* Recent Activity */}
       <div className="bg-bg-card rounded-xl p-6 border border-border">
-        <h2 className="font-display text-xl font-bold text-white mb-4">
+        <h2 className="font-display text-xl font-bold text-text-primary mb-4">
           Getting Started Tips
         </h2>
         <div className="space-y-3">
@@ -170,7 +170,7 @@ const Tip = ({ text, done, link }) => {
             <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
           </svg>}
         </div>
-        <span className={done ? 'text-muted line-through' : 'text-white'}>{text}</span>
+        <span className={done ? 'text-muted line-through' : 'text-text-primary'}>{text}</span>
       </div>
       {link && !done && (
         <ArrowRight size={16} className="text-muted" />
