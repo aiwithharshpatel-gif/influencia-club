@@ -50,8 +50,9 @@ const Login = () => {
             window.location.href = '/dashboard';
           } else if (res.data.registrationRequired) {
             toast.error('No account connected to this Instagram. Redirecting to signup...');
+            const resolvedHandle = res.data.igProfile?.username || username || '';
             setTimeout(() => {
-              navigate(`/join?handle=${username}&code=${code}`);
+              navigate(`/join?handle=${encodeURIComponent(resolvedHandle)}&code=${code}`);
             }, 1500);
           }
         } catch (err) {

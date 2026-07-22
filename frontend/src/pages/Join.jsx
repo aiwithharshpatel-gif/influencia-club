@@ -522,9 +522,11 @@ const Join = () => {
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className="w-full btn-primary py-4 disabled:opacity-50"
+                      className="w-full btn-primary py-4 disabled:opacity-50 font-bold"
                     >
-                      {isSubmitting ? 'Sending Code...' : 'Send Verification Code'}
+                      {isSubmitting 
+                        ? (igProfile ? 'Creating Account...' : 'Sending Code...') 
+                        : (igProfile ? 'Complete Registration ✨' : 'Send Verification Code')}
                     </button>
 
                     <p className="text-center text-muted text-sm mt-6">
