@@ -9,8 +9,8 @@
   --gold-dark: #B8860B;
   --gold-gradient: linear-gradient(135deg, #F4D06F 0%, #D4AF37 50%, #B8860B 100%);
   
-  /* Black background */
-  --bg-dark: #000000;
+  /* Theme tokens - Default Dark */
+  --bg-main: #000000;
   --bg-card: #0A0A0A;
   --bg-card-light: #111111;
   
@@ -20,9 +20,27 @@
   --text-muted: #888888;
   
   /* Borders & effects */
+  --border-color: rgba(255, 255, 255, 0.1);
   --border-gold: rgba(212, 175, 55, 0.3);
+  --glass-bg: rgba(10, 10, 10, 0.7);
   --glass-gold: rgba(212, 175, 55, 0.08);
   --glow-gold: rgba(212, 175, 55, 0.5);
+}
+
+[data-theme="light"] {
+  --bg-main: #F8FAFC;
+  --bg-card: #FFFFFF;
+  --bg-card-light: #F1F5F9;
+  
+  --text-primary: #0F172A;
+  --text-secondary: #B8860B;
+  --text-muted: #64748B;
+  
+  --border-color: rgba(0, 0, 0, 0.08);
+  --border-gold: rgba(212, 175, 55, 0.4);
+  --glass-bg: rgba(255, 255, 255, 0.85);
+  --glass-gold: rgba(212, 175, 55, 0.06);
+  --glow-gold: rgba(212, 175, 55, 0.25);
 }
 
 * {
@@ -33,9 +51,10 @@
 
 body {
   font-family: 'DM Sans', sans-serif;
-  background-color: #000000;
-  color: #FFFFFF;
+  background-color: var(--bg-main);
+  color: var(--text-primary);
   line-height: 1.6;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 h1, h2, h3, h4, h5, h6 {

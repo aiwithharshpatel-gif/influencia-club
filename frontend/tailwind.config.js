@@ -4,6 +4,7 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
+  darkMode: ['class', '[data-theme="dark"]'],
   theme: {
     extend: {
       colors: {
@@ -13,20 +14,22 @@ export default {
           dark: '#B8860B',
         },
         bg: {
-          DEFAULT: '#000000',
-          card: '#0A0A0A',
-          cardLight: '#111111',
+          DEFAULT: 'var(--bg-main)',
+          card: 'var(--bg-card)',
+          cardLight: 'var(--bg-card-light)',
         },
         text: {
-          primary: '#FFFFFF',
-          secondary: '#D4AF37',
-          muted: '#888888',
+          primary: 'var(--text-primary)',
+          secondary: 'var(--text-secondary)',
+          muted: 'var(--text-muted)',
         },
         border: {
-          gold: 'rgba(212, 175, 55, 0.3)',
+          DEFAULT: 'var(--border-color)',
+          gold: 'var(--border-gold)',
         },
         glass: {
-          gold: 'rgba(212, 175, 55, 0.08)',
+          DEFAULT: 'var(--glass-bg)',
+          gold: 'var(--glass-gold)',
         },
       },
       fontFamily: {

@@ -1,11 +1,13 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, Sun, Moon } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import logo from '../assets/logo.png';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 
 const Navbar = () => {
   const { user, role, logout } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const location = useLocation();
@@ -39,8 +41,8 @@ const Navbar = () => {
     }`}>
       <nav className={`mx-auto max-w-7xl rounded-2xl border transition-all duration-500 ${
         isScrolled 
-          ? 'bg-black/90 backdrop-blur-xl border-gold/30 shadow-gold-sm py-2' 
-          : 'bg-black/40 backdrop-blur-md border-gold/10 py-3'
+          ? 'bg-glass/90 backdrop-blur-xl border-gold/30 shadow-gold-sm py-2' 
+          : 'bg-glass/40 backdrop-blur-md border-gold/10 py-3'
       }`}>
         <div className="px-6 md:px-8 flex items-center justify-between">
           {/* Logo */}
@@ -49,7 +51,7 @@ const Navbar = () => {
               <div className="absolute inset-0 bg-gold/15 blur-xl rounded-full group-hover:bg-gold/30 transition-all"></div>
               <img src={logo} alt="IC" className="relative h-10 md:h-11 w-auto transition-transform duration-300 group-hover:scale-105" />
             </div>
-            <span className="font-display text-lg font-bold tracking-widest text-white group-hover:text-gold transition-colors hidden sm:block">
+            <span className="font-display text-lg font-bold tracking-widest text-text-primary group-hover:text-gold transition-colors hidden sm:block">
               INFLUENZIA CLUB
             </span>
           </Link>
@@ -63,7 +65,7 @@ const Navbar = () => {
                 className={`text-sm font-medium transition-all duration-300 tracking-wider relative py-1 ${
                   isActive(link.path)
                     ? 'text-gold'
-                    : 'text-white/80 hover:text-white'
+                    : 'text-text-primary/80 hover:text-text-primary'
                 }`}
               >
                 {link.label}
@@ -72,7 +74,17 @@ const Navbar = () => {
                 )}
               </Link>
             ))}
-            <div className="flex items-center space-x-4 border-l border-white/10 pl-6 ml-4">
+            
+            {/* Theme Toggle Button */}
+            <button
+              onClick={toggleTheme}
+              title={isDark ? 'Switch to Light Theme' : 'Switch to Dark Theme'}
+              className="p-2 rounded-full border border-gold/30 text-gold hover:bg-gold/10 transition-all focus:outline-none"
+            >
+              {isDark ? <Sun size={18} className="text-gold" /> : <Moon size={18} className="text-gold" />}
+            </button>
+
+            <div className="flex items-center space-x-4 border-l border-border pl-6 ml-4">
               {user ? (
                 <>
                   <Link
@@ -131,12 +143,26 @@ const Navbar = () => {
                   className={`block px-4 py-3 rounded-lg text-sm font-medium transition-all ${
                     isActive(link.path)
                       ? 'bg-gold/10 text-gold border border-gold/20'
-                      : 'text-white/80 hover:bg-white/5 hover:text-white'
+                      : 'text-text-primary/80 hover:bg-gold/5 hover:text-text-primary'
                   }`}
                 >
                   {link.label}
                 </Link>
               ))}
+
+              {/* Mobile Theme Toggle */}
+              <button
+                onClick={() => {
+                  toggleTheme();
+                  setIsOpen(false);
+                }}
+                className="w-full flex items-center justify-between px-4 py-3 rounded-lg text-sm font-medium text-text-primary/80 hover:bg-gold/5 hover:text-text-primary transition-all border border-border"
+              >
+                <span>Theme</span>
+                <span className="flex items-center gap-2 text-gold font-bold text-xs uppercase">
+                  {isDark ? <><Sun size={16} /> Light Mode</> : <><Moon size={16} /> Dark Mode</>}
+                </span>
+              </button>
               <div className="pt-4 space-y-3 border-t border-white/10">
                 {user ? (
                   <>
