@@ -182,7 +182,7 @@ const Profile = () => {
 
   return (
     <div className="space-y-8 pb-12">
-      <h1 className="font-display text-3xl font-bold text-white">
+      <h1 className="font-display text-3xl font-bold text-text-primary">
         Edit Profile
       </h1>
 
@@ -376,7 +376,7 @@ const Profile = () => {
               <Instagram size={24} className="stroke-[2]" />
             </div>
             <div>
-              <h3 className="text-white font-bold text-lg">Instagram Integration</h3>
+              <h3 className="text-text-primary font-bold text-lg">Instagram Integration</h3>
               <p className="text-muted text-xs mt-0.5">
                 Connect your business account to display live follower counts, recent media feed, and engagement rate metrics.
               </p>
@@ -420,7 +420,7 @@ const Profile = () => {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="bg-bg p-4 rounded-xl border border-border/80 flex flex-col items-center">
                 <span className="text-muted text-xs mb-1">Followers</span>
-                <span className="text-white text-lg font-bold">
+                <span className="text-text-primary text-lg font-bold">
                   {igProfile.followersCount?.toLocaleString() || '0'}
                 </span>
               </div>
@@ -433,14 +433,14 @@ const Profile = () => {
               </div>
               <div className="bg-bg p-4 rounded-xl border border-border/80 flex flex-col items-center">
                 <span className="text-muted text-xs mb-1">Average Likes</span>
-                <span className="text-white text-lg font-bold flex items-center">
+                <span className="text-text-primary text-lg font-bold flex items-center">
                   <Heart size={16} className="mr-1 text-red-500 fill-red-500/20" />
                   {igProfile.avgLikes?.toLocaleString() || '0'}
                 </span>
               </div>
               <div className="bg-bg p-4 rounded-xl border border-border/80 flex flex-col items-center">
                 <span className="text-muted text-xs mb-1">Average Comments</span>
-                <span className="text-white text-lg font-bold flex items-center">
+                <span className="text-text-primary text-lg font-bold flex items-center">
                   <MessageCircle size={16} className="mr-1 text-blue-400" />
                   {igProfile.avgComments?.toLocaleString() || '0'}
                 </span>
@@ -449,7 +449,7 @@ const Profile = () => {
 
             {/* Media Feed Preview */}
             <div>
-              <h4 className="text-white text-xs font-semibold uppercase tracking-wider mb-4 text-left">
+              <h4 className="text-text-primary text-xs font-semibold uppercase tracking-wider mb-4 text-left">
                 Recent Posts Feed Preview
               </h4>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">

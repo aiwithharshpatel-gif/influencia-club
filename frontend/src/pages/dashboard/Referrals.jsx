@@ -34,7 +34,7 @@ const Referrals = () => {
 
   return (
     <div>
-      <h1 className="font-display text-3xl font-bold text-white mb-8">
+      <h1 className="font-display text-3xl font-bold text-text-primary mb-8">
         Refer & Earn
       </h1>
 
@@ -46,7 +46,7 @@ const Referrals = () => {
               <Users size={24} className="text-primary" />
             </div>
           </div>
-          <div className="text-3xl font-display font-bold text-white mb-1">
+          <div className="text-3xl font-display font-bold text-text-primary mb-1">
             {data?.totalReferrals || 0}
           </div>
           <div className="text-muted text-sm">Total Referrals</div>
@@ -86,7 +86,7 @@ const Referrals = () => {
 
       {/* Referral List */}
       <div className="bg-bg-card rounded-xl p-6 border border-border">
-        <h2 className="font-display text-xl font-bold text-white mb-4">
+        <h2 className="font-display text-xl font-bold text-text-primary mb-4">
           Your Referrals
         </h2>
 
@@ -103,7 +103,7 @@ const Referrals = () => {
                 className="flex items-center justify-between p-4 bg-bg rounded-lg"
               >
                 <div>
-                  <div className="font-medium text-white">{referral.referredUser.name}</div>
+                  <div className="font-medium text-text-primary">{referral.referredUser.name}</div>
                   <div className="text-sm text-muted">
                     Joined {new Date(referral.referredUser.createdAt).toLocaleDateString()}
                   </div>
