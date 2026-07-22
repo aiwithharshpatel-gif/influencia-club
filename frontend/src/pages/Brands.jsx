@@ -103,7 +103,7 @@ const Brands = () => {
       <section className="pt-32 pb-20 bg-bg-card">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-3xl">
-            <h1 className="font-display text-5xl font-bold text-white mb-6">
+            <h1 className="font-display text-5xl font-bold text-text-primary mb-6">
               Connect with Creators Who <span className="gold-text">Actually Convert</span>
             </h1>
             <p className="text-muted text-lg mb-8">
@@ -119,10 +119,10 @@ const Brands = () => {
                 key={index}
                 className="card-hover bg-bg rounded-xl p-6 border border-border"
               >
-                <div className="w-12 h-12 bg-purple-glow rounded-lg flex items-center justify-center mb-4">
-                  <reason.icon size={24} className="text-white" />
+                <div className="w-12 h-12 bg-purple-glow/20 rounded-lg flex items-center justify-center mb-4">
+                  <reason.icon size={24} className="text-primary" />
                 </div>
-                <h3 className="font-display text-lg font-semibold text-white mb-2">
+                <h3 className="font-display text-lg font-semibold text-text-primary mb-2">
                   {reason.title}
                 </h3>
                 <p className="text-muted text-sm">{reason.description}</p>
@@ -135,7 +135,7 @@ const Brands = () => {
       {/* Pricing Section */}
       <section className="py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="font-display text-4xl font-bold text-white text-center mb-4">
+          <h2 className="font-display text-4xl font-bold text-text-primary text-center mb-4">
             Simple, <span className="gradient-text">Transparent</span> Pricing
           </h2>
           <p className="text-muted text-center mb-12 max-w-2xl mx-auto">
@@ -159,7 +159,7 @@ const Brands = () => {
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           {!submitted ? (
             <>
-              <h2 className="font-display text-4xl font-bold text-white text-center mb-4">
+              <h2 className="font-display text-4xl font-bold text-text-primary text-center mb-4">
                 Start Your <span className="gold-text">Campaign</span>
               </h2>
               <p className="text-muted text-center mb-12">

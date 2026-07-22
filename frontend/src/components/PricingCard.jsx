@@ -10,13 +10,13 @@ const PricingCard = ({ tier, price, features, isPopular, onSelect }) => {
       )}
 
       {/* Tier Name */}
-      <h3 className="font-display text-2xl font-bold text-white mb-2">
+      <h3 className="font-display text-2xl font-bold text-text-primary mb-2">
         {tier}
       </h3>
 
       {/* Price */}
       <div className="mb-6">
-        <span className="text-4xl font-display font-bold text-white">₹{price.toLocaleString()}</span>
+        <span className="text-4xl font-display font-bold text-text-primary">₹{price.toLocaleString()}</span>
         <span className="text-muted ml-2">/campaign</span>
       </div>
 
