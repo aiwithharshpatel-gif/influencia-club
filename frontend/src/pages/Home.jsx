@@ -189,30 +189,34 @@ const Home = () => {
             {/* HashFame style Instagram Handle input bar in Gold & Black */}
             <div className="max-w-xl mx-auto mb-10 px-4">
               <form onSubmit={handleEarlyAccessSubmit} className="relative z-10">
-                <div className={`gold-handle-container transition-all duration-300 ${isShaking ? 'animate-[shake_0.5s_ease-in-out]' : ''}`}>
-                  <div className="absolute inset-0.5 rounded-[31px] bg-black/90 z-[2] flex items-center justify-between pl-5 pr-2">
+                <div className={`dark-card relative rounded-full p-1.5 bg-gradient-to-r from-gold/50 via-gold to-gold/50 shadow-[0_0_25px_rgba(212,175,55,0.25)] transition-all duration-300 ${isShaking ? 'animate-[shake_0.5s_ease-in-out]' : ''}`}>
+                  <div className="bg-[#0A0A0A] rounded-full flex items-center justify-between pl-5 pr-1.5 py-1.5 border border-gold/30">
                     <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0 mr-2">
-                      <Instagram className="text-gold flex-shrink-0" size={20} />
-                      <span className="text-white/60 font-semibold text-sm sm:text-base hidden sm:inline select-none">instagram.com/</span>
-                      <span className="text-white/60 font-semibold text-sm sm:text-base inline sm:hidden select-none">@</span>
+                      <Instagram className="text-gold flex-shrink-0" size={22} />
+                      <span className="text-gold/90 font-semibold text-sm sm:text-base hidden sm:inline select-none">
+                        instagram.com/
+                      </span>
+                      <span className="text-gold/90 font-semibold text-sm sm:text-base inline sm:hidden select-none">
+                        @
+                      </span>
                       <input
                         type="text"
                         placeholder="your_handle"
                         value={instagramHandle}
                         onChange={(e) => setInstagramHandle(e.target.value)}
-                        className="bg-transparent border-none outline-none text-white text-sm sm:text-base font-medium placeholder-white/30 w-full focus:ring-0 p-0"
+                        className="bg-transparent border-none outline-none text-white text-sm sm:text-base font-medium placeholder-white/40 w-full focus:ring-0 p-0"
                       />
                     </div>
                     <button
                       type="submit"
-                      className="bg-gold-gradient hover:opacity-95 text-black px-5 sm:px-6 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-bold uppercase tracking-wider transition-all duration-300 flex-shrink-0"
+                      className="bg-gold-gradient hover:scale-105 active:scale-95 text-black px-5 sm:px-7 py-2.5 sm:py-3 rounded-full text-xs sm:text-sm font-extrabold uppercase tracking-wider transition-all duration-200 flex-shrink-0 shadow-lg shadow-gold/20"
                     >
                       Get Invite
                     </button>
                   </div>
                 </div>
               </form>
-              <p className="text-xs text-muted mt-3 tracking-wide">
+              <p className="text-xs text-muted mt-3 tracking-wide text-center">
                 ✦ Invite-only platform. Enter your handle to request an invitation.
               </p>
             </div>
