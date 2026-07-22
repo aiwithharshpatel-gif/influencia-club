@@ -27,6 +27,7 @@
   --glow-gold: rgba(212, 175, 55, 0.5);
 }
 
+/* High-contrast Light Theme Overrides */
 [data-theme="light"] {
   --bg-main: #F8FAFC;
   --bg-card: #FFFFFF;
@@ -43,23 +44,24 @@
   --glow-gold: rgba(212, 175, 55, 0.25);
 }
 
-/* High-contrast Light Theme Overrides */
-[data-theme="light"] .text-white {
-  color: #0F172A !important;
+/* Force intentional dark cards to keep high-contrast white text in Light Theme */
+.dark-card,
+[data-theme="light"] .dark-card {
+  color: #FFFFFF !important;
+}
+
+.dark-card .text-white,
+[data-theme="light"] .dark-card .text-white {
+  color: #FFFFFF !important;
+}
+
+.dark-card .text-muted,
+[data-theme="light"] .dark-card .text-muted {
+  color: #94A3B8 !important;
 }
 
 [data-theme="light"] .text-muted {
   color: #475569 !important;
-}
-
-[data-theme="light"] .text-white\/80,
-[data-theme="light"] .text-white\/70 {
-  color: #1E293B !important;
-}
-
-[data-theme="light"] .text-white\/60,
-[data-theme="light"] .text-white\/50 {
-  color: #334155 !important;
 }
 
 [data-theme="light"] .bg-bg-card {

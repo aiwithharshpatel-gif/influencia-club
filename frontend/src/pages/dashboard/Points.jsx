@@ -392,7 +392,7 @@ const Points = () => {
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="font-display text-4xl font-extrabold tracking-tight text-white flex items-center gap-3">
+          <h1 className="font-display text-4xl font-extrabold tracking-tight text-text-primary flex items-center gap-3">
             Points Marketplace <Sparkles className="text-yellow-400 animate-pulse" size={28} />
           </h1>
           <p className="text-muted mt-1">
@@ -421,7 +421,7 @@ const Points = () => {
         {/* Tier Card & Analytics Trend Column */}
         <div className="lg:col-span-2 space-y-6">
           {/* Tier Card */}
-          <div className={`rounded-2xl border p-8 flex flex-col justify-between transition-all duration-300 ${currentTierStyles.bg} ${currentTierStyles.glow}`}>
+          <div className={`rounded-2xl border p-8 flex flex-col justify-between transition-all duration-300 dark-card ${currentTierStyles.bg} ${currentTierStyles.glow}`}>
             <div className="flex items-start justify-between">
               <div className="space-y-1">
                 <span className="text-xs uppercase tracking-wider text-muted font-bold">Current Tier</span>
@@ -486,18 +486,18 @@ const Points = () => {
                 <TrendingUp size={20} />
               </div>
               <div>
-                <h3 className="font-semibold text-white">Gamified Milestones</h3>
+                <h3 className="font-semibold text-text-primary">Gamified Milestones</h3>
                 <p className="text-xs text-muted">Tiers are locked to your lifetime earnings.</p>
               </div>
             </div>
             <div className="border-t border-border/50 my-2" />
             <p className="text-sm text-muted leading-relaxed">
-              Your tier is calculated based on lifetime earned points (<span className="text-white font-semibold">type: earn</span>).
-              Redeeming points for rewards will decrease your <span className="text-white">Available Balance</span>, but your <span className="text-white">Tier Progress</span> will remain untouched.
+              Your tier is calculated based on lifetime earned points (<span className="text-text-primary font-semibold">type: earn</span>).
+              Redeeming points for rewards will decrease your <span className="text-text-primary font-semibold">Available Balance</span>, but your <span className="text-text-primary font-semibold">Tier Progress</span> will remain untouched.
             </p>
           </div>
 
-          <div className="bg-slate-950/60 border border-border/30 rounded-xl p-3 text-xs text-center text-muted flex items-center justify-center gap-2 mt-4">
+          <div className="bg-bg-card-light border border-border rounded-xl p-3 text-xs text-center text-text-primary flex items-center justify-center gap-2 mt-4">
             <Award size={14} className="text-primary" />
             <span>Silver: &lt; 200 | Gold: 200+ | Platinum: 500+</span>
           </div>

@@ -119,17 +119,17 @@ const Leaderboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col">
+    <div className="min-h-screen bg-bg text-text-primary flex flex-col transition-colors duration-300">
       <Navbar />
 
       {/* Header Banner */}
-      <section className="relative py-20 overflow-hidden border-b border-border/40 bg-gradient-to-b from-neutral-900 to-black">
+      <section className="relative py-20 overflow-hidden border-b border-border bg-bg-card transition-colors duration-300">
         <div className="absolute inset-0 bg-gold/5 blur-3xl rounded-full -top-40 left-1/2 -translate-x-1/2 w-[600px] h-[300px]"></div>
         <div className="relative max-w-7xl mx-auto px-4 text-center space-y-4">
           <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-gold/15 text-gold border border-gold/30 rounded-full text-xs font-bold uppercase tracking-wider">
             <Trophy size={14} className="text-gold animate-bounce" /> Waitlist Leaderboard
           </span>
-          <h1 className="font-display text-4xl md:text-6xl font-bold tracking-tight text-white">
+          <h1 className="font-display text-4xl md:text-6xl font-bold tracking-tight text-text-primary">
             India's Top Creators
           </h1>
           <p className="text-muted text-sm md:text-base max-w-2xl mx-auto">
@@ -140,7 +140,7 @@ const Leaderboard = () => {
 
       {/* Podium Spotlights */}
       {!loading && leaderboard.length >= 3 && (
-        <section className="py-12 bg-black">
+        <section className="py-12 bg-bg transition-colors duration-300">
           <div className="max-w-4xl mx-auto px-4">
             <div className="grid grid-cols-3 gap-3 sm:gap-6 items-end pt-10">
               
@@ -148,27 +148,27 @@ const Leaderboard = () => {
               {silverSpot && (
                 <div className="flex flex-col items-center space-y-3 order-1">
                   <div className="relative group">
-                    <div className="w-16 h-16 sm:w-24 sm:h-24 rounded-full p-1 bg-gradient-to-tr from-gray-400 to-gray-200 shadow-lg shadow-white/5 relative">
+                    <div className="w-16 h-16 sm:w-24 sm:h-24 rounded-full p-1 bg-gradient-to-tr from-gray-400 to-gray-200 shadow-lg shadow-black/10 relative">
                       {silverSpot.photoUrl ? (
                         <img src={silverSpot.photoUrl} alt="" className="w-full h-full rounded-full object-cover" />
                       ) : (
-                        <div className="w-full h-full rounded-full bg-neutral-800 flex items-center justify-center font-bold text-white text-lg">
+                        <div className="w-full h-full rounded-full bg-slate-700 flex items-center justify-center font-bold text-white text-lg">
                           {silverSpot.name.charAt(0)}
                         </div>
                       )}
-                      <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-gray-400 border-2 border-black rounded-full flex items-center justify-center text-[10px] font-bold text-black">
+                      <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-gray-400 border-2 border-bg rounded-full flex items-center justify-center text-[10px] font-bold text-black">
                         2
                       </div>
                     </div>
                   </div>
                   <div className="text-center">
-                    <h3 className="font-display font-bold text-xs sm:text-sm text-white truncate max-w-[90px] sm:max-w-[130px]">{silverSpot.name}</h3>
+                    <h3 className="font-display font-bold text-xs sm:text-sm text-text-primary truncate max-w-[90px] sm:max-w-[130px]">{silverSpot.name}</h3>
                     <p className="text-[10px] text-muted">@{silverSpot.instagram || 'creator'}</p>
-                    <span className="inline-block mt-1 bg-white/5 text-gray-300 px-2 py-0.5 rounded text-[10px] font-bold border border-white/10">
+                    <span className="inline-block mt-1 bg-bg-card-light text-text-primary px-2 py-0.5 rounded text-[10px] font-bold border border-border">
                       {silverSpot.pointsBalance} pts
                     </span>
                   </div>
-                  <div className="w-full bg-neutral-900 border border-white/10 h-20 sm:h-28 rounded-t-xl flex items-center justify-center">
+                  <div className="w-full bg-bg-card border border-border h-20 sm:h-28 rounded-t-xl flex items-center justify-center">
                     <Award size={24} className="text-gray-400" />
                   </div>
                 </div>
@@ -185,11 +185,11 @@ const Leaderboard = () => {
                       {goldSpot.photoUrl ? (
                         <img src={goldSpot.photoUrl} alt="" className="w-full h-full rounded-full object-cover" />
                       ) : (
-                        <div className="w-full h-full rounded-full bg-neutral-800 flex items-center justify-center font-bold text-white text-xl">
+                        <div className="w-full h-full rounded-full bg-slate-800 flex items-center justify-center font-bold text-white text-xl">
                           {goldSpot.name.charAt(0)}
                         </div>
                       )}
-                      <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-gold border-2 border-black rounded-full flex items-center justify-center text-xs font-bold text-black">
+                      <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-gold border-2 border-bg rounded-full flex items-center justify-center text-xs font-bold text-black">
                         1
                       </div>
                     </div>
@@ -201,7 +201,7 @@ const Leaderboard = () => {
                       {goldSpot.pointsBalance} pts
                     </span>
                   </div>
-                  <div className="w-full bg-gradient-to-b from-neutral-800 to-neutral-900 border border-gold/20 h-28 sm:h-36 rounded-t-xl flex items-center justify-center relative">
+                  <div className="w-full bg-bg-card border border-gold/30 h-28 sm:h-36 rounded-t-xl flex items-center justify-center relative">
                     <div className="absolute inset-0 bg-gold/5 rounded-t-xl animate-pulse"></div>
                     <Star size={28} className="text-gold animate-spin-slow" />
                   </div>
@@ -212,27 +212,27 @@ const Leaderboard = () => {
               {bronzeSpot && (
                 <div className="flex flex-col items-center space-y-3 order-3">
                   <div className="relative group">
-                    <div className="w-16 h-16 sm:w-24 sm:h-24 rounded-full p-1 bg-gradient-to-tr from-amber-700 to-amber-500 shadow-lg shadow-white/5 relative">
+                    <div className="w-16 h-16 sm:w-24 sm:h-24 rounded-full p-1 bg-gradient-to-tr from-amber-700 to-amber-500 shadow-lg shadow-black/10 relative">
                       {bronzeSpot.photoUrl ? (
                         <img src={bronzeSpot.photoUrl} alt="" className="w-full h-full rounded-full object-cover" />
                       ) : (
-                        <div className="w-full h-full rounded-full bg-neutral-800 flex items-center justify-center font-bold text-white text-lg">
+                        <div className="w-full h-full rounded-full bg-slate-700 flex items-center justify-center font-bold text-white text-lg">
                           {bronzeSpot.name.charAt(0)}
                         </div>
                       )}
-                      <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-amber-600 border-2 border-black rounded-full flex items-center justify-center text-[10px] font-bold text-black">
+                      <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-amber-600 border-2 border-bg rounded-full flex items-center justify-center text-[10px] font-bold text-black">
                         3
                       </div>
                     </div>
                   </div>
                   <div className="text-center">
-                    <h3 className="font-display font-bold text-xs sm:text-sm text-white truncate max-w-[90px] sm:max-w-[130px]">{bronzeSpot.name}</h3>
+                    <h3 className="font-display font-bold text-xs sm:text-sm text-text-primary truncate max-w-[90px] sm:max-w-[130px]">{bronzeSpot.name}</h3>
                     <p className="text-[10px] text-muted">@{bronzeSpot.instagram || 'creator'}</p>
-                    <span className="inline-block mt-1 bg-white/5 text-amber-500 px-2 py-0.5 rounded text-[10px] font-bold border border-white/10">
+                    <span className="inline-block mt-1 bg-bg-card-light text-amber-600 px-2 py-0.5 rounded text-[10px] font-bold border border-border">
                       {bronzeSpot.pointsBalance} pts
                     </span>
                   </div>
-                  <div className="w-full bg-neutral-900 border border-white/10 h-20 sm:h-28 rounded-t-xl flex items-center justify-center">
+                  <div className="w-full bg-bg-card border border-border h-20 sm:h-28 rounded-t-xl flex items-center justify-center">
                     <Award size={22} className="text-amber-600" />
                   </div>
                 </div>
@@ -249,7 +249,7 @@ const Leaderboard = () => {
         {/* Left/Middle Column: List, Search, Filters */}
         <div className="lg:col-span-2 space-y-6">
           <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-            <h2 className="font-display text-xl font-bold text-white flex items-center gap-2">
+            <h2 className="font-display text-xl font-bold text-text-primary flex items-center gap-2">
               Waitlist Standings
             </h2>
             
@@ -260,7 +260,7 @@ const Leaderboard = () => {
                 placeholder="Search creator name..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-neutral-900 border border-border/80 rounded-xl pl-9 pr-4 py-2 text-sm text-white focus:outline-none focus:border-gold transition-colors"
+                className="w-full bg-bg-card border border-border rounded-xl pl-9 pr-4 py-2 text-sm text-text-primary focus:outline-none focus:border-gold transition-colors"
               />
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={16} />
             </div>
@@ -275,7 +275,7 @@ const Leaderboard = () => {
                 className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider border transition-all cursor-pointer ${
                   selectedTier === tier
                     ? 'bg-gold-gradient text-black border-transparent font-extrabold shadow-gold-glow/10'
-                    : 'bg-neutral-900 text-muted border-border/80 hover:border-gold/20'
+                    : 'bg-bg-card text-muted border-border hover:border-gold/30'
                 }`}
               >
                 {tier}
@@ -290,15 +290,15 @@ const Leaderboard = () => {
               <p className="text-muted text-sm">Loading waitlist standings...</p>
             </div>
           ) : remainingCreators.length === 0 ? (
-            <div className="bg-neutral-900/50 border border-border/60 rounded-2xl p-12 text-center text-muted">
+            <div className="bg-bg-card border border-border rounded-2xl p-12 text-center text-muted">
               No waitlisted creators found matching your criteria.
             </div>
           ) : (
-            <div className="bg-neutral-900/40 border border-border/40 rounded-2xl overflow-hidden shadow-2xl">
+            <div className="bg-bg-card border border-border rounded-2xl overflow-hidden shadow-lg">
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="border-b border-border/60 text-[10px] font-bold uppercase tracking-wider text-muted">
+                    <tr className="border-b border-border text-[10px] font-bold uppercase tracking-wider text-muted bg-bg-card-light">
                       <th className="py-4 px-6">Rank</th>
                       <th className="py-4 px-6">Creator</th>
                       <th className="py-4 px-6">Tier</th>
@@ -312,14 +312,14 @@ const Leaderboard = () => {
                       <tr 
                         key={item.id} 
                         onClick={() => setSelectedCreatorForCard(item)}
-                        className={`border-b border-border/20 text-sm hover:bg-white/5 transition-colors cursor-pointer ${
-                          selectedCreatorForCard?.id === item.id ? 'bg-white/5 border-l-2 border-l-gold' : ''
+                        className={`border-b border-border text-sm hover:bg-gold/5 transition-colors cursor-pointer ${
+                          selectedCreatorForCard?.id === item.id ? 'bg-gold/10 border-l-4 border-l-gold' : ''
                         }`}
                       >
                         <td className="py-4 px-6 font-display font-bold">
                           <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs ${
                             item.rank === 1 ? 'bg-gold/20 text-gold border border-gold/40' :
-                            item.rank === 2 ? 'bg-gray-400/20 text-gray-300 border border-gray-400/40' :
+                            item.rank === 2 ? 'bg-gray-400/20 text-gray-400 border border-gray-400/40' :
                             item.rank === 3 ? 'bg-amber-600/20 text-amber-500 border border-amber-600/40' :
                             'text-muted'
                           }`}>
@@ -331,14 +331,14 @@ const Leaderboard = () => {
                             {item.photoUrl ? (
                               <img src={item.photoUrl} alt="" className="w-8 h-8 rounded-full object-cover" />
                             ) : (
-                              <div className="w-8 h-8 rounded-full bg-neutral-800 flex items-center justify-center text-white font-bold text-xs">
+                              <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-white font-bold text-xs">
                                 {item.name.charAt(0)}
                               </div>
                             )}
                             <div>
-                              <h4 className="font-semibold text-white flex items-center gap-1">
+                              <h4 className="font-semibold text-text-primary flex items-center gap-1">
                                 {item.name}
-                                {item.isVerified && <CheckCircle2 size={13} className="text-primary fill-black" />}
+                                {item.isVerified && <CheckCircle2 size={13} className="text-primary fill-gold" />}
                               </h4>
                               <p className="text-[10px] text-muted capitalize">@{item.instagram || 'creator'} • {item.city}</p>
                             </div>
@@ -346,9 +346,9 @@ const Leaderboard = () => {
                         </td>
                         <td className="py-4 px-6">
                           <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
-                            item.tier === 'platinum' ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20' :
+                            item.tier === 'platinum' ? 'bg-purple-500/10 text-purple-500 border border-purple-500/20' :
                             item.tier === 'gold' ? 'bg-gold/10 text-gold border border-gold/20' :
-                            'bg-gray-400/10 text-gray-400 border border-gray-400/20'
+                            'bg-gray-400/10 text-gray-500 border border-gray-400/20'
                           }`}>
                             {item.tier}
                           </span>
@@ -356,7 +356,7 @@ const Leaderboard = () => {
                         <td className="py-4 px-6 text-center font-semibold text-muted">
                           {item.referralsCount}
                         </td>
-                        <td className="py-4 px-6 text-right font-display font-bold text-white">
+                        <td className="py-4 px-6 text-right font-display font-bold text-text-primary">
                           {item.pointsBalance}
                         </td>
                         <td className="py-4 px-6 text-center">
@@ -381,11 +381,11 @@ const Leaderboard = () => {
 
         {/* Right Column: Premium Certificate Generator Card */}
         <div className="space-y-6">
-          <div className="bg-neutral-900 border border-border/80 rounded-2xl p-6 shadow-2xl space-y-6 sticky top-24">
-            <div className="flex items-center gap-2 border-b border-border/40 pb-4">
+          <div className="bg-bg-card border border-border rounded-2xl p-6 shadow-xl space-y-6 sticky top-24">
+            <div className="flex items-center gap-2 border-b border-border pb-4">
               <Award className="text-gold" size={24} />
               <div>
-                <h3 className="font-display text-lg font-bold text-white">Verify Your Standing</h3>
+                <h3 className="font-display text-lg font-bold text-text-primary">Verify Your Standing</h3>
                 <p className="text-[10px] text-muted uppercase">Rank Certificate Generator</p>
               </div>
             </div>
@@ -393,7 +393,7 @@ const Leaderboard = () => {
             {selectedCreatorForCard ? (
               <div className="space-y-6">
                 {/* Visual Card Preview Mockup */}
-                <div className="bg-black border border-gold/30 rounded-xl p-5 relative overflow-hidden aspect-[4/3] flex flex-col justify-between shadow-gold-glow/5">
+                <div className="bg-slate-950 border border-gold/40 rounded-xl p-5 relative overflow-hidden aspect-[4/3] flex flex-col justify-between shadow-gold-glow/5 dark-card">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-gold/5 blur-2xl rounded-full"></div>
                   
                   <div className="flex justify-between items-start">
@@ -438,15 +438,15 @@ const Leaderboard = () => {
 
                   <button
                     onClick={() => copyShareLink(selectedCreatorForCard.referralCode)}
-                    className="w-full bg-neutral-800 hover:bg-neutral-700 text-white border border-border py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 cursor-pointer transition-colors"
+                    className="w-full bg-bg-card-light hover:bg-gold/10 text-text-primary border border-border py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 cursor-pointer transition-colors"
                   >
                     <Share2 size={16} />
                     Copy Referral Invite Link
                   </button>
                 </div>
 
-                <div className="text-[11px] text-muted leading-relaxed bg-black/40 p-4 rounded-xl border border-border/30">
-                  <p className="font-bold text-white mb-1">✦ Premium Waitlist Tier Perks:</p>
+                <div className="text-[11px] text-muted leading-relaxed bg-bg-card-light p-4 rounded-xl border border-border">
+                  <p className="font-bold text-text-primary mb-1">✦ Premium Waitlist Tier Perks:</p>
                   <ul className="list-disc pl-4 space-y-1.5 font-sans">
                     <li>Rank #1-5: Auto-granted <span className="text-gold font-semibold">Platinum Tier</span> status.</li>
                     <li>Rank #6-15: Auto-granted <span className="text-gold font-semibold">Gold Tier</span> status.</li>
