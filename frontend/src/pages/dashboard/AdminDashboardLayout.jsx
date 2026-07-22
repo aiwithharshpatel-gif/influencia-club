@@ -1,12 +1,14 @@
 import { useEffect } from 'react';
 import { Link, useNavigate, Outlet, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, FileText, Gift, PlusCircle, LogOut, ShieldCheck, Sparkles } from 'lucide-react';
+import { LayoutDashboard, Users, FileText, Gift, PlusCircle, LogOut, ShieldCheck, Sparkles, Sun, Moon } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 
 const AdminDashboardLayout = () => {
   const { user, role, loading, logout } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -66,6 +68,13 @@ const AdminDashboardLayout = () => {
                       <span>{user?.role?.replace('_', ' ') || 'Manager'}</span>
                     </div>
                   </div>
+                  <button
+                    onClick={toggleTheme}
+                    title={isDark ? 'Switch to Light Theme' : 'Switch to Dark Theme'}
+                    className="p-2 rounded-xl border border-gold/30 text-gold hover:bg-gold/10 transition-all focus:outline-none"
+                  >
+                    {isDark ? <Sun size={18} /> : <Moon size={18} />}
+                  </button>
                 </div>
 
                 {/* Left navigation menu */}

@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { LayoutDashboard, User, Users, Award, MessageSquare, LogOut, Star, Search, Target, Bell } from 'lucide-react';
+import { LayoutDashboard, User, Users, Award, MessageSquare, LogOut, Star, Search, Target, Bell, Sun, Moon } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
@@ -10,6 +11,7 @@ import NotificationInbox from '../../components/NotificationInbox';
 
 const DashboardLayout = () => {
   const { user, logout } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -106,7 +108,16 @@ const DashboardLayout = () => {
                       {user?.email || 'user@email.com'}
                     </div>
                   </div>
-                  <NotificationInbox />
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={toggleTheme}
+                      title={isDark ? 'Switch to Light Theme' : 'Switch to Dark Theme'}
+                      className="p-2 rounded-xl border border-gold/30 text-gold hover:bg-gold/10 transition-all focus:outline-none"
+                    >
+                      {isDark ? <Sun size={18} /> : <Moon size={18} />}
+                    </button>
+                    <NotificationInbox />
+                  </div>
                 </div>
 
                 {/* Navigation */}

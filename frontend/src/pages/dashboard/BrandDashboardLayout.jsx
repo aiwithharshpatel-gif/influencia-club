@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, Outlet, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Briefcase, FilePlus, LogOut, ArrowLeft, BarChart3, MessageSquare, Search, Target, Bell } from 'lucide-react';
+import { LayoutDashboard, Briefcase, FilePlus, LogOut, ArrowLeft, BarChart3, MessageSquare, Search, Target, Bell, Sun, Moon } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import { subscribeUserToPush } from '../../services/pushNotification';
@@ -9,6 +10,7 @@ import NotificationInbox from '../../components/NotificationInbox';
 
 const BrandDashboardLayout = () => {
   const { user, role, loading, logout } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -116,7 +118,16 @@ const BrandDashboardLayout = () => {
                       {user?.email || 'brand@email.com'}
                     </div>
                   </div>
-                  <NotificationInbox />
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={toggleTheme}
+                      title={isDark ? 'Switch to Light Theme' : 'Switch to Dark Theme'}
+                      className="p-2 rounded-xl border border-gold/30 text-gold hover:bg-gold/10 transition-all focus:outline-none"
+                    >
+                      {isDark ? <Sun size={18} /> : <Moon size={18} />}
+                    </button>
+                    <NotificationInbox />
+                  </div>
                 </div>
 
                 {/* Navigation */}
