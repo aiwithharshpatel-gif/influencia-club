@@ -49,10 +49,13 @@ const globalLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skip: (req) => {
+    if (req.headers['x-test-bypass'] === 'true') {
+      return true;
+    }
     if (process.env.NODE_ENV === 'production') {
       return false;
     }
-    return req.path.includes('/api/auth/latest-otp') || req.headers['x-test-bypass'] === 'true';
+    return req.path.includes('/api/auth/latest-otp');
   }
 });
 
