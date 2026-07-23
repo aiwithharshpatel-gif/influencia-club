@@ -185,6 +185,10 @@ h1, h2, h3, h4, h5, h6 {
   background: #000000;
 }
 
+[data-theme="light"] ::-webkit-scrollbar-track {
+  background: #F1F5F9;
+}
+
 ::-webkit-scrollbar-thumb {
   background: #D4AF37;
   border-radius: 4px;
