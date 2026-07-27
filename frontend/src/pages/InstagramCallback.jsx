@@ -15,7 +15,19 @@ const InstagramCallback = () => {
       ? { type: 'instagram-oauth-success', code: code, username: '' } 
       : { type: 'instagram-oauth-cancel' };
 
-    // 1. Send via BroadcastChannel (same-origin fallback)
+    // 1. Write to localStorage (triggers 'storage' event in same-origin parent window)
+    try {
+      localStorage.setItem('instagram_oauth_result', JSON.stringify({
+        type: 'instagram-oauth-success',
+        code: code || '',
+        username: '',
+        timestamp: Date.now()
+      }));
+    } catch (e) {
+      console.error('LocalStorage write failed:', e);
+    }
+
+    // 2. Send via BroadcastChannel (same-origin fallback)
     try {
       const bc = new BroadcastChannel('instagram_oauth');
       bc.postMessage(messagePayload);
@@ -24,7 +36,7 @@ const InstagramCallback = () => {
       console.error('BroadcastChannel failed:', e);
     }
 
-    // 2. Send via window.opener.postMessage (classic fallback)
+    // 3. Send via window.opener.postMessage (classic fallback)
     if (window.opener) {
       try {
         window.opener.postMessage(messagePayload, '*');
@@ -33,7 +45,7 @@ const InstagramCallback = () => {
       }
     }
 
-    // 3. Close the popup
+    // 4. Close the popup
     setTimeout(() => {
       window.close();
     }, 500);

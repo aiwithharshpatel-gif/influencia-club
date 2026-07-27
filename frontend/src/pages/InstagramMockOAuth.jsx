@@ -25,7 +25,19 @@ const InstagramMockOAuth = () => {
         username: resolvedUsername
       };
 
-      // 1. BroadcastChannel (same-origin fallback)
+      // 1. Write to localStorage (same-origin fallback)
+      try {
+        localStorage.setItem('instagram_oauth_result', JSON.stringify({
+          type: 'instagram-oauth-success',
+          code: code,
+          username: resolvedUsername,
+          timestamp: Date.now()
+        }));
+      } catch (e) {
+        console.error('LocalStorage write failed:', e);
+      }
+
+      // 2. BroadcastChannel (same-origin fallback)
       try {
         const bc = new BroadcastChannel('instagram_oauth');
         bc.postMessage(messagePayload);
@@ -34,7 +46,7 @@ const InstagramMockOAuth = () => {
         console.error('BroadcastChannel failed:', e);
       }
 
-      // 2. postMessage (classic fallback)
+      // 3. postMessage (classic fallback)
       if (window.opener) {
         try {
           window.opener.postMessage(messagePayload, '*');
@@ -43,7 +55,7 @@ const InstagramMockOAuth = () => {
         }
       }
 
-      // 3. Close the popup
+      // 4. Close the popup
       setTimeout(() => {
         window.close();
       }, 500);
@@ -53,7 +65,17 @@ const InstagramMockOAuth = () => {
   const handleCancel = () => {
     const messagePayload = { type: 'instagram-oauth-cancel' };
 
-    // 1. BroadcastChannel (same-origin fallback)
+    // 1. Write to localStorage (same-origin fallback)
+    try {
+      localStorage.setItem('instagram_oauth_result', JSON.stringify({
+        type: 'instagram-oauth-cancel',
+        timestamp: Date.now()
+      }));
+    } catch (e) {
+      console.error('LocalStorage write failed:', e);
+    }
+
+    // 2. BroadcastChannel (same-origin fallback)
     try {
       const bc = new BroadcastChannel('instagram_oauth');
       bc.postMessage(messagePayload);
@@ -62,7 +84,7 @@ const InstagramMockOAuth = () => {
       console.error('BroadcastChannel failed:', e);
     }
 
-    // 2. postMessage (classic fallback)
+    // 3. postMessage (classic fallback)
     if (window.opener) {
       try {
         window.opener.postMessage(messagePayload, '*');
@@ -71,7 +93,7 @@ const InstagramMockOAuth = () => {
       }
     }
 
-    // 3. Close the popup
+    // 4. Close the popup
     setTimeout(() => {
       window.close();
     }, 500);

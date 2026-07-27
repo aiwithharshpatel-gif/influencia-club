@@ -28,7 +28,11 @@ const Profile = () => {
       }
     };
 
+    const processedCodes = new Set();
+
     const processOAuthSuccess = async (code, username) => {
+      if (!code || processedCodes.has(code)) return;
+      processedCodes.add(code);
       try {
         setIgLoading(true);
         const res = await api.post('/creators/instagram/connect', { code, username });
@@ -66,9 +70,23 @@ const Profile = () => {
       }
     };
 
+    // Storage event listener for localStorage same-origin fallback
+    const handleStorageChange = async (event) => {
+      if (event.key === 'instagram_oauth_result' && event.newValue) {
+        try {
+          const data = JSON.parse(event.newValue);
+          if (data.type === 'instagram-oauth-success' && Date.now() - data.timestamp < 30000) {
+            await processOAuthSuccess(data.code, data.username || '');
+          }
+        } catch (e) {}
+      }
+    };
+
     window.addEventListener('message', handleOAuthMessage);
+    window.addEventListener('storage', handleStorageChange);
     return () => {
       window.removeEventListener('message', handleOAuthMessage);
+      window.removeEventListener('storage', handleStorageChange);
       bc.close();
     };
   }, []);
