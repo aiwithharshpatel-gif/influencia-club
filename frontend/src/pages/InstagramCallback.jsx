@@ -20,10 +20,10 @@ const InstagramCallback = () => {
             code: code,
             username: '' // In real OAuth, username will be resolved by the backend
           },
-          window.location.origin
+          '*'
         );
       } else {
-        window.opener.postMessage({ type: 'instagram-oauth-cancel' }, window.location.origin);
+        window.opener.postMessage({ type: 'instagram-oauth-cancel' }, '*');
       }
       window.close();
     } else {

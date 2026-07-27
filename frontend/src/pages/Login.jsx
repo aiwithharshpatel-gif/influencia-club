@@ -38,8 +38,20 @@ const Login = () => {
   };
 
   useEffect(() => {
+    const getDomain = (url) => {
+      try {
+        return new URL(url).hostname.replace('www.', '');
+      } catch (e) {
+        // Fallback for simple strings or invalid URLs
+        return url.replace(/^(https?:\/\/)?(www\.)?/, '').split('/')[0].split(':')[0];
+      }
+    };
+
     const handleOAuthMessage = async (event) => {
-      if (event.origin !== window.location.origin) return;
+      const parentDomain = getDomain(window.location.origin);
+      const eventDomain = getDomain(event.origin);
+      if (parentDomain !== eventDomain) return;
+      
       if (event.data?.type === 'instagram-oauth-success') {
         const { code, username } = event.data;
         try {

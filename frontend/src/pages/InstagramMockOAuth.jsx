@@ -25,7 +25,7 @@ const InstagramMockOAuth = () => {
             code: `mock_oauth_code_${Math.floor(Math.random() * 900000) + 100000}`,
             username: username.trim().replace(/^@/, '')
           },
-          window.location.origin
+          '*'
         );
         window.close();
       } else {
@@ -38,7 +38,7 @@ const InstagramMockOAuth = () => {
 
   const handleCancel = () => {
     if (window.opener) {
-      window.opener.postMessage({ type: 'instagram-oauth-cancel' }, window.location.origin);
+      window.opener.postMessage({ type: 'instagram-oauth-cancel' }, '*');
     }
     window.close();
   };
