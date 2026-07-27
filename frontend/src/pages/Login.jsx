@@ -26,7 +26,7 @@ const Login = () => {
       const top = window.screen.height / 2 - height / 2;
       window.open(
         authUrl,
-        'Instagram Login',
+        'InstagramLogin',
         `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes`
       );
     } catch (err) {
