@@ -68,7 +68,7 @@ function generateRandomIP() {
     await loginPopup.waitForLoadState('networkidle');
     console.log(`✅ Login Popup opened! Authorizing unregistered handle @${testInsta}...`);
     await loginPopup.fill('input[placeholder="username"]', testInsta);
-    await loginPopup.click('button:has-text("Authorize & Connect")');
+    await loginPopup.click('button:has-text("Authorize & Connect")', { force: true });
 
     console.log(`⏳ Waiting for redirection to /join page...`);
     await page.waitForURL('**/join?handle=*', { timeout: 15000 });
@@ -102,7 +102,11 @@ function generateRandomIP() {
     console.log(`👉 Submitting Completed Form...`);
     // Note: Since we are using Instagram registration, it submits to /instagram/register-complete
     // which directly logs the user in without OTP verification!
-    await page.click('button:has-text("Send Verification Code")'); 
+    if (await page.locator('button:has-text("Complete Registration ✨")').count() > 0) {
+      await page.click('button:has-text("Complete Registration ✨")');
+    } else {
+      await page.click('button:has-text("Send Verification Code")');
+    } 
     // Wait, the button text for submission is still 'Send Verification Code' in the template form 
     // but the handler onSubmit routes it directly to register-complete. Let's wait for dashboard redirect.
 
@@ -130,7 +134,7 @@ function generateRandomIP() {
     await returningLoginPopup.waitForLoadState('networkidle');
     console.log(`✅ Popup opened! Authorizing registered handle @${testInsta}...`);
     await returningLoginPopup.fill('input[placeholder="username"]', testInsta);
-    await returningLoginPopup.click('button:has-text("Authorize & Connect")');
+    await returningLoginPopup.click('button:has-text("Authorize & Connect")', { force: true });
 
     await page.waitForURL('**/dashboard', { timeout: 15000 });
     console.log(`✅ Instant login successful! Redirected to Creator Dashboard.`);
