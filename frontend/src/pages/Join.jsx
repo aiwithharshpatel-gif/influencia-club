@@ -92,6 +92,33 @@ const Join = () => {
       }
     };
 
+    const processOAuthSuccess = async (code, username) => {
+      try {
+        setIgConnecting(true);
+        const res = await api.post('/auth/instagram/authenticate', { code, username });
+        if (res.data.success && res.data.existingUser) {
+          toast.success('Account exists! Logged in successfully.');
+          window.location.href = '/dashboard';
+        } else if (res.data.registrationRequired) {
+          toast.success('Instagram profile synced! Complete registration.');
+          setIgProfile({
+            username: res.data.igProfile.username,
+            fullName: res.data.igProfile.fullName,
+            profilePicUrl: res.data.igProfile.profilePicUrl,
+            followersCount: res.data.igProfile.followersCount,
+            code: res.data.igProfile.accessToken || code
+          });
+          setValue('instagram', res.data.igProfile.username);
+          setValue('name', res.data.igProfile.fullName);
+        }
+      } catch (err) {
+        console.error(err);
+        toast.error(err.response?.data?.message || 'Instagram connection failed');
+      } finally {
+        setIgConnecting(false);
+      }
+    };
+
     const handleOAuthMessage = async (event) => {
       const parentDomain = getDomain(window.location.origin);
       const eventDomain = getDomain(event.origin);
@@ -99,35 +126,24 @@ const Join = () => {
 
       if (event.data?.type === 'instagram-oauth-success') {
         const { code, username } = event.data;
-        try {
-          setIgConnecting(true);
-          const res = await api.post('/auth/instagram/authenticate', { code, username });
-          if (res.data.success && res.data.existingUser) {
-            toast.success('Account exists! Logged in successfully.');
-            window.location.href = '/dashboard';
-          } else if (res.data.registrationRequired) {
-            toast.success('Instagram profile synced! Complete registration.');
-            setIgProfile({
-              username: res.data.igProfile.username,
-              fullName: res.data.igProfile.fullName,
-              profilePicUrl: res.data.igProfile.profilePicUrl,
-              followersCount: res.data.igProfile.followersCount,
-              code: res.data.igProfile.accessToken || code
-            });
-            setValue('instagram', res.data.igProfile.username);
-            setValue('name', res.data.igProfile.fullName);
-          }
-        } catch (err) {
-          console.error(err);
-          toast.error(err.response?.data?.message || 'Instagram connection failed');
-        } finally {
-          setIgConnecting(false);
-        }
+        await processOAuthSuccess(code, username);
+      }
+    };
+
+    // BroadcastChannel for same-origin fallback
+    const bc = new BroadcastChannel('instagram_oauth');
+    bc.onmessage = async (event) => {
+      if (event.data?.type === 'instagram-oauth-success') {
+        const { code, username } = event.data;
+        await processOAuthSuccess(code, username);
       }
     };
 
     window.addEventListener('message', handleOAuthMessage);
-    return () => window.removeEventListener('message', handleOAuthMessage);
+    return () => {
+      window.removeEventListener('message', handleOAuthMessage);
+      bc.close();
+    };
   }, [setValue]);
 
   useEffect(() => {

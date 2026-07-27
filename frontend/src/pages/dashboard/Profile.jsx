@@ -28,6 +28,24 @@ const Profile = () => {
       }
     };
 
+    const processOAuthSuccess = async (code, username) => {
+      try {
+        setIgLoading(true);
+        const res = await api.post('/creators/instagram/connect', { code, username });
+        if (res.data.success) {
+          toast.success('Instagram business profile connected successfully!');
+          // Refresh states
+          await fetchProfile();
+          await fetchInstagramProfile();
+        }
+      } catch (err) {
+        console.error(err);
+        toast.error(err.response?.data?.message || 'Failed to connect Instagram profile');
+      } finally {
+        setIgLoading(false);
+      }
+    };
+
     const handleOAuthMessage = async (event) => {
       const parentDomain = getDomain(window.location.origin);
       const eventDomain = getDomain(event.origin);
@@ -35,26 +53,24 @@ const Profile = () => {
 
       if (event.data?.type === 'instagram-oauth-success') {
         const { code, username } = event.data;
-        try {
-          setIgLoading(true);
-          const res = await api.post('/creators/instagram/connect', { code, username });
-          if (res.data.success) {
-            toast.success('Instagram business profile connected successfully!');
-            // Refresh states
-            await fetchProfile();
-            await fetchInstagramProfile();
-          }
-        } catch (err) {
-          console.error(err);
-          toast.error(err.response?.data?.message || 'Failed to connect Instagram profile');
-        } finally {
-          setIgLoading(false);
-        }
+        await processOAuthSuccess(code, username);
+      }
+    };
+
+    // BroadcastChannel for same-origin fallback
+    const bc = new BroadcastChannel('instagram_oauth');
+    bc.onmessage = async (event) => {
+      if (event.data?.type === 'instagram-oauth-success') {
+        const { code, username } = event.data;
+        await processOAuthSuccess(code, username);
       }
     };
 
     window.addEventListener('message', handleOAuthMessage);
-    return () => window.removeEventListener('message', handleOAuthMessage);
+    return () => {
+      window.removeEventListener('message', handleOAuthMessage);
+      bc.close();
+    };
   }, []);
 
   const fetchProfile = async () => {

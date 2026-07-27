@@ -11,30 +11,32 @@ const InstagramCallback = () => {
       code = code.replace(/#_$/, '').trim();
     }
     
+    const messagePayload = code 
+      ? { type: 'instagram-oauth-success', code: code, username: '' } 
+      : { type: 'instagram-oauth-cancel' };
+
+    // 1. Send via BroadcastChannel (same-origin fallback)
+    try {
+      const bc = new BroadcastChannel('instagram_oauth');
+      bc.postMessage(messagePayload);
+      bc.close();
+    } catch (e) {
+      console.error('BroadcastChannel failed:', e);
+    }
+
+    // 2. Send via window.opener.postMessage (classic fallback)
     if (window.opener) {
-      if (code) {
-        // Send the cleaned authorization code to the parent window
-        window.opener.postMessage(
-          {
-            type: 'instagram-oauth-success',
-            code: code,
-            username: '' // In real OAuth, username will be resolved by the backend
-          },
-          '*'
-        );
-      } else {
-        window.opener.postMessage({ type: 'instagram-oauth-cancel' }, '*');
-      }
-      window.close();
-    } else {
-      // No opener — user may have navigated here directly or popup was blocked
-      // Redirect to login page with the code as a query param so the parent page can pick it up
-      if (code) {
-        window.location.href = `/login?igcode=${encodeURIComponent(code)}`;
-      } else {
-        document.body.innerHTML = '<div style="color:white;text-align:center;margin-top:100px;font-family:sans-serif;">Instagram connection failed. Please close this window and try again.</div>';
+      try {
+        window.opener.postMessage(messagePayload, '*');
+      } catch (e) {
+        console.error('postMessage failed:', e);
       }
     }
+
+    // 3. Close the popup
+    setTimeout(() => {
+      window.close();
+    }, 500);
   }, [searchParams]);
 
   return (

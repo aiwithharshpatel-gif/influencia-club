@@ -47,6 +47,28 @@ const Login = () => {
       }
     };
 
+    const processOAuthSuccess = async (code, username) => {
+      try {
+        setIgConnecting(true);
+        const res = await api.post('/auth/instagram/authenticate', { code, username });
+        if (res.data.success && res.data.existingUser) {
+          toast.success('Login successful!');
+          window.location.href = '/dashboard';
+        } else if (res.data.registrationRequired) {
+          toast.error('No account connected to this Instagram. Redirecting to signup...');
+          const resolvedHandle = res.data.igProfile?.username || username || '';
+          setTimeout(() => {
+            navigate(`/join?handle=${encodeURIComponent(resolvedHandle)}&code=${code}`);
+          }, 1500);
+        }
+      } catch (err) {
+        console.error(err);
+        toast.error(err.response?.data?.message || 'Instagram login failed');
+      } finally {
+        setIgConnecting(false);
+      }
+    };
+
     const handleOAuthMessage = async (event) => {
       const parentDomain = getDomain(window.location.origin);
       const eventDomain = getDomain(event.origin);
@@ -54,30 +76,24 @@ const Login = () => {
       
       if (event.data?.type === 'instagram-oauth-success') {
         const { code, username } = event.data;
-        try {
-          setIgConnecting(true);
-          const res = await api.post('/auth/instagram/authenticate', { code, username });
-          if (res.data.success && res.data.existingUser) {
-            toast.success('Login successful!');
-            window.location.href = '/dashboard';
-          } else if (res.data.registrationRequired) {
-            toast.error('No account connected to this Instagram. Redirecting to signup...');
-            const resolvedHandle = res.data.igProfile?.username || username || '';
-            setTimeout(() => {
-              navigate(`/join?handle=${encodeURIComponent(resolvedHandle)}&code=${code}`);
-            }, 1500);
-          }
-        } catch (err) {
-          console.error(err);
-          toast.error(err.response?.data?.message || 'Instagram login failed');
-        } finally {
-          setIgConnecting(false);
-        }
+        await processOAuthSuccess(code, username);
+      }
+    };
+
+    // BroadcastChannel for same-origin fallback
+    const bc = new BroadcastChannel('instagram_oauth');
+    bc.onmessage = async (event) => {
+      if (event.data?.type === 'instagram-oauth-success') {
+        const { code, username } = event.data;
+        await processOAuthSuccess(code, username);
       }
     };
 
     window.addEventListener('message', handleOAuthMessage);
-    return () => window.removeEventListener('message', handleOAuthMessage);
+    return () => {
+      window.removeEventListener('message', handleOAuthMessage);
+      bc.close();
+    };
   }, [navigate]);
 
   const onSubmit = async (data) => {

@@ -17,30 +17,64 @@ const InstagramMockOAuth = () => {
     setError('');
 
     setTimeout(() => {
-      // Send message to the window opener (the Profile page)
-      if (window.opener) {
-        window.opener.postMessage(
-          {
-            type: 'instagram-oauth-success',
-            code: `mock_oauth_code_${Math.floor(Math.random() * 900000) + 100000}`,
-            username: username.trim().replace(/^@/, '')
-          },
-          '*'
-        );
-        window.close();
-      } else {
-        // Fallback if not opened in a popup
-        alert('Instagram mock connection successful! Close this window and refresh your profile.');
-        setLoading(false);
+      const code = `mock_oauth_code_${Math.floor(Math.random() * 900000) + 100000}`;
+      const resolvedUsername = username.trim().replace(/^@/, '');
+      const messagePayload = {
+        type: 'instagram-oauth-success',
+        code: code,
+        username: resolvedUsername
+      };
+
+      // 1. BroadcastChannel (same-origin fallback)
+      try {
+        const bc = new BroadcastChannel('instagram_oauth');
+        bc.postMessage(messagePayload);
+        bc.close();
+      } catch (e) {
+        console.error('BroadcastChannel failed:', e);
       }
+
+      // 2. postMessage (classic fallback)
+      if (window.opener) {
+        try {
+          window.opener.postMessage(messagePayload, '*');
+        } catch (e) {
+          console.error('postMessage failed:', e);
+        }
+      }
+
+      // 3. Close the popup
+      setTimeout(() => {
+        window.close();
+      }, 500);
     }, 1200);
   };
 
   const handleCancel = () => {
-    if (window.opener) {
-      window.opener.postMessage({ type: 'instagram-oauth-cancel' }, '*');
+    const messagePayload = { type: 'instagram-oauth-cancel' };
+
+    // 1. BroadcastChannel (same-origin fallback)
+    try {
+      const bc = new BroadcastChannel('instagram_oauth');
+      bc.postMessage(messagePayload);
+      bc.close();
+    } catch (e) {
+      console.error('BroadcastChannel failed:', e);
     }
-    window.close();
+
+    // 2. postMessage (classic fallback)
+    if (window.opener) {
+      try {
+        window.opener.postMessage(messagePayload, '*');
+      } catch (e) {
+        console.error('postMessage failed:', e);
+      }
+    }
+
+    // 3. Close the popup
+    setTimeout(() => {
+      window.close();
+    }, 500);
   };
 
   return (
