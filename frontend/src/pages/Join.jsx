@@ -66,15 +66,24 @@ const Join = () => {
       const res = await api.get('/auth/instagram/auth-url');
       const authUrl = res.data.url;
 
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.innerWidth < 768;
+      if (isMobile) {
+        window.location.href = authUrl;
+        return;
+      }
+
       const width = 520;
       const height = 680;
       const left = window.screen.width / 2 - width / 2;
       const top = window.screen.height / 2 - height / 2;
-      window.open(
+      const popup = window.open(
         authUrl,
         'InstagramOAuthConnect',
         `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes`
       );
+      if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+        window.location.href = authUrl;
+      }
     } catch (err) {
       console.error(err);
       toast.error('Failed to initiate Instagram connection');
@@ -165,6 +174,33 @@ const Join = () => {
   }, [setValue]);
 
   useEffect(() => {
+    // 1. Check for temp_ig_profile saved during full page redirect
+    try {
+      const savedTemp = localStorage.getItem('temp_ig_profile');
+      if (savedTemp) {
+        const parsed = JSON.parse(savedTemp);
+        if (parsed.igProfile && Date.now() - parsed.timestamp < 600000) {
+          setIgProfile({
+            username: parsed.igProfile.username,
+            fullName: parsed.igProfile.fullName,
+            profilePicUrl: parsed.igProfile.profilePicUrl,
+            followersCount: parsed.igProfile.followersCount,
+            code: parsed.igProfile.code || parsed.igProfile.accessToken
+          });
+          setValue('instagram', parsed.igProfile.username);
+          if (parsed.igProfile.fullName) {
+            setValue('name', parsed.igProfile.fullName);
+          }
+          toast.success('Instagram profile synced! Complete remaining fields.');
+        }
+        localStorage.removeItem('temp_ig_profile');
+        return;
+      }
+    } catch (e) {
+      console.error('Error reading stored temp IG profile:', e);
+    }
+
+    // 2. Pre-fill via URL params if provided
     const handleUrlPreFill = async () => {
       if (handleFromUrl) {
         try {

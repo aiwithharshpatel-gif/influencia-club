@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../context/AuthContext';
-import { ShieldCheck, Mail, Key } from 'lucide-react';
+import { ShieldCheck, Mail, Key, User, ShieldAlert } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import toast from 'react-hot-toast';
@@ -149,11 +149,24 @@ const BrandLogin = () => {
               </form>
             )}
 
-            <div className="text-center text-muted text-sm mt-6 pt-6 border-t border-border/50">
-              Not a client yet?{' '}
-              <Link to="/brands" className="text-primary hover:text-primary-soft font-medium transition-colors">
-                Start a Campaign
-              </Link>
+            <div className="text-center text-muted text-sm mt-6 pt-6 border-t border-border/50 space-y-3">
+              <p>
+                Not a client yet?{' '}
+                <Link to="/brands" className="text-primary hover:text-primary-soft font-medium transition-colors">
+                  Start a Campaign
+                </Link>
+              </p>
+              <div className="flex justify-center items-center space-x-4 pt-2 text-xs">
+                <Link to="/login" className="text-muted hover:text-gold transition-colors flex items-center space-x-1">
+                  <User size={12} />
+                  <span>Creator Login</span>
+                </Link>
+                <span className="text-border">|</span>
+                <Link to="/admin-login" className="text-muted hover:text-gold transition-colors flex items-center space-x-1">
+                  <ShieldAlert size={12} />
+                  <span>Admin Portal</span>
+                </Link>
+              </div>
             </div>
           </div>
         </div>

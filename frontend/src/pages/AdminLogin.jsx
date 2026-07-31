@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { ShieldAlert, Mail, Lock, Sparkles, ArrowRight } from 'lucide-react';
+import { ShieldAlert, Mail, Lock, Sparkles, ArrowRight, User, Building, Home } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const AdminLogin = () => {
@@ -132,6 +132,26 @@ const AdminLogin = () => {
             )}
           </button>
         </form>
+
+        {/* Portal Switcher & Return Links */}
+        <div className="mt-6 pt-6 border-t border-zinc-800/80 text-center space-y-3">
+          <div className="flex justify-center items-center space-x-4 text-xs">
+            <Link to="/login" className="text-zinc-400 hover:text-[#D4AF37] transition-colors flex items-center space-x-1">
+              <User size={13} />
+              <span>Creator Login</span>
+            </Link>
+            <span className="text-zinc-700">|</span>
+            <Link to="/brand-login" className="text-zinc-400 hover:text-[#D4AF37] transition-colors flex items-center space-x-1">
+              <Building size={13} />
+              <span>Brand Portal</span>
+            </Link>
+            <span className="text-zinc-700">|</span>
+            <Link to="/" className="text-zinc-400 hover:text-[#D4AF37] transition-colors flex items-center space-x-1">
+              <Home size={13} />
+              <span>Back Home</span>
+            </Link>
+          </div>
+        </div>
       </div>
 
       {/* Footer copyright */}

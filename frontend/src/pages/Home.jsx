@@ -221,13 +221,21 @@ const Home = () => {
               </p>
             </div>
 
-            {/* Sub CTAs */}
-            <div className="flex justify-center items-center space-x-6 mb-12 relative z-10">
-              <Link to="/login" className="text-white/80 hover:text-gold transition-colors text-xs font-semibold tracking-wider uppercase border-b border-white/5 hover:border-gold/30 pb-0.5">
+            {/* Sub CTAs - Portals & Login Links */}
+            <div className="flex flex-wrap justify-center items-center gap-x-4 sm:gap-x-6 gap-y-2 mb-12 relative z-10 text-xs font-semibold tracking-wider uppercase">
+              <Link to="/login" className="text-white/80 hover:text-gold transition-colors border-b border-white/5 hover:border-gold/30 pb-0.5">
+                Creator Sign In
+              </Link>
+              <span className="text-white/20">|</span>
+              <Link to="/brand-login" className="text-gold/90 hover:text-gold transition-colors border-b border-gold/20 hover:border-gold pb-0.5 font-bold">
                 Brand Portal
               </Link>
-              <span className="text-white/10">|</span>
-              <Link to="/creators" className="text-white/80 hover:text-gold transition-colors text-xs font-semibold tracking-wider uppercase border-b border-white/5 hover:border-gold/30 pb-0.5">
+              <span className="text-white/20">|</span>
+              <Link to="/admin-login" className="text-white/80 hover:text-gold transition-colors border-b border-white/5 hover:border-gold/30 pb-0.5">
+                Admin Portal
+              </Link>
+              <span className="text-white/20">|</span>
+              <Link to="/creators" className="text-white/80 hover:text-gold transition-colors border-b border-white/5 hover:border-gold/30 pb-0.5">
                 Explore Creators
               </Link>
             </div>

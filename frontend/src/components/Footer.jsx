@@ -13,8 +13,10 @@ const Footer = () => {
   ];
 
   const brandLinks = [
-    { label: 'Brands', path: '/brands' },
-    { label: 'Contact', path: '/contact' },
+    { label: 'Brands Overview', path: '/brands' },
+    { label: 'Brand Portal', path: '/brand-login' },
+    { label: 'Admin Portal', path: '/admin-login' },
+    { label: 'Creator Sign In', path: '/login' },
     { label: 'Privacy Policy', path: '/privacy' },
     { label: 'Terms & Conditions', path: '/terms' },
   ];

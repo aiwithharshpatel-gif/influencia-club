@@ -895,6 +895,21 @@ router.get('/instagram/auth-url', (req, res) => {
 router.post('/instagram/authenticate', async (req, res) => {
   try {
     const { code, username } = req.body;
+
+    // Check if optional authenticated user token is provided
+    let currentUserId = null;
+    try {
+      const authHeader = req.headers.authorization;
+      const token = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : req.cookies?.accessToken;
+      if (token) {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        if (decoded && decoded.id && decoded.role === 'creator') {
+          currentUserId = decoded.id;
+        }
+      }
+    } catch (e) {
+      // Token missing or expired, proceed normally
+    }
     
     // Exchange auth code for long-lived access token if not mock
     const isMock = !code || code.startsWith('mock_');
@@ -913,12 +928,27 @@ router.post('/instagram/authenticate', async (req, res) => {
 
     const cleanedUsername = igData.username.replace(/^@/, '').trim().toLowerCase();
 
-    // Find if creator with this Instagram handle exists
-    const creator = await prisma.creator.findFirst({
-      where: { instagram: cleanedUsername }
-    });
+    // Find creator: first check currentUserId if logged in, else search by instagram handle
+    let creator = null;
+    if (currentUserId) {
+      creator = await prisma.creator.findUnique({
+        where: { id: currentUserId }
+      });
+    }
+    if (!creator) {
+      creator = await prisma.creator.findFirst({
+        where: { instagram: cleanedUsername }
+      });
+    }
 
     if (creator) {
+      // Update creator instagram handle if missing or different
+      if (creator.instagram !== cleanedUsername) {
+        await prisma.creator.update({
+          where: { id: creator.id },
+          data: { instagram: cleanedUsername }
+        });
+      }
       // Sync InstagramProfile statistics
       const updatedProfile = await prisma.instagramProfile.upsert({
         where: { creatorId: creator.id },

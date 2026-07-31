@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../context/AuthContext';
-import { LogIn } from 'lucide-react';
+import { LogIn, User, Building, ShieldAlert } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import toast from 'react-hot-toast';
@@ -20,15 +20,24 @@ const Login = () => {
       const res = await api.get('/auth/instagram/auth-url');
       const authUrl = res.data.url;
 
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.innerWidth < 768;
+      if (isMobile) {
+        window.location.href = authUrl;
+        return;
+      }
+
       const width = 520;
       const height = 680;
       const left = window.screen.width / 2 - width / 2;
       const top = window.screen.height / 2 - height / 2;
-      window.open(
+      const popup = window.open(
         authUrl,
         'InstagramLogin',
         `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes`
       );
+      if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+        window.location.href = authUrl;
+      }
     } catch (err) {
       console.error(err);
       toast.error('Failed to initiate Instagram login');
@@ -134,6 +143,32 @@ const Login = () => {
       
       <section className="pt-32 pb-20">
         <div className="max-w-md mx-auto px-4 sm:px-6 lg:px-8">
+
+          {/* Portal Switcher Tabs */}
+          <div className="flex items-center justify-between p-1.5 mb-6 bg-bg-card/80 border border-border rounded-xl backdrop-blur-md">
+            <button
+              className="flex-1 flex items-center justify-center space-x-1.5 py-2.5 px-3 rounded-lg text-xs font-bold transition-all bg-gold/15 text-gold border border-gold/30 shadow-sm"
+              disabled
+            >
+              <User size={14} />
+              <span>Creator Login</span>
+            </button>
+            <Link
+              to="/brand-login"
+              className="flex-1 flex items-center justify-center space-x-1.5 py-2.5 px-3 rounded-lg text-xs font-medium text-muted hover:text-white hover:bg-white/5 transition-all"
+            >
+              <Building size={14} />
+              <span>Brand Portal</span>
+            </Link>
+            <Link
+              to="/admin-login"
+              className="flex-1 flex items-center justify-center space-x-1.5 py-2.5 px-3 rounded-lg text-xs font-medium text-muted hover:text-white hover:bg-white/5 transition-all"
+            >
+              <ShieldAlert size={14} />
+              <span>Admin Portal</span>
+            </Link>
+          </div>
+
           <div className="bg-bg-card rounded-2xl p-8 border border-border">
             <div className="text-center mb-8">
               <div className="w-16 h-16 bg-purple-glow rounded-full flex items-center justify-center mx-auto mb-4">
@@ -236,13 +271,24 @@ const Login = () => {
               </Link>
             </p>
 
-            <div className="mt-6 pt-6 border-t border-border/50 text-center">
-              <p className="text-muted text-sm">
-                Are you a Brand Partner?{' '}
-                <Link to="/brand-login" className="text-primary hover:text-primary-soft font-medium">
-                  Access Brand Portal
+            <div className="mt-6 pt-6 border-t border-border/50 space-y-2 text-center">
+              <p className="text-muted text-xs uppercase font-semibold tracking-wider mb-3">Looking for other portals?</p>
+              <div className="grid grid-cols-2 gap-3">
+                <Link
+                  to="/brand-login"
+                  className="flex items-center justify-center space-x-1.5 py-2.5 px-3 rounded-lg border border-gold/30 bg-gold/5 text-gold hover:bg-gold/15 transition-all text-xs font-bold"
+                >
+                  <Building size={14} />
+                  <span>Brand Portal</span>
                 </Link>
-              </p>
+                <Link
+                  to="/admin-login"
+                  className="flex items-center justify-center space-x-1.5 py-2.5 px-3 rounded-lg border border-border bg-white/5 text-white/80 hover:text-white hover:border-gold/30 transition-all text-xs font-bold"
+                >
+                  <ShieldAlert size={14} />
+                  <span>Admin Portal</span>
+                </Link>
+              </div>
             </div>
           </div>
         </div>

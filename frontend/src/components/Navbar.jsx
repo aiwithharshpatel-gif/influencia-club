@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Sun, Moon } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { Menu, X, Sun, Moon, ChevronDown, User, Building, ShieldAlert } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
 import logo from '../assets/logo.png';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -10,6 +10,8 @@ const Navbar = () => {
   const { isDark, toggleTheme } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [loginDropdownOpen, setLoginDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
   const location = useLocation();
 
   const navLinks = [
@@ -31,6 +33,16 @@ const Navbar = () => {
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setLoginDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const isActive = (path) => location.pathname === path;
@@ -105,12 +117,58 @@ const Navbar = () => {
                 </>
               ) : (
                 <>
-                  <Link
-                    to="/login"
-                    className="px-5 py-2 rounded-full border border-gold/40 text-gold hover:bg-gold-gradient hover:text-black hover:border-transparent transition-all text-xs font-bold uppercase tracking-wider"
-                  >
-                    Sign In
-                  </Link>
+                  {/* Sign In Dropdown for Portals */}
+                  <div className="relative" ref={dropdownRef}>
+                    <button
+                      onClick={() => setLoginDropdownOpen(!loginDropdownOpen)}
+                      className="px-5 py-2 rounded-full border border-gold/40 text-gold hover:bg-gold-gradient hover:text-black hover:border-transparent transition-all text-xs font-bold uppercase tracking-wider flex items-center space-x-1.5"
+                    >
+                      <span>Sign In</span>
+                      <ChevronDown size={14} className={`transition-transform duration-200 ${loginDropdownOpen ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    {loginDropdownOpen && (
+                      <div className="absolute right-0 mt-3 w-56 bg-bg-card border border-gold/30 rounded-2xl shadow-2xl p-2 z-50 backdrop-blur-xl animate-fadeIn">
+                        <div className="text-[10px] uppercase font-bold text-muted px-3 py-1.5 border-b border-border/50 tracking-wider">
+                          Select Portal
+                        </div>
+                        <Link
+                          to="/login"
+                          onClick={() => setLoginDropdownOpen(false)}
+                          className="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-white hover:bg-gold/15 hover:text-gold transition-all my-0.5"
+                        >
+                          <User size={15} className="text-gold" />
+                          <div>
+                            <p className="font-bold">Creator Login</p>
+                            <p className="text-[10px] text-muted font-normal">For influencers & creators</p>
+                          </div>
+                        </Link>
+                        <Link
+                          to="/brand-login"
+                          onClick={() => setLoginDropdownOpen(false)}
+                          className="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-white hover:bg-gold/15 hover:text-gold transition-all my-0.5"
+                        >
+                          <Building size={15} className="text-gold" />
+                          <div>
+                            <p className="font-bold">Brand Portal</p>
+                            <p className="text-[10px] text-muted font-normal">For brand partners</p>
+                          </div>
+                        </Link>
+                        <Link
+                          to="/admin-login"
+                          onClick={() => setLoginDropdownOpen(false)}
+                          className="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-white hover:bg-gold/15 hover:text-gold transition-all my-0.5"
+                        >
+                          <ShieldAlert size={15} className="text-gold" />
+                          <div>
+                            <p className="font-bold">Admin Portal</p>
+                            <p className="text-[10px] text-muted font-normal">System administration</p>
+                          </div>
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+
                   <Link
                     to="/join"
                     className="btn-primary text-xs px-6 py-2.5 rounded-full uppercase tracking-wider font-bold"
@@ -186,24 +244,35 @@ const Navbar = () => {
                   </>
                 ) : (
                   <>
+                    <div className="text-xs uppercase font-bold text-gold tracking-wider px-1">Logins & Portals</div>
                     <Link
                       to="/login"
                       onClick={() => setIsOpen(false)}
-                      className="block px-4 py-3 rounded-lg text-sm font-medium text-white/80 hover:bg-white/5 hover:text-white transition-all text-center"
+                      className="flex items-center justify-center space-x-2 px-4 py-2.5 rounded-lg text-sm font-medium text-white bg-white/5 hover:bg-white/10 transition-all border border-border"
                     >
-                      Sign In
+                      <User size={16} className="text-gold" />
+                      <span>Creator Login</span>
                     </Link>
                     <Link
                       to="/brand-login"
                       onClick={() => setIsOpen(false)}
-                      className="block px-4 py-3 rounded-lg text-sm font-medium text-gold/80 hover:bg-white/5 hover:text-gold transition-all text-center border border-gold/20"
+                      className="flex items-center justify-center space-x-2 px-4 py-2.5 rounded-lg text-sm font-medium text-gold bg-gold/5 hover:bg-gold/10 transition-all border border-gold/30"
                     >
-                      Brand Portal
+                      <Building size={16} />
+                      <span>Brand Portal</span>
+                    </Link>
+                    <Link
+                      to="/admin-login"
+                      onClick={() => setIsOpen(false)}
+                      className="flex items-center justify-center space-x-2 px-4 py-2.5 rounded-lg text-sm font-medium text-white/80 bg-white/5 hover:bg-white/10 transition-all border border-border"
+                    >
+                      <ShieldAlert size={16} className="text-gold" />
+                      <span>Admin Portal</span>
                     </Link>
                     <Link
                       to="/join"
                       onClick={() => setIsOpen(false)}
-                      className="block btn-primary text-center py-3 rounded-lg"
+                      className="block btn-primary text-center py-3 rounded-lg font-bold mt-2"
                     >
                       Join Now
                     </Link>

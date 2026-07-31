@@ -150,15 +150,24 @@ const Profile = () => {
       const res = await api.get('/auth/instagram/auth-url');
       const authUrl = res.data.url;
 
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.innerWidth < 768;
+      if (isMobile) {
+        window.location.href = authUrl;
+        return;
+      }
+
       const width = 520;
       const height = 680;
       const left = window.screen.width / 2 - width / 2;
       const top = window.screen.height / 2 - height / 2;
-      window.open(
+      const popup = window.open(
         authUrl,
         'InstagramConnection',
         `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes`
       );
+      if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+        window.location.href = authUrl;
+      }
     } catch (err) {
       console.error(err);
       toast.error('Failed to initiate Instagram connection');

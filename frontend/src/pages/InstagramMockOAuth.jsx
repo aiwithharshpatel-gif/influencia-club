@@ -55,10 +55,16 @@ const InstagramMockOAuth = () => {
         }
       }
 
-      // 4. Close the popup
-      setTimeout(() => {
-        window.close();
-      }, 500);
+      // 4. Close popup or redirect to callback if full page window
+      if (window.opener && window.opener !== window && !window.opener.closed) {
+        setTimeout(() => {
+          try {
+            window.close();
+          } catch (e) {}
+        }, 500);
+      } else {
+        window.location.href = `/oauth/instagram/callback?code=${code}&username=${encodeURIComponent(resolvedUsername)}`;
+      }
     }, 1200);
   };
 
@@ -93,10 +99,16 @@ const InstagramMockOAuth = () => {
       }
     }
 
-    // 4. Close the popup
-    setTimeout(() => {
-      window.close();
-    }, 500);
+    // 4. Close popup or redirect home
+    if (window.opener && window.opener !== window && !window.opener.closed) {
+      setTimeout(() => {
+        try {
+          window.close();
+        } catch (e) {}
+      }, 300);
+    } else {
+      window.location.href = '/join';
+    }
   };
 
   return (
