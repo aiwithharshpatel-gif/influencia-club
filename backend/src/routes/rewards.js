@@ -246,7 +246,7 @@ router.post('/test-grant', async (req, res) => {
   }
   try {
     const { secret, points } = req.body;
-    if (secret !== (process.env.JWT_ADMIN_SECRET || process.env.JWT_SECRET)) {
+    if (secret !== process.env.JWT_ADMIN_SECRET) {
       return res.status(403).json({
         success: false,
         message: 'Forbidden'

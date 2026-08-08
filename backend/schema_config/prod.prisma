@@ -416,6 +416,7 @@ model OtpVerification {
   email     String   @db.VarChar(150)
   otp       String   @db.VarChar(10)
   userData  Json
+  attempts  Int      @default(0)
   expiresAt DateTime
   createdAt DateTime @default(now()) @map("created_at")
 

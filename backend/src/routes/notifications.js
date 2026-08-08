@@ -18,7 +18,7 @@ const verifyUser = (req, res, next) => {
     try {
       decoded = jwt.verify(token, process.env.JWT_SECRET);
     } catch (err) {
-      const adminSecret = process.env.JWT_ADMIN_SECRET || process.env.JWT_SECRET;
+      const adminSecret = process.env.JWT_ADMIN_SECRET;
       decoded = jwt.verify(token, adminSecret);
     }
 

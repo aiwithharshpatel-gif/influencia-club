@@ -25,7 +25,7 @@ const anyPaymentUserProtect = async (req, res, next) => {
     try {
       decoded = jwt.verify(token, process.env.JWT_SECRET);
     } catch (err) {
-      const adminSecret = process.env.JWT_ADMIN_SECRET || process.env.JWT_SECRET;
+      const adminSecret = process.env.JWT_ADMIN_SECRET;
       decoded = jwt.verify(token, adminSecret);
     }
 
@@ -424,7 +424,7 @@ router.get('/invoice/:paymentId', anyPaymentUserProtect, async (req, res) => {
 /**
  * Get AI Creator Matches for Brand Inquiry
  */
-router.post('/matches', async (req, res) => {
+router.post('/matches', anyPaymentUserProtect, async (req, res) => {
   try {
     const { brandInquiryId, limit = 10 } = req.body;
 

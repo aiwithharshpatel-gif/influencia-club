@@ -80,7 +80,7 @@ export const adminProtect = async (req, res, next) => {
       });
     }
 
-    const adminSecret = process.env.JWT_ADMIN_SECRET || process.env.JWT_SECRET;
+    const adminSecret = process.env.JWT_ADMIN_SECRET;
     const decoded = jwt.verify(token, adminSecret);
     
     if (decoded.role !== 'admin') {
@@ -157,7 +157,7 @@ export const anyProtect = async (req, res, next) => {
 
     // Try verifying as admin
     try {
-      const adminSecret = process.env.JWT_ADMIN_SECRET || process.env.JWT_SECRET;
+      const adminSecret = process.env.JWT_ADMIN_SECRET;
       const decoded = jwt.verify(token, adminSecret);
       if (decoded.role === 'admin') {
         const admin = await prisma.admin.findUnique({

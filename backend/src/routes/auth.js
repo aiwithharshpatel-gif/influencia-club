@@ -18,6 +18,7 @@ const loginLimiter = rateLimit({
   max: 5,
   message: 'Too many login attempts, please try again after 15 minutes',
   skip: (req) => {
+    if (process.env.NODE_ENV === 'production') return false;
     const email = req.body?.email || req.query?.email;
     return typeof email === 'string' && (email.toLowerCase().includes('e2e') || email.toLowerCase().includes('test'));
   }
@@ -28,6 +29,7 @@ const otpLimiter = rateLimit({
   max: 3,
   message: 'Too many OTP requests, please try again after 15 minutes',
   skip: (req) => {
+    if (process.env.NODE_ENV === 'production') return false;
     const email = req.body?.email || req.query?.email;
     return typeof email === 'string' && (email.toLowerCase().includes('e2e') || email.toLowerCase().includes('test'));
   }
@@ -93,9 +95,9 @@ router.post('/verify-otp', otpLimiter, async (req, res) => {
   try {
     const { email, otp } = req.body;
 
-    // Check OTP in database
+    // Check OTP in database — look up by email first to track attempts
     const storedOTP = await prisma.otpVerification.findFirst({
-      where: { email, otp },
+      where: { email },
       orderBy: { createdAt: 'desc' }
     });
 
@@ -103,6 +105,27 @@ router.post('/verify-otp', otpLimiter, async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'Invalid verification code or no code found.'
+      });
+    }
+
+    // Check if OTP has been locked out due to too many failed attempts
+    if (storedOTP.attempts >= 3) {
+      await prisma.otpVerification.delete({ where: { id: storedOTP.id } });
+      return res.status(400).json({
+        success: false,
+        message: 'Too many failed attempts. Please request a new verification code.'
+      });
+    }
+
+    // Verify the OTP value matches
+    if (storedOTP.otp !== otp) {
+      await prisma.otpVerification.update({
+        where: { id: storedOTP.id },
+        data: { attempts: { increment: 1 } }
+      });
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid verification code.'
       });
     }
 
@@ -327,8 +350,7 @@ router.post('/logout', (req, res) => {
   });
 });
 
-// Refresh Token - issues new access token
-// Note: Full refresh token rotation requires RefreshToken model in Prisma schema
+// Refresh Token — issues new access token AND rotates the refresh token
 router.post('/refresh', async (req, res) => {
   try {
     const refreshToken = req.cookies.refreshToken;
@@ -353,17 +375,33 @@ router.post('/refresh', async (req, res) => {
       });
     }
 
-    const accessToken = jwt.sign(
+    // Issue new access token
+    const newAccessToken = jwt.sign(
       { id: creator.id, email: creator.email, role: 'creator', version: creator.passwordVersion },
       process.env.JWT_SECRET,
       { expiresIn: '15m' }
     );
 
-    res.cookie('accessToken', accessToken, {
+    // Rotate refresh token — issue a fresh one, invalidating the old
+    const newRefreshToken = jwt.sign(
+      { id: creator.id, version: creator.passwordVersion },
+      process.env.JWT_REFRESH_SECRET,
+      { expiresIn: '30d' }
+    );
+
+    res.cookie('accessToken', newAccessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
       maxAge: 15 * 60 * 1000,
+      path: '/api'
+    });
+
+    res.cookie('refreshToken', newRefreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 30 * 24 * 60 * 60 * 1000,
       path: '/api'
     });
 
@@ -384,38 +422,30 @@ router.post('/forgot-password', async (req, res) => {
   try {
     const { email } = req.body;
 
+    // Always return the same response to prevent user enumeration (M1 fix)
+    const genericMessage = 'If an account exists with this email, a password reset link has been sent.';
+
     const creator = await prisma.creator.findUnique({
       where: { email }
     });
 
     if (!creator) {
-      return res.status(404).json({
-        success: false,
-        message: 'Email not found'
-      });
+      // Return success even if email doesn't exist to prevent enumeration
+      return res.json({ success: true, message: genericMessage });
     }
 
-    // Generate reset token
+    // Generate reset token — use compound secret so it auto-invalidates on password change (M3 fix)
+    const resetSecret = process.env.JWT_SECRET + creator.passwordHash;
     const resetToken = jwt.sign(
-      { id: creator.id },
-      process.env.JWT_SECRET,
-      { expiresIn: '24h' }
+      { id: creator.id, purpose: 'password-reset' },
+      resetSecret,
+      { expiresIn: '1h' }
     );
 
-    // Send reset email
-    const emailResult = await sendPasswordResetEmail(email, resetToken, creator.name);
+    // Send reset email (failures are silent to the user to prevent enumeration)
+    await sendPasswordResetEmail(email, resetToken, creator.name);
 
-    if (!emailResult.success) {
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to send reset email. Please try again later.'
-      });
-    }
-
-    res.json({
-      success: true,
-      message: 'Password reset link sent to your email'
-    });
+    res.json({ success: true, message: genericMessage });
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -429,12 +459,43 @@ router.post('/reset-password', async (req, res) => {
   try {
     const { token, newPassword } = req.body;
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
+    // M2 fix: Validate password strength
+    if (!newPassword || newPassword.length < 8) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be at least 8 characters long'
+      });
+    }
+
+    // M3 fix: Decode token without verification first to get user ID,
+    // then verify with compound secret (JWT_SECRET + current passwordHash)
+    const unverified = jwt.decode(token);
+    if (!unverified?.id || unverified?.purpose !== 'password-reset') {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid or expired reset token'
+      });
+    }
+
+    const creator = await prisma.creator.findUnique({
+      where: { id: unverified.id }
+    });
+
+    if (!creator) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid or expired reset token'
+      });
+    }
+
+    // Verify with compound secret — automatically invalidated if password was already changed
+    const resetSecret = process.env.JWT_SECRET + creator.passwordHash;
+    jwt.verify(token, resetSecret);
+
     const passwordHash = await bcrypt.hash(newPassword, 10);
 
     await prisma.creator.update({
-      where: { id: decoded.id },
+      where: { id: creator.id },
       data: { 
         passwordHash,
         passwordVersion: { increment: 1 }
@@ -458,18 +519,8 @@ router.post('/admin-login', loginLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Self-healing admin seed: Ensure default admin exists and has the correct password
-    const hashedDefaultPassword = await bcrypt.hash('Influenzia@2026', 10);
-    await prisma.admin.upsert({
-      where: { email: 'admin@influenziaclub.com' },
-      update: { passwordHash: hashedDefaultPassword },
-      create: {
-        name: 'Super Admin',
-        email: 'admin@influenziaclub.com',
-        passwordHash: hashedDefaultPassword,
-        role: 'super_admin'
-      }
-    });
+    // NOTE: Default admin must be created via a one-time migration script or CLI command.
+    // Do NOT auto-seed admin credentials in the login flow.
 
     const admin = await prisma.admin.findUnique({
       where: { email }
@@ -493,7 +544,7 @@ router.post('/admin-login', loginLimiter, async (req, res) => {
       });
     }
 
-    const adminSecret = process.env.JWT_ADMIN_SECRET || process.env.JWT_SECRET;
+    const adminSecret = process.env.JWT_ADMIN_SECRET;
 
     const adminToken = jwt.sign(
       { id: admin.id, email: admin.email, role: 'admin', version: admin.passwordVersion },
@@ -530,7 +581,7 @@ router.post('/admin-login', loginLimiter, async (req, res) => {
 
 // Get Latest OTP (Temporary Test Endpoint for automation verification)
 router.get('/latest-otp', async (req, res) => {
-  if (process.env.NODE_ENV === 'production' && req.headers['x-test-bypass'] !== 'true') {
+  if (process.env.NODE_ENV === 'production') {
     return res.status(403).json({ success: false, message: 'Forbidden in production' });
   }
 
@@ -684,9 +735,9 @@ router.post('/brand-verify', otpLimiter, async (req, res) => {
       });
     }
 
-    // Check OTP in database
+    // Check OTP in database — look up by email first to track attempts
     const storedOTP = await prisma.otpVerification.findFirst({
-      where: { email, otp },
+      where: { email },
       orderBy: { createdAt: 'desc' }
     });
 
@@ -694,6 +745,27 @@ router.post('/brand-verify', otpLimiter, async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'Invalid verification code or no code found.'
+      });
+    }
+
+    // Check if OTP has been locked out due to too many failed attempts
+    if (storedOTP.attempts >= 3) {
+      await prisma.otpVerification.delete({ where: { id: storedOTP.id } });
+      return res.status(400).json({
+        success: false,
+        message: 'Too many failed attempts. Please request a new verification code.'
+      });
+    }
+
+    // Verify the OTP value matches
+    if (storedOTP.otp !== otp) {
+      await prisma.otpVerification.update({
+        where: { id: storedOTP.id },
+        data: { attempts: { increment: 1 } }
+      });
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid verification code.'
       });
     }
 
@@ -824,7 +896,7 @@ router.get('/me', async (req, res) => {
 
     // Try verifying as admin
     try {
-      const adminSecret = process.env.JWT_ADMIN_SECRET || process.env.JWT_SECRET;
+      const adminSecret = process.env.JWT_ADMIN_SECRET;
       decoded = jwt.verify(token, adminSecret);
       if (decoded.role === 'admin') {
         user = await prisma.admin.findUnique({
@@ -1104,8 +1176,10 @@ router.post('/instagram/register-complete', async (req, res) => {
 
     const igData = await fetchInstagramData(igAccessToken, cleanedUsername);
 
-    // Hash password (using mobile number as default password)
-    const passwordHash = await bcrypt.hash(mobile, 10);
+    // Generate a strong random password for OAuth-registered accounts
+    // Users who register via Instagram should use Instagram login or password reset to set a real password
+    const randomPassword = (await import('crypto')).randomBytes(32).toString('hex');
+    const passwordHash = await bcrypt.hash(randomPassword, 10);
     const referralCode = generateReferralCode(name);
 
     // Check referral

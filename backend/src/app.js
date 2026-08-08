@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
+import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -29,7 +30,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Validate required environment variables on startup
-const requiredEnvVars = ['JWT_SECRET', 'JWT_REFRESH_SECRET', 'DATABASE_URL'];
+const requiredEnvVars = ['JWT_SECRET', 'JWT_REFRESH_SECRET', 'JWT_ADMIN_SECRET', 'DATABASE_URL'];
 for (const envVar of requiredEnvVars) {
   if (!process.env[envVar]) {
     console.error(`FATAL: ${envVar} environment variable is not set`);
@@ -49,9 +50,6 @@ const globalLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skip: (req) => {
-    if (req.headers['x-test-bypass'] === 'true') {
-      return true;
-    }
     if (process.env.NODE_ENV === 'production') {
       return false;
     }
@@ -149,12 +147,54 @@ const io = new Server(server, {
   }
 });
 
-// Socket connection registry
-io.on('connection', (socket) => {
-  console.log(`Socket client connected: ${socket.id}`);
+// Socket.io authentication middleware (H5 fix)
+io.use((socket, next) => {
+  try {
+    // Extract token from cookie header or auth handshake
+    const cookieHeader = socket.handshake.headers.cookie || '';
+    const accessTokenMatch = cookieHeader.match(/accessToken=([^;]+)/);
+    const adminTokenMatch = cookieHeader.match(/adminToken=([^;]+)/);
+    const token = socket.handshake.auth?.token || accessTokenMatch?.[1] || adminTokenMatch?.[1];
 
-  // Client joins their specific room (either user email or creator ID)
+    if (!token) {
+      return next(new Error('Authentication required'));
+    }
+
+    // Try verifying with JWT_SECRET first (creator/brand), then JWT_ADMIN_SECRET (admin)
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (e) {
+      decoded = jwt.verify(token, process.env.JWT_ADMIN_SECRET);
+    }
+
+    if (!decoded || !decoded.id) {
+      return next(new Error('Invalid token'));
+    }
+
+    // Attach authenticated identity to socket
+    socket.userId = decoded.id;
+    socket.userEmail = decoded.email;
+    socket.userRole = decoded.role;
+    next();
+  } catch (error) {
+    console.warn(`[SECURITY] Socket auth failed: ${error.message}`);
+    next(new Error('Authentication failed'));
+  }
+});
+
+// Socket connection registry (authenticated connections only)
+io.on('connection', (socket) => {
+  console.log(`Socket client connected: ${socket.id} (user: ${socket.userId}, role: ${socket.userRole})`);
+
+  // Client joins their own room only — prevents cross-user eavesdropping
   socket.on('join', (roomName) => {
+    const allowedRooms = [socket.userId, socket.userEmail].filter(Boolean);
+    if (!allowedRooms.includes(roomName)) {
+      console.warn(`[SECURITY] Socket ${socket.id} tried to join unauthorized room: ${roomName}`);
+      socket.emit('error', { message: 'Not authorized to join this room' });
+      return;
+    }
     socket.join(roomName);
     console.log(`Socket client ${socket.id} joined room: ${roomName}`);
   });

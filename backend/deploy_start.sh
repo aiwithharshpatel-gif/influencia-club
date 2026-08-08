@@ -16,9 +16,9 @@ sleep 10
 echo "Generating Prisma Client from /schema_config/prod.prisma..."
 npx prisma generate --schema=./schema_config/prod.prisma
 
-# 3. Sync Database
-echo "Syncing database schema..."
-npx prisma db push --accept-data-loss --schema=./schema_config/prod.prisma
+# 3. Apply Database Migrations (safe, versioned)
+echo "Applying database migrations..."
+npx prisma migrate deploy --schema=./schema_config/prod.prisma
 
 # 4. Start Server
 echo "Launching Influenzia API..."
