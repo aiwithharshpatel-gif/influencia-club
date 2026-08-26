@@ -7,8 +7,23 @@ const router = express.Router();
 
 const contactLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 5, // 5 requests per hour
-  message: 'Too many contact requests, please try again after an hour'
+  max: 15, // 15 requests per hour
+  message: {
+    success: false,
+    message: 'Too many contact requests, please try again after an hour'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => {
+    return (
+      req.headers['cf-connecting-ip'] ||
+      req.headers['x-real-ip'] ||
+      (req.headers['x-forwarded-for'] ? req.headers['x-forwarded-for'].split(',')[0].trim() : null) ||
+      req.ip ||
+      '127.0.0.1'
+    );
+  },
+  validate: { trustProxy: false }
 });
 
 const contactSchema = z.object({

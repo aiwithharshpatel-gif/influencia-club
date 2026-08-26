@@ -18,7 +18,10 @@ const Login = () => {
     try {
       setIgConnecting(true);
       const res = await api.get('/auth/instagram/auth-url');
-      const authUrl = res.data.url;
+      const authUrl = res.data?.url;
+      if (!authUrl) {
+        throw new Error(res.data?.message || 'No authorization URL received');
+      }
 
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.innerWidth < 768;
       if (isMobile) {
@@ -40,7 +43,7 @@ const Login = () => {
       }
     } catch (err) {
       console.error(err);
-      toast.error('Failed to initiate Instagram login');
+      toast.error(err.response?.data?.message || err.message || 'Failed to initiate Instagram login');
     } finally {
       setIgConnecting(false);
     }

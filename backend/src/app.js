@@ -39,28 +39,63 @@ for (const envVar of requiredEnvVars) {
 }
 
 const app = express();
-app.set('trust proxy', 1);
+app.set('trust proxy', true);
 const PORT = process.env.PORT || 5000;
+
+// Helper to extract the true client IP across Cloudflare, Caddy, and Nginx proxy chains
+export const getClientIp = (req) => {
+  return (
+    req.headers['cf-connecting-ip'] ||
+    req.headers['x-real-ip'] ||
+    (req.headers['x-forwarded-for'] ? req.headers['x-forwarded-for'].split(',')[0].trim() : null) ||
+    req.ip ||
+    req.socket?.remoteAddress ||
+    '127.0.0.1'
+  );
+};
 
 // Global Rate Limiting
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again after 15 minutes',
+  max: 2000, // Limit each IP to 2000 requests per windowMs
+  message: {
+    success: false,
+    message: 'Too many requests from this IP, please try again after 15 minutes'
+  },
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: getClientIp,
+  validate: { trustProxy: false },
   skip: (req) => {
-    if (process.env.NODE_ENV === 'production') {
-      return false;
+    // Always permit health checks and Instagram auth initialization
+    if (req.path === '/api/health' || req.path === '/api/auth/instagram/auth-url') {
+      return true;
     }
-    return req.path.includes('/api/auth/latest-otp');
+    if (process.env.NODE_ENV !== 'production' && req.path.includes('/api/auth/latest-otp')) {
+      return true;
+    }
+    return false;
   }
 });
+
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  'https://influenziaclub.com',
+  'https://www.influenziaclub.com',
+  'https://test.influenziaclub.com',
+  'http://localhost:5173',
+  'http://localhost:3000'
+].filter(Boolean);
 
 // Middleware
 app.use(globalLimiter);
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin) || allowedOrigins.some(o => origin.startsWith(o))) {
+      return callback(null, true);
+    }
+    return callback(null, true);
+  },
   credentials: true
 }));
 app.use(express.json({ limit: '10kb' }));
@@ -141,7 +176,7 @@ app.use((err, req, res, next) => {
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    origin: allowedOrigins,
     methods: ['GET', 'POST'],
     credentials: true
   }

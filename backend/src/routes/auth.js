@@ -12,11 +12,30 @@ import { fetchInstagramData, getLongLivedAccessToken } from '../services/instagr
 
 const router = express.Router();
 
+// Helper to extract client IP
+const getClientIp = (req) => {
+  return (
+    req.headers['cf-connecting-ip'] ||
+    req.headers['x-real-ip'] ||
+    (req.headers['x-forwarded-for'] ? req.headers['x-forwarded-for'].split(',')[0].trim() : null) ||
+    req.ip ||
+    req.socket?.remoteAddress ||
+    '127.0.0.1'
+  );
+};
+
 // Rate limiters
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 5,
-  message: 'Too many login attempts, please try again after 15 minutes',
+  max: 20,
+  message: {
+    success: false,
+    message: 'Too many login attempts, please try again after 15 minutes'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: getClientIp,
+  validate: { trustProxy: false },
   skip: (req) => {
     if (process.env.NODE_ENV === 'production') return false;
     const email = req.body?.email || req.query?.email;
@@ -26,8 +45,15 @@ const loginLimiter = rateLimit({
 
 const otpLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 3,
-  message: 'Too many OTP requests, please try again after 15 minutes',
+  max: 10,
+  message: {
+    success: false,
+    message: 'Too many OTP requests, please try again after 15 minutes'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: getClientIp,
+  validate: { trustProxy: false },
   skip: (req) => {
     if (process.env.NODE_ENV === 'production') return false;
     const email = req.body?.email || req.query?.email;
