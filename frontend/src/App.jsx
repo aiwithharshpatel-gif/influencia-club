@@ -17,6 +17,8 @@ import Brands from './pages/Brands';
 import Contact from './pages/Contact';
 import Login from './pages/Login';
 import BrandLogin from './pages/BrandLogin';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
 import NotFound from './pages/NotFound';
@@ -99,6 +101,8 @@ function App() {
             <Route path="/brands" element={<Brands />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/terms" element={<Terms />} />
             <Route path="/oauth/instagram/mock" element={<InstagramMockOAuth />} />
