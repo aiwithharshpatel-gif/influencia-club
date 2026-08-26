@@ -71,14 +71,17 @@ const globalLimiter = rateLimit({
   keyGenerator: getClientIp,
   validate: { trustProxy: false },
   skip: (req) => {
-    // Always permit health checks, Instagram endpoints, creators directory, and session validation
+    // Always permit health checks, Instagram endpoints, creators directory, notifications, password reset, and session validation
     const url = req.originalUrl || req.url || req.path || '';
     if (
       url.includes('/api/health') ||
       url.includes('/auth/instagram') ||
       url.includes('/oauth/instagram') ||
       url.includes('/auth/me') ||
-      url.includes('/creators')
+      url.includes('/creators') ||
+      url.includes('/notifications') ||
+      url.includes('/forgot-password') ||
+      url.includes('/reset-password')
     ) {
       return true;
     }
