@@ -44,10 +44,14 @@ const PORT = process.env.PORT || 5000;
 
 // Helper to extract the true client IP across Cloudflare, Caddy, and Nginx proxy chains
 export const getClientIp = (req) => {
+  const xForwardedFor = req.headers['x-forwarded-for'];
+  if (xForwardedFor) {
+    const ips = xForwardedFor.split(',').map(ip => ip.trim()).filter(Boolean);
+    if (ips.length > 0) return ips[0];
+  }
   return (
     req.headers['cf-connecting-ip'] ||
     req.headers['x-real-ip'] ||
-    (req.headers['x-forwarded-for'] ? req.headers['x-forwarded-for'].split(',')[0].trim() : null) ||
     req.ip ||
     req.socket?.remoteAddress ||
     '127.0.0.1'
@@ -57,7 +61,7 @@ export const getClientIp = (req) => {
 // Global Rate Limiting
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 2000, // Limit each IP to 2000 requests per windowMs
+  max: 10000, // Limit each IP to 10000 requests per windowMs
   message: {
     success: false,
     message: 'Too many requests from this IP, please try again after 15 minutes'
@@ -67,11 +71,18 @@ const globalLimiter = rateLimit({
   keyGenerator: getClientIp,
   validate: { trustProxy: false },
   skip: (req) => {
-    // Always permit health checks and Instagram auth initialization
-    if (req.path === '/api/health' || req.path === '/api/auth/instagram/auth-url') {
+    // Always permit health checks, Instagram endpoints, creators directory, and session validation
+    const url = req.originalUrl || req.url || req.path || '';
+    if (
+      url.includes('/api/health') ||
+      url.includes('/auth/instagram') ||
+      url.includes('/oauth/instagram') ||
+      url.includes('/auth/me') ||
+      url.includes('/creators')
+    ) {
       return true;
     }
-    if (process.env.NODE_ENV !== 'production' && req.path.includes('/api/auth/latest-otp')) {
+    if (process.env.NODE_ENV !== 'production' && url.includes('/api/auth/latest-otp')) {
       return true;
     }
     return false;

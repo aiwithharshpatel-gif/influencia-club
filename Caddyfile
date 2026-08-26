@@ -1,7 +1,7 @@
-test.influenziaclub.com {
-    reverse_proxy frontend_final:80
+test.influenziaclub.com, www.influenziaclub.com {
+    redir https://influenziaclub.com{uri} permanent
 }
 
-influenziaclub.com, www.influenziaclub.com {
+influenziaclub.com {
     reverse_proxy frontend_final:80
 }

@@ -14,10 +14,14 @@ const router = express.Router();
 
 // Helper to extract client IP
 const getClientIp = (req) => {
+  const xForwardedFor = req.headers['x-forwarded-for'];
+  if (xForwardedFor) {
+    const ips = xForwardedFor.split(',').map(ip => ip.trim()).filter(Boolean);
+    if (ips.length > 0) return ips[0];
+  }
   return (
     req.headers['cf-connecting-ip'] ||
     req.headers['x-real-ip'] ||
-    (req.headers['x-forwarded-for'] ? req.headers['x-forwarded-for'].split(',')[0].trim() : null) ||
     req.ip ||
     req.socket?.remoteAddress ||
     '127.0.0.1'

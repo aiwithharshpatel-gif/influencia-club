@@ -3,10 +3,11 @@
     email no-reply@influenziaclub.com
 }
 
-test.influenziaclub.com {
+test.influenziaclub.com, www.influenziaclub.com {
+    redir https://influenziaclub.com{uri} permanent
+}
+
+influenziaclub.com {
     reverse_proxy frontend_final:80
 }
 
-influenziaclub.com, www.influenziaclub.com {
-    reverse_proxy frontend_final:80
-}
