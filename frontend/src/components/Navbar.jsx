@@ -100,7 +100,7 @@ const Navbar = () => {
               {user ? (
                 <>
                   <Link
-                    to={role === 'admin' ? '/admin-dashboard' : role === 'brand' ? '/brand-dashboard' : '/dashboard'}
+                    to={role === 'admin' ? '/admin/dashboard' : role === 'brand' ? '/brand/dashboard' : '/dashboard'}
                     className="px-5 py-2 rounded-full border border-gold/40 text-gold hover:bg-gold-gradient hover:text-black hover:border-transparent transition-all text-xs font-bold uppercase tracking-wider"
                   >
                     Dashboard
@@ -225,7 +225,7 @@ const Navbar = () => {
                 {user ? (
                   <>
                     <Link
-                      to={role === 'admin' ? '/admin-dashboard' : role === 'brand' ? '/brand-dashboard' : '/dashboard'}
+                      to={role === 'admin' ? '/admin/dashboard' : role === 'brand' ? '/brand/dashboard' : '/dashboard'}
                       onClick={() => setIsOpen(false)}
                       className="block px-4 py-3 rounded-lg text-sm font-medium text-white/80 hover:bg-white/5 hover:text-white transition-all text-center"
                     >

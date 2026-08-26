@@ -209,7 +209,7 @@ router.post('/verify-payment', anyPaymentUserProtect, async (req, res) => {
       type: 'payment',
       title: 'Escrow Payment Verified ✅',
       message: `Your escrow payment of ₹${payment.amount} for creator "${payment.creator.name}" has been successfully verified.`,
-      link: '/brand/dashboard/inquiries'
+      link: '/brand/dashboard'
     }, io);
 
     res.json({

@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { useState, useEffect, lazy, Suspense } from 'react';
 import { Toaster } from 'react-hot-toast';
@@ -165,6 +165,16 @@ function App() {
               <Route path="redemptions" element={<AdminRedemptions />} />
               <Route path="points" element={<AdminPoints />} />
             </Route>
+
+            {/* Friendly URL Alias Redirects */}
+            <Route path="/admin-dashboard" element={<Navigate to="/admin/dashboard" replace />} />
+            <Route path="/brand-dashboard" element={<Navigate to="/brand/dashboard" replace />} />
+            <Route path="/brand/dashboard/inquiries" element={<Navigate to="/brand/dashboard" replace />} />
+            <Route path="/forgotpassword" element={<Navigate to="/forgot-password" replace />} />
+            <Route path="/resetpassword" element={<Navigate to="/reset-password" replace />} />
+            <Route path="/signin" element={<Navigate to="/login" replace />} />
+            <Route path="/signup" element={<Navigate to="/join" replace />} />
+            <Route path="/register" element={<Navigate to="/join" replace />} />
 
             {/* 404 Catch-All */}
             <Route path="*" element={<NotFound />} />
