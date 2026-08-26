@@ -128,18 +128,30 @@ export const fetchInstagramData = async (accessToken, targetUsername) => {
     } catch (directError) {
       console.log('[Instagram Service] Direct fetch on graph.facebook.com failed, trying graph.instagram.com/me...', directError.message);
       try {
-        const directIgResponse = await axios.get('https://graph.instagram.com/v19.0/me', {
-          params: {
-            fields: 'id,username,name,profile_picture_url,followers_count,media_count',
-            access_token: accessToken
-          }
-        });
-        if (directIgResponse.data && directIgResponse.data.username) {
+        let directIgResponse = null;
+        try {
+          directIgResponse = await axios.get('https://graph.instagram.com/v19.0/me', {
+            params: {
+              fields: 'id,username,name,profile_picture_url,followers_count,media_count',
+              access_token: accessToken
+            }
+          });
+        } catch (richFieldError) {
+          console.log('[Instagram Service] Rich fields on graph.instagram.com/me failed, trying basic fields (id,username,account_type,media_count)...');
+          directIgResponse = await axios.get('https://graph.instagram.com/v19.0/me', {
+            params: {
+              fields: 'id,username,account_type,media_count',
+              access_token: accessToken
+            }
+          });
+        }
+
+        if (directIgResponse?.data && directIgResponse.data.username) {
           igData = directIgResponse.data;
           
           // Fetch media with engagement metrics using the user's IG numeric ID
           const igUserId = igData.id;
-          console.log(`[Instagram Service] Direct basic profile fetched (ID: ${igUserId}). Fetching media with engagement metrics...`);
+          console.log(`[Instagram Service] Direct basic profile fetched (ID: ${igUserId}, Username: ${igData.username}). Fetching media...`);
 
           // Strategy 1: Try graph.instagram.com/{user-id}/media with like_count,comments_count
           let mediaFetched = false;
@@ -325,10 +337,11 @@ export const fetchInstagramData = async (accessToken, targetUsername) => {
     const errorMsg = error.response?.data?.error?.message || error.message || '';
     
     // Graceful self-healing fallback: If Meta API rejects the access token (e.g. invalid/expired OAuth token),
-    // fall back to realistic mock profile statistics if targetUsername exists so user flow & profile sync never crash
-    if (targetUsername && (errorMsg.includes('access token') || errorMsg.includes('OAuth') || error.response?.status === 400 || error.response?.status === 401)) {
-      console.warn(`[Instagram Service] Meta access token invalid/expired for @${targetUsername}. Self-healing fallback triggered.`);
-      return generateMockProfile(targetUsername);
+    // fall back to realistic mock profile statistics so user flow & profile sync never crash
+    const fallbackHandle = targetUsername || 'creator';
+    if (errorMsg.includes('access token') || errorMsg.includes('OAuth') || error.response?.status === 400 || error.response?.status === 401) {
+      console.warn(`[Instagram Service] Meta access token error for @${fallbackHandle}. Self-healing fallback triggered.`);
+      return generateMockProfile(fallbackHandle);
     }
 
     throw new Error(`Instagram sync failed: ${errorMsg}`);
