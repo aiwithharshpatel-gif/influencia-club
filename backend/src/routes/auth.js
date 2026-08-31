@@ -8,6 +8,7 @@ import { generateOTP, generateReferralCode, safeUrl } from '../utils/helpers.js'
 import { sendVerificationEmail, sendWelcomeEmail, sendPasswordResetEmail, sendEmail } from '../services/otp_master.js';
 import { creditPoints, processReferral } from '../services/pointsService.js';
 import { validateCreator, safeErrorMessage } from '../middleware/errorHandler.js';
+import { protect } from '../middleware/auth.js';
 import { fetchInstagramData, getLongLivedAccessToken } from '../services/instagramService.js';
 
 const router = express.Router();
