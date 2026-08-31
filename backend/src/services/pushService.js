@@ -8,19 +8,19 @@ let vapidKeys = {
 
 const vapidSubject = process.env.VAPID_SUBJECT || `mailto:${process.env.EMAIL_FROM || 'hello@influenziaclub.com'}`;
 
-// Auto-generate VAPID keys if they are not configured
-if (!vapidKeys.publicKey || !vapidKeys.privateKey) {
-  console.log('⚠️ VAPID keys not configured in environment variables.');
+const isInvalidKey = (key) => !key || typeof key !== 'string' || key.includes('your_vapid_') || key.length < 30;
+
+// Auto-generate VAPID keys if they are not configured or are placeholder strings
+if (isInvalidKey(vapidKeys.publicKey) || isInvalidKey(vapidKeys.privateKey)) {
+  console.log('⚠️ VAPID keys not configured in environment variables or placeholder detected.');
   console.log('🔄 Generating temporary VAPID keys for this execution session...');
-  const keys = webpush.generateVAPIDKeys();
-  vapidKeys.publicKey = keys.publicKey;
-  vapidKeys.privateKey = keys.privateKey;
-  console.log('=====================================================');
-  console.log('🔑 TEMPORARY VAPID PUBLIC KEY (Save to your .env):');
-  console.log(vapidKeys.publicKey);
-  console.log('🔑 TEMPORARY VAPID PRIVATE KEY (Save to your .env):');
-  console.log(vapidKeys.privateKey);
-  console.log('=====================================================');
+  try {
+    const keys = webpush.generateVAPIDKeys();
+    vapidKeys.publicKey = keys.publicKey;
+    vapidKeys.privateKey = keys.privateKey;
+  } catch (e) {
+    console.error('Failed to generate VAPID keys:', e.message);
+  }
 }
 
 // Set VAPID details

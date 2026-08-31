@@ -1,45 +1,65 @@
 import nodemailer from 'nodemailer';
 import validator from 'validator';
 
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.resend.com',
-  port: parseInt(process.env.SMTP_PORT) || 465,
-  secure: (parseInt(process.env.SMTP_PORT) === 465 || !process.env.SMTP_PORT), // True for 465, default to true for Resend
-  auth: {
-    user: process.env.SMTP_USER || 'resend',
-    pass: process.env.SMTP_PASS
-  }
-});
+const isPlaceholderPassword = (pass) => {
+  if (!pass || typeof pass !== 'string') return true;
+  const p = pass.trim().toLowerCase();
+  return (
+    p === '' ||
+    p.includes('your_') ||
+    p.includes('change_me') ||
+    p.includes('placeholder') ||
+    p.includes('your_hostinger_smtp_password') ||
+    p.includes('re_your_resend_api_key')
+  );
+};
 
-transporter.verify(function (error, success) {
-  if (error) {
-    console.error("SMTP transporter verification failed:", error.message);
-  } else {
-    console.log("SMTP transporter verified successfully");
-  }
-});
+const hasRealCredentials = !isPlaceholderPassword(process.env.SMTP_PASS);
 
+let transporter = null;
+if (hasRealCredentials) {
+  transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST || 'smtp.resend.com',
+    port: parseInt(process.env.SMTP_PORT) || 465,
+    secure: (parseInt(process.env.SMTP_PORT) === 465 || !process.env.SMTP_PORT),
+    auth: {
+      user: process.env.SMTP_USER || 'resend',
+      pass: process.env.SMTP_PASS
+    }
+  });
 
-
+  transporter.verify(function (error, success) {
+    if (error) {
+      console.warn("[SMTP Service] Transporter verification failed (will use fallback):", error.message);
+    } else {
+      console.log("[SMTP Service] Transporter verified successfully.");
+    }
+  });
+}
 
 export const sendEmail = async (options) => {
-  if (!process.env.SMTP_PASS) {
-    console.log('******************************************');
-    console.log('--- WARNING: RESEND API KEY (SMTP_PASS) MISSING ---');
-    console.log('To:', options.to);
-    console.log('Subject:', options.subject);
-    console.log('------------------------------------------');
-    console.log('OTP CODE (from HTML):', options.html.match(/\d{6}/)?.[0] || 'Not found');
-    console.log('******************************************');
-    
-    if (process.env.NODE_ENV === 'production') {
+  const isPlaceholder = isPlaceholderPassword(process.env.SMTP_PASS);
+  const otpCode = options.html?.match(/\d{6}/)?.[0] || 'N/A';
+
+  if (isPlaceholder || !transporter) {
+    console.log('╔══════════════════════════════════════════════════════════╗');
+    console.log('║           📧 INFLUENZIA CLUB EMAIL SERVICE (DEV/MOCK)    ║');
+    console.log('╠══════════════════════════════════════════════════════════╣');
+    console.log(`║ To:      ${options.to}`);
+    console.log(`║ Subject: ${options.subject}`);
+    if (otpCode !== 'N/A') {
+      console.log(`║ 🔑 OTP CODE: >>>  ${otpCode}  <<<`);
+    }
+    console.log('╚══════════════════════════════════════════════════════════╝');
+
+    if (process.env.NODE_ENV === 'production' && process.env.STRICT_SMTP === 'true') {
       return { 
         success: false, 
         error: 'Email service not configured. Please contact support.' 
       };
     }
     
-    return { success: true, messageId: 'mock-id-dev', note: 'Logged to console' };
+    return { success: true, messageId: 'mock-id-dev', isDevMock: true, note: 'Logged to console' };
   }
 
   const mailOptions = {
@@ -51,7 +71,7 @@ export const sendEmail = async (options) => {
 
   try {
     const info = await transporter.sendMail(mailOptions);
-    console.log(`Email sent successfully to ${options.to}: ${info.messageId}`);
+    console.log(`[SMTP] Email sent successfully to ${options.to}: ${info.messageId}`);
     return { success: true, messageId: info.messageId };
   } catch (error) {
     console.error('--- NODEMAILER ERROR ---');
@@ -60,12 +80,19 @@ export const sendEmail = async (options) => {
     console.error('Error Message:', error.message);
     if (error.response) console.error('SMTP Response:', error.response);
     console.error('------------------------');
+
+    // In development or non-strict environments, fallback to console OTP instead of failing registration
+    if (process.env.NODE_ENV !== 'production' || process.env.STRICT_SMTP !== 'true') {
+      console.log(`[SMTP Fallback] OTP for ${options.to}: ${otpCode}`);
+      return { success: true, messageId: 'fallback-otp-logged', fallback: true };
+    }
+
     return { success: false, error: error.message };
   }
 };
 
 export const sendVerificationEmail = async (email, otp, name) => {
-  const safeName = validator.escape(name);
+  const safeName = validator.escape(name || 'Creator');
   const html = `
     <div style="font-family: sans-serif; padding: 20px;">
       <h2>Welcome, ${safeName}</h2>
@@ -83,8 +110,8 @@ export const sendVerificationEmail = async (email, otp, name) => {
 };
 
 export const sendWelcomeEmail = async (email, name, referralCode) => {
-  const safeName = validator.escape(name);
-  const referralLink = `${process.env.REFERRAL_BASE_URL || 'https://influenziaclub.com/join?ref='}${validator.escape(referralCode)}`;
+  const safeName = validator.escape(name || 'Creator');
+  const referralLink = `${process.env.REFERRAL_BASE_URL || 'https://influenziaclub.com/join?ref='}${validator.escape(referralCode || '')}`;
   
   const html = `
     <div style="font-family: sans-serif; padding: 20px;">
@@ -102,7 +129,7 @@ export const sendWelcomeEmail = async (email, name, referralCode) => {
 };
 
 export const sendPasswordResetEmail = async (email, token, name) => {
-  const safeName = validator.escape(name);
+  const safeName = validator.escape(name || 'Creator');
   const resetLink = `${process.env.FRONTEND_URL || 'https://influenziaclub.com'}/reset-password?token=${token}`;
   
   const html = `

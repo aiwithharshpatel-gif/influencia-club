@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { Upload, CheckCircle, Star, Instagram, Heart, MessageCircle, TrendingUp, RefreshCw, Unlink } from 'lucide-react';
+import { Upload, CheckCircle, Star, Instagram, Heart, MessageCircle, TrendingUp, RefreshCw, Unlink, Info, HelpCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import api from '../../utils/api';
 import toast from 'react-hot-toast';
 
@@ -11,6 +11,7 @@ const Profile = () => {
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
   const [igLoading, setIgLoading] = useState(false);
+  const [showIgHelp, setShowIgHelp] = useState(false);
   
   const { register, handleSubmit, setValue, formState: { errors } } = useForm();
 
@@ -548,8 +549,55 @@ const Profile = () => {
             </div>
           </div>
         ) : (
-          <div className="py-6 flex flex-col items-center justify-center bg-bg/40 border border-dashed border-border rounded-xl">
-            <span className="text-muted text-xs">No Instagram profile connected.</span>
+          <div className="space-y-4">
+            <div className="py-8 px-6 flex flex-col items-center justify-center bg-bg/40 border border-dashed border-border rounded-xl text-center">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-[#f9ce34]/20 via-[#ee2a7b]/20 to-[#6228d7]/20 flex items-center justify-center text-[#e1306c] mb-3">
+                <Instagram size={24} />
+              </div>
+              <h4 className="text-white font-semibold text-sm mb-1">No Instagram Profile Connected</h4>
+              <p className="text-muted text-xs max-w-md mb-4">
+                Connect your Instagram account to automatically verify your follower count, display recent reels/posts, and unlock brand collaboration deals.
+              </p>
+              <button
+                onClick={handleConnectInstagram}
+                disabled={igLoading}
+                className="bg-gradient-to-r from-[#e1306c] to-[#c13584] hover:opacity-95 text-white px-6 py-2.5 rounded-xl text-xs font-bold transition-all shadow-[0_0_15px_rgba(225,48,108,0.2)] disabled:opacity-50"
+              >
+                {igLoading ? 'Connecting...' : 'Connect Instagram Now'}
+              </button>
+            </div>
+
+            {/* Collapsible Requirements & Guide */}
+            <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden text-left">
+              <button
+                type="button"
+                onClick={() => setShowIgHelp(!showIgHelp)}
+                className="w-full px-4 py-3 flex items-center justify-between text-xs font-medium text-text-primary hover:bg-white/5 transition-colors"
+              >
+                <span className="flex items-center space-x-2">
+                  <HelpCircle size={15} className="text-[#d4af37]" />
+                  <span>Important: Instagram Account Connection Requirements</span>
+                </span>
+                {showIgHelp ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+              </button>
+
+              {showIgHelp && (
+                <div className="px-4 pb-4 pt-2 border-t border-white/5 space-y-3 text-xs text-muted">
+                  <div className="flex items-start space-x-2">
+                    <div className="w-5 h-5 rounded-full bg-primary/20 text-primary font-bold flex items-center justify-center shrink-0 mt-0.5">1</div>
+                    <p><strong className="text-white">Professional Account Required:</strong> Meta Graph API only provides insights for <strong>Instagram Creator</strong> or <strong>Business</strong> accounts (Personal accounts cannot sync).</p>
+                  </div>
+                  <div className="flex items-start space-x-2">
+                    <div className="w-5 h-5 rounded-full bg-primary/20 text-primary font-bold flex items-center justify-center shrink-0 mt-0.5">2</div>
+                    <p><strong className="text-white">How to convert:</strong> In the Instagram mobile app, go to <em>Settings and privacy &gt; Account type and tools &gt; Switch to professional account</em> (it's completely free).</p>
+                  </div>
+                  <div className="flex items-start space-x-2">
+                    <div className="w-5 h-5 rounded-full bg-primary/20 text-primary font-bold flex items-center justify-center shrink-0 mt-0.5">3</div>
+                    <p><strong className="text-white">Facebook Page Link:</strong> Ensure your Instagram professional account is linked to a Facebook Page you manage.</p>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>

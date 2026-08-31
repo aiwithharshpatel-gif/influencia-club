@@ -1163,7 +1163,7 @@ router.post('/instagram/authenticate', async (req, res) => {
 // Complete registration for a creator authenticated via Instagram
 router.post('/instagram/register-complete', async (req, res) => {
   try {
-    const { name, email, mobile, category, city, instagram, referralCode: inputReferralCode, code } = req.body;
+    const { name, email, mobile, category, city, instagram, referralCode: inputReferralCode, code, password } = req.body;
 
     if (!name || !email || !mobile || !category || !city || !instagram) {
       return res.status(400).json({
@@ -1206,10 +1206,11 @@ router.post('/instagram/register-complete', async (req, res) => {
 
     const igData = await fetchInstagramData(igAccessToken, cleanedUsername);
 
-    // Generate a strong random password for OAuth-registered accounts
-    // Users who register via Instagram should use Instagram login or password reset to set a real password
-    const randomPassword = (await import('crypto')).randomBytes(32).toString('hex');
-    const passwordHash = await bcrypt.hash(randomPassword, 10);
+    // If a custom password was provided, hash and save it; otherwise generate a strong random password
+    const rawPassword = (password && password.length >= 8) 
+      ? password 
+      : (await import('crypto')).randomBytes(32).toString('hex');
+    const passwordHash = await bcrypt.hash(rawPassword, 10);
     const referralCode = generateReferralCode(name);
 
     // Check referral

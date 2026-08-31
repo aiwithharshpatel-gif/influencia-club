@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../context/AuthContext';
-import { LogIn, User, Building, ShieldAlert } from 'lucide-react';
+import { LogIn, User, Building, ShieldAlert, Eye, EyeOff } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import toast from 'react-hot-toast';
@@ -13,6 +13,7 @@ const Login = () => {
   const { login } = useAuth();
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm();
   const [igConnecting, setIgConnecting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleInstagramLogin = async () => {
     try {
@@ -231,14 +232,25 @@ const Login = () => {
                 <label className="block text-sm font-medium text-muted mb-2">
                   Password
                 </label>
-                <input
-                  type="password"
-                  {...register('password', { required: 'Password is required' })}
-                  className="w-full bg-bg border border-border rounded-lg px-4 py-3 text-white focus:outline-none focus:border-primary"
-                  placeholder="********"
-                />
-                <p className="text-xs text-primary/60 mt-2 italic">
-                  Hint: Your default password is your registered mobile number.
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    {...register('password', { required: 'Password is required' })}
+                    className="w-full bg-bg border border-border rounded-lg pl-4 pr-11 py-3 text-white focus:outline-none focus:border-primary transition-colors"
+                    placeholder="••••••••"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-white transition-colors p-1"
+                    tabIndex={-1}
+                    title={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+                <p className="text-xs text-muted mt-2">
+                  Hint: Enter your account password (or your registered mobile number if created previously).
                 </p>
                 {errors.password && (
                   <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { Gift, DollarSign, Users, TrendingUp, CheckCircle, Trophy, Crown } from 'lucide-react';
+import { Gift, DollarSign, Users, TrendingUp, CheckCircle, Trophy, Crown, Eye, EyeOff, Info } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 import api from '../utils/api';
@@ -29,6 +29,7 @@ const Join = () => {
   const [step, setStep] = useState('form'); // form, otp, success
   const [email, setEmail] = useState('');
   const [userMobile, setUserMobile] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [referralCodeFromUrl] = useState(searchParams.get('ref') || '');
   const [leaderboard, setLeaderboard] = useState([]);
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(true);
@@ -260,7 +261,8 @@ const Join = () => {
         const payload = {
           ...data,
           instagram: igProfile.username,
-          code: igProfile.code
+          code: igProfile.code,
+          password: data.password || undefined
         };
         const response = await api.post('/auth/instagram/register-complete', payload);
         if (response.data.success) {
@@ -268,7 +270,10 @@ const Join = () => {
           window.location.href = '/dashboard';
         }
       } else {
-        const payload = { ...data, password: data.mobile };
+        const payload = { 
+          ...data, 
+          password: data.password || data.mobile 
+        };
         const response = await api.post('/auth/register', payload);
         if (response.data.success) {
           toast.success('Verification code sent to your email!');
@@ -421,6 +426,14 @@ const Join = () => {
                     Create Your Account
                   </h2>
 
+                  {/* Instagram Sync Notice */}
+                  <div className="mb-4 p-3 bg-white/5 border border-white/10 rounded-xl flex items-start space-x-2.5">
+                    <Info size={16} className="text-[#e1306c] shrink-0 mt-0.5" />
+                    <p className="text-xs text-muted leading-relaxed">
+                      Instant sync requires an <span className="text-white font-medium">Instagram Professional (Creator/Business)</span> account. Or sign up below with Email & Password.
+                    </p>
+                  </div>
+
                   {!igProfile ? (
                     <button
                       type="button"
@@ -501,6 +514,41 @@ const Join = () => {
                       {errors.email && (
                         <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>
                       )}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-muted mb-2">
+                        Create Password *
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showPassword ? "text" : "password"}
+                          {...register('password', { 
+                            required: !igProfile ? 'Password is required' : false,
+                            minLength: {
+                              value: 8,
+                              message: 'Password must be at least 8 characters'
+                            }
+                          })}
+                          className="w-full bg-bg border border-border rounded-lg pl-4 pr-11 py-3 text-white focus:outline-none focus:border-primary transition-colors"
+                          placeholder="Min 8 characters"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-white transition-colors p-1"
+                          tabIndex={-1}
+                          title={showPassword ? "Hide password" : "Show password"}
+                        >
+                          {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      </div>
+                      {errors.password && (
+                        <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>
+                      )}
+                      <p className="text-xs text-muted/80 mt-1">
+                        Must be at least 8 characters long.
+                      </p>
                     </div>
 
                     <div>
