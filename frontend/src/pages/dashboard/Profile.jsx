@@ -131,10 +131,13 @@ const Profile = () => {
       setSaving(true);
       setSuccess(false);
       
-      const response = await api.put('/me', data);
+      const response = await api.put('/dashboard/profile', data);
       if (response.data.success) {
         setSuccess(true);
         toast.success('Profile updated successfully!');
+        if (response.data.creator) {
+          setProfile(prev => ({ ...prev, ...response.data.creator }));
+        }
         setTimeout(() => setSuccess(false), 3000);
       }
     } catch (error) {

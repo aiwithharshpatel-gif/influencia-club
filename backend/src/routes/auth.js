@@ -964,6 +964,48 @@ router.get('/me', async (req, res) => {
   }
 });
 
+// Update Current Creator Profile (alias for /dashboard/profile)
+router.put('/me', protect, async (req, res) => {
+  try {
+    const { name, bio, city, category, instagram, mobile, photoUrl } = req.body;
+    const updateData = {};
+    if (name) updateData.name = name;
+    if (bio !== undefined) updateData.bio = bio;
+    if (city !== undefined) updateData.city = city;
+    if (category) updateData.category = category;
+    if (instagram) updateData.instagram = instagram.replace(/^@/, '').trim();
+    if (mobile) updateData.mobile = mobile;
+    if (photoUrl !== undefined) updateData.photoUrl = photoUrl;
+
+    const creator = await prisma.creator.update({
+      where: { id: req.user.id },
+      data: updateData,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        instagram: true,
+        category: true,
+        city: true,
+        bio: true,
+        photoUrl: true,
+        mobile: true
+      }
+    });
+
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      creator
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to update profile'
+    });
+  }
+});
+
 // Helper to format follower count beautifully (e.g. 75K, 1.2L, 2.5M)
 const formatFollowers = (count) => {
   if (count >= 1000000) {
