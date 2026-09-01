@@ -235,8 +235,8 @@ router.delete('/creators/:id/permanent', async (req, res) => {
       where: { email: creator.email }
     });
 
-    // 2. Delete point transactions
-    await prisma.pointTransaction.deleteMany({
+    // 2. Delete point transactions (PointsTransaction model)
+    await prisma.pointsTransaction.deleteMany({
       where: { creatorId: id }
     });
 
@@ -245,58 +245,79 @@ router.delete('/creators/:id/permanent', async (req, res) => {
       where: { creatorId: id }
     });
 
-    // 4. Find all campaign creators for this creator
+    // 4. Delete referrals
+    await prisma.referral.deleteMany({
+      where: {
+        OR: [
+          { referrerId: id },
+          { referredId: id }
+        ]
+      }
+    });
+
+    // 5. Find all campaign creators for this creator & delete milestones
     const campaignCreators = await prisma.campaignCreator.findMany({
       where: { creatorId: id }
     });
 
     for (const cc of campaignCreators) {
-      // Delete milestones
       await prisma.milestone.deleteMany({
         where: { campaignCreatorId: cc.id }
       });
     }
 
-    // 5. Delete campaign creators
+    // 6. Delete campaign creators
     await prisma.campaignCreator.deleteMany({
       where: { creatorId: id }
     });
 
-    // 6. Delete campaign applications
+    // 7. Delete campaign applications
     await prisma.campaignApplication.deleteMany({
       where: { creatorId: id }
     });
 
-    // 7. Delete notifications
+    // 8. Delete payments & payouts
+    await prisma.payment.deleteMany({
+      where: { creatorId: id }
+    });
+    await prisma.payout.deleteMany({
+      where: { creatorId: id }
+    });
+
+    // 9. Delete creator analytics
+    await prisma.creatorAnalytics.deleteMany({
+      where: { creatorId: id }
+    });
+
+    // 10. Delete notifications
     await prisma.notification.deleteMany({
       where: {
-        recipientId: id,
-        recipientType: 'creator'
+        recipientId: id
       }
     });
 
-    // 8. Delete chat messages
-    await prisma.chatMessage.deleteMany({
+    // 11. Delete messages (Message model)
+    await prisma.message.deleteMany({
       where: {
         OR: [
           { senderId: id },
-          { receiverId: id }
+          { recipientId: id }
         ]
       }
     });
 
-    // 9. Delete instagram profile
+    // 12. Delete instagram profile
     await prisma.instagramProfile.deleteMany({
       where: { creatorId: id }
     });
 
-    // 10. Unlink any brand inquiries assigned to this creator
+    // 13. Unlink any brand inquiries assigned to this creator
     await prisma.brandInquiry.updateMany({
       where: { assignedTo: id },
       data: { assignedTo: null }
     });
 
-    // 11. Delete the creator
+    // 14. Delete the creator
     await prisma.creator.delete({
       where: { id }
     });
