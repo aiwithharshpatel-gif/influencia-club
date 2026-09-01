@@ -401,6 +401,24 @@ router.delete('/inquiries/:id', async (req, res) => {
   }
 });
 
+// Clean up all test profiles and test data
+router.post('/cleanup-test-data', async (req, res) => {
+  try {
+    const { cleanupTestData } = await import('../clean_test_data.js');
+    await cleanupTestData();
+    res.json({
+      success: true,
+      message: 'All test profiles and test data cleaned up successfully'
+    });
+  } catch (error) {
+    console.error('Cleanup test data error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to cleanup test data'
+    });
+  }
+});
+
 // Get all brand inquiries
 router.get('/inquiries', async (req, res) => {
   try {

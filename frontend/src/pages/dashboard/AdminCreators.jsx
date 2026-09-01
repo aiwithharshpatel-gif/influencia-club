@@ -131,16 +131,40 @@ const AdminCreators = () => {
     }
   };
 
+  const handleCleanupTestData = async () => {
+    if (!window.confirm('Are you sure you want to remove ALL test/demo profiles and test inquiries?\n\nThis will purge test accounts (@example.com, theme_creator_test, sso_ig_test, etc.) and keep only authentic registered creators.')) return;
+    try {
+      const response = await api.post('/admin/cleanup-test-data');
+      if (response.data.success) {
+        toast.success(response.data.message || 'All test data cleaned up successfully');
+        fetchCreators();
+      }
+    } catch (error) {
+      console.error('Error cleaning up test data:', error);
+      toast.error(error.response?.data?.message || 'Failed to cleanup test data');
+    }
+  };
+
   return (
     <div className="space-y-8 pb-10 text-left">
       {/* Header title */}
-      <div>
-        <h1 className="font-display text-3xl font-bold text-white flex items-center gap-2">
-          Creators Directory <Sparkles size={24} className="text-gold" />
-        </h1>
-        <p className="text-muted text-sm mt-1">
-          Review, approve pending registrations, verify badges, update points balance, and manage suspensions.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="font-display text-3xl font-bold text-white flex items-center gap-2">
+            Creators Directory <Sparkles size={24} className="text-gold" />
+          </h1>
+          <p className="text-muted text-sm mt-1">
+            Review, approve pending registrations, verify badges, update points balance, and manage suspensions.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={handleCleanupTestData}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20 text-xs font-semibold transition-all self-start sm:self-auto"
+        >
+          <Trash2 size={15} />
+          Purge Test Profiles
+        </button>
       </div>
 
       {/* Filters bar */}
