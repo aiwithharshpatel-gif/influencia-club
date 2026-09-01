@@ -69,6 +69,12 @@ const Login = () => {
         setIgConnecting(true);
         const res = await api.post('/auth/instagram/authenticate', { code, username });
         if (res.data.success && res.data.existingUser) {
+          const token = res.data.token || res.data.accessToken;
+          if (token) localStorage.setItem('token', token);
+          if (res.data.creator) {
+            localStorage.setItem('user', JSON.stringify(res.data.creator));
+            localStorage.setItem('role', 'creator');
+          }
           toast.success('Login successful!');
           window.location.href = '/dashboard';
         } else if (res.data.registrationRequired) {

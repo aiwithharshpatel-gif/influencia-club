@@ -82,12 +82,14 @@ const Brands = () => {
 
   const onSubmit = async (data) => {
     try {
-      const response = await api.post('/inquiries', {
+      const payload = {
         ...data,
+        email: data.email ? data.email.toLowerCase().trim() : '',
         categories: Array.isArray(data.categories) ? data.categories : [data.categories]
-      });
+      };
+      const response = await api.post('/inquiries', payload);
       if (response.data.success) {
-        toast.success('Inquiry submitted successfully! We\'ll get back to you within 48 hours.');
+        toast.success('Inquiry submitted successfully! Confirmation email sent.');
         setSubmitted(true);
       }
     } catch (error) {
@@ -299,9 +301,21 @@ const Brands = () => {
                 Thank you for your interest! Our team will review your requirements<br />
                 and get back to you within 48 hours with creator recommendations.
               </p>
-              <p className="text-gold">
-                Check your email for confirmation.
+              <p className="text-gold mb-8">
+                A confirmation email has been sent to your inbox.
               </p>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <a href="/brand-dashboard" className="btn-primary py-3 px-6 text-sm font-bold">
+                  Go to Brand Dashboard
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setSubmitted(false)}
+                  className="btn-outline py-3 px-6 text-sm"
+                >
+                  Submit Another Inquiry
+                </button>
+              </div>
             </div>
           )}
         </div>

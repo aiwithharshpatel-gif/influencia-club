@@ -78,6 +78,12 @@ const InstagramCallback = () => {
         if (!isMounted) return;
 
         if (res.data.success && res.data.existingUser) {
+          const token = res.data.token || res.data.accessToken;
+          if (token) localStorage.setItem('token', token);
+          if (res.data.creator) {
+            localStorage.setItem('user', JSON.stringify(res.data.creator));
+            localStorage.setItem('role', 'creator');
+          }
           setStatus('redirecting');
           toast.success('Instagram verified! Logging in...');
           window.location.href = '/dashboard';

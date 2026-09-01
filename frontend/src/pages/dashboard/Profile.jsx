@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
-import { Upload, CheckCircle, Star, Instagram, Heart, MessageCircle, TrendingUp, RefreshCw, Unlink, Info, HelpCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { Upload, CheckCircle, Star, Instagram, Heart, MessageCircle, TrendingUp, RefreshCw, Unlink, Info, HelpCircle, ChevronDown, ChevronUp, Loader2, Trash2 } from 'lucide-react';
 import api from '../../utils/api';
 import toast from 'react-hot-toast';
 
@@ -12,7 +12,9 @@ const Profile = () => {
   const [success, setSuccess] = useState(false);
   const [igLoading, setIgLoading] = useState(false);
   const [showIgHelp, setShowIgHelp] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   
+  const fileInputRef = useRef(null);
   const { register, handleSubmit, setValue, formState: { errors } } = useForm();
 
   useEffect(() => {
@@ -126,12 +128,64 @@ const Profile = () => {
     }
   };
 
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image size must be less than 5MB');
+      return;
+    }
+
+    try {
+      setUploadingPhoto(true);
+      const formData = new FormData();
+      formData.append('photo', file);
+
+      const res = await api.post('/dashboard/profile/photo', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      if (res.data.success) {
+        toast.success('Profile photo updated successfully!');
+        setProfile(prev => ({ ...prev, photoUrl: res.data.photoUrl }));
+        setValue('photoUrl', res.data.photoUrl);
+      }
+    } catch (err) {
+      console.error('Photo upload error:', err);
+      toast.error(err.response?.data?.message || 'Failed to upload photo');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  const handleRemovePhoto = async () => {
+    try {
+      setUploadingPhoto(true);
+      const res = await api.put('/dashboard/profile', { photoUrl: '' });
+      if (res.data.success) {
+        toast.success('Photo removed');
+        setProfile(prev => ({ ...prev, photoUrl: '' }));
+        setValue('photoUrl', '');
+      }
+    } catch (err) {
+      toast.error('Failed to remove photo');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
   const onSubmit = async (data) => {
     try {
       setSaving(true);
       setSuccess(false);
       
-      const response = await api.put('/dashboard/profile', data);
+      const payload = {
+        ...data,
+        instagram: data.instagram ? data.instagram.replace(/^@/, '').trim().toLowerCase() : ''
+      };
+
+      const response = await api.put('/dashboard/profile', payload);
       if (response.data.success) {
         setSuccess(true);
         toast.success('Profile updated successfully!');
@@ -142,7 +196,7 @@ const Profile = () => {
       }
     } catch (error) {
       console.error('Error updating profile:', error);
-      toast.error('Failed to update profile settings');
+      toast.error(error.response?.data?.message || 'Failed to update profile settings');
     } finally {
       setSaving(false);
     }
@@ -256,7 +310,14 @@ const Profile = () => {
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {/* Profile Photo */}
           <div className="flex items-center space-x-6">
-            <div className="w-24 h-24 bg-purple-glow rounded-full flex items-center justify-center">
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handlePhotoUpload}
+              accept="image/png,image/jpeg,image/jpg,image/webp,image/gif"
+              className="hidden"
+            />
+            <div className="w-24 h-24 bg-purple-glow rounded-full flex items-center justify-center relative overflow-hidden border border-border">
               {profile?.photoUrl ? (
                 <img
                   src={profile.photoUrl}
@@ -268,17 +329,41 @@ const Profile = () => {
                   {profile?.name?.charAt(0).toUpperCase() || 'U'}
                 </span>
               )}
+              {uploadingPhoto && (
+                <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                  <Loader2 className="animate-spin text-primary" size={24} />
+                </div>
+              )}
             </div>
-            <div>
-              <button
-                type="button"
-                className="btn-outline text-sm py-2 px-4"
-              >
-                <Upload size={16} className="inline mr-2" />
-                Change Photo
-              </button>
-              <p className="text-muted text-sm mt-2">
-                JPG, PNG or GIF. Max size 2MB.
+            <div className="space-y-2">
+              <div className="flex items-center space-x-3">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingPhoto}
+                  className="btn-outline text-sm py-2 px-4 flex items-center"
+                >
+                  {uploadingPhoto ? (
+                    <Loader2 size={16} className="animate-spin mr-2" />
+                  ) : (
+                    <Upload size={16} className="inline mr-2" />
+                  )}
+                  {uploadingPhoto ? 'Uploading...' : 'Change Photo'}
+                </button>
+                {profile?.photoUrl && (
+                  <button
+                    type="button"
+                    onClick={handleRemovePhoto}
+                    disabled={uploadingPhoto}
+                    className="p-2 text-muted hover:text-red-400 transition-colors rounded-lg border border-border hover:border-red-400/40"
+                    title="Remove Photo"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                )}
+              </div>
+              <p className="text-muted text-sm">
+                JPG, PNG, WebP or GIF. Max size 5MB.
               </p>
             </div>
           </div>
@@ -353,6 +438,16 @@ const Profile = () => {
                 {...register('category')}
                 className="w-full bg-bg border border-border rounded-lg px-4 py-3 text-white focus:outline-none focus:border-primary"
               >
+                <option value="Fashion & Lifestyle">Fashion & Lifestyle</option>
+                <option value="Beauty & Makeup">Beauty & Makeup</option>
+                <option value="Travel & Tourism">Travel & Tourism</option>
+                <option value="Food & Cooking">Food & Cooking</option>
+                <option value="Tech & Gadgets">Tech & Gadgets</option>
+                <option value="Fitness & Health">Fitness & Health</option>
+                <option value="Entertainment & Comedy">Entertainment & Comedy</option>
+                <option value="Business & Finance">Business & Finance</option>
+                <option value="Gaming">Gaming</option>
+                <option value="Music & Dance">Music & Dance</option>
                 <option value="influencer">Influencer</option>
                 <option value="actor">Actor</option>
                 <option value="model">Model</option>
@@ -373,6 +468,10 @@ const Profile = () => {
                 <option value="Surat">Surat</option>
                 <option value="Vadodara">Vadodara</option>
                 <option value="Rajkot">Rajkot</option>
+                <option value="Gandhinagar">Gandhinagar</option>
+                <option value="Mumbai">Mumbai</option>
+                <option value="Delhi">Delhi</option>
+                <option value="Bangalore">Bangalore</option>
                 <option value="Other">Other</option>
               </select>
             </div>

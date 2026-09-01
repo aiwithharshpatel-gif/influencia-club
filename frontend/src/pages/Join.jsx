@@ -111,6 +111,12 @@ const Join = () => {
         setIgConnecting(true);
         const res = await api.post('/auth/instagram/authenticate', { code, username });
         if (res.data.success && res.data.existingUser) {
+          const token = res.data.token || res.data.accessToken;
+          if (token) localStorage.setItem('token', token);
+          if (res.data.creator) {
+            localStorage.setItem('user', JSON.stringify(res.data.creator));
+            localStorage.setItem('role', 'creator');
+          }
           toast.success('Account exists! Logged in successfully.');
           window.location.href = '/dashboard';
         } else if (res.data.registrationRequired) {
@@ -209,6 +215,12 @@ const Join = () => {
           const codeFromUrl = searchParams.get('code') || 'mock_access_token_123';
           const res = await api.post('/auth/instagram/authenticate', { code: codeFromUrl, username: handleFromUrl });
           if (res.data.success && res.data.existingUser) {
+            const token = res.data.token || res.data.accessToken;
+            if (token) localStorage.setItem('token', token);
+            if (res.data.creator) {
+              localStorage.setItem('user', JSON.stringify(res.data.creator));
+              localStorage.setItem('role', 'creator');
+            }
             toast.success('Account exists! Logged in successfully.');
             window.location.href = '/dashboard';
           } else if (res.data.registrationRequired) {
@@ -266,6 +278,12 @@ const Join = () => {
         };
         const response = await api.post('/auth/instagram/register-complete', payload);
         if (response.data.success) {
+          const token = response.data.token || response.data.accessToken;
+          if (token) localStorage.setItem('token', token);
+          if (response.data.creator) {
+            localStorage.setItem('user', JSON.stringify(response.data.creator));
+            localStorage.setItem('role', 'creator');
+          }
           toast.success('Registration successful! Welcome to Influenzia Club');
           window.location.href = '/dashboard';
         }

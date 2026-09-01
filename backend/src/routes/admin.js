@@ -194,7 +194,7 @@ router.put('/creators/:id', async (req, res) => {
   }
 });
 
-// Delete/Suspend creator
+// Suspend creator
 router.delete('/creators/:id', async (req, res) => {
   try {
     await prisma.creator.update({
@@ -210,6 +210,172 @@ router.delete('/creators/:id', async (req, res) => {
     res.status(500).json({
       success: false,
       message: error.message
+    });
+  }
+});
+
+// Permanently delete creator (cascading all relations)
+router.delete('/creators/:id/permanent', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const creator = await prisma.creator.findUnique({
+      where: { id }
+    });
+
+    if (!creator) {
+      return res.status(404).json({
+        success: false,
+        message: 'Creator not found'
+      });
+    }
+
+    // 1. Delete OTP verifications
+    await prisma.otpVerification.deleteMany({
+      where: { email: creator.email }
+    });
+
+    // 2. Delete point transactions
+    await prisma.pointTransaction.deleteMany({
+      where: { creatorId: id }
+    });
+
+    // 3. Delete redemption requests
+    await prisma.redemptionRequest.deleteMany({
+      where: { creatorId: id }
+    });
+
+    // 4. Find all campaign creators for this creator
+    const campaignCreators = await prisma.campaignCreator.findMany({
+      where: { creatorId: id }
+    });
+
+    for (const cc of campaignCreators) {
+      // Delete milestones
+      await prisma.milestone.deleteMany({
+        where: { campaignCreatorId: cc.id }
+      });
+    }
+
+    // 5. Delete campaign creators
+    await prisma.campaignCreator.deleteMany({
+      where: { creatorId: id }
+    });
+
+    // 6. Delete campaign applications
+    await prisma.campaignApplication.deleteMany({
+      where: { creatorId: id }
+    });
+
+    // 7. Delete notifications
+    await prisma.notification.deleteMany({
+      where: {
+        recipientId: id,
+        recipientType: 'creator'
+      }
+    });
+
+    // 8. Delete chat messages
+    await prisma.chatMessage.deleteMany({
+      where: {
+        OR: [
+          { senderId: id },
+          { receiverId: id }
+        ]
+      }
+    });
+
+    // 9. Delete instagram profile
+    await prisma.instagramProfile.deleteMany({
+      where: { creatorId: id }
+    });
+
+    // 10. Unlink any brand inquiries assigned to this creator
+    await prisma.brandInquiry.updateMany({
+      where: { assignedTo: id },
+      data: { assignedTo: null }
+    });
+
+    // 11. Delete the creator
+    await prisma.creator.delete({
+      where: { id }
+    });
+
+    res.json({
+      success: true,
+      message: 'Creator and all associated data permanently deleted'
+    });
+  } catch (error) {
+    console.error('Permanent delete creator error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to permanently delete creator'
+    });
+  }
+});
+
+// Delete brand inquiry (cascading campaigns and collabs)
+router.delete('/inquiries/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const inquiry = await prisma.brandInquiry.findUnique({
+      where: { id },
+      include: {
+        campaigns: {
+          include: {
+            campaignCreators: true
+          }
+        }
+      }
+    });
+
+    if (!inquiry) {
+      return res.status(404).json({
+        success: false,
+        message: 'Inquiry not found'
+      });
+    }
+
+    // Delete milestones for all campaign creators under this inquiry
+    for (const camp of inquiry.campaigns) {
+      for (const cc of camp.campaignCreators) {
+        await prisma.milestone.deleteMany({
+          where: { campaignCreatorId: cc.id }
+        });
+      }
+      await prisma.campaignCreator.deleteMany({
+        where: { campaignId: camp.id }
+      });
+      await prisma.campaignApplication.deleteMany({
+        where: { campaignId: camp.id }
+      });
+    }
+
+    // Delete campaigns
+    await prisma.campaign.deleteMany({
+      where: { brandInquiryId: id }
+    });
+
+    // Delete payments linked to this inquiry
+    await prisma.payment.deleteMany({
+      where: { brandInquiryId: id }
+    });
+
+    // Delete inquiry
+    await prisma.brandInquiry.delete({
+      where: { id }
+    });
+
+    res.json({
+      success: true,
+      message: 'Inquiry and all associated campaigns deleted successfully'
+    });
+  } catch (error) {
+    console.error('Delete inquiry error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to delete inquiry'
     });
   }
 });
@@ -230,8 +396,28 @@ router.get('/inquiries', async (req, res) => {
       include: {
         assignedCreator: {
           select: {
+            id: true,
             name: true,
-            email: true
+            email: true,
+            instagram: true,
+            photoUrl: true
+          }
+        },
+        campaigns: {
+          include: {
+            campaignCreators: {
+              include: {
+                creator: {
+                  select: {
+                    id: true,
+                    name: true,
+                    instagram: true,
+                    photoUrl: true
+                  }
+                },
+                milestones: true
+              }
+            }
           }
         }
       }
@@ -259,7 +445,7 @@ router.get('/inquiries', async (req, res) => {
   }
 });
 
-// Update inquiry status
+// Update inquiry status & sync creator collaborations
 router.put('/inquiries/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -267,20 +453,108 @@ router.put('/inquiries/:id', async (req, res) => {
 
     const updateData = {};
     if (status) updateData.status = status;
-    if (assignedTo) updateData.assignedTo = assignedTo;
+    if (assignedTo !== undefined) updateData.assignedTo = assignedTo || null;
     if (packageType) updateData.packageType = packageType;
 
     const inquiry = await prisma.brandInquiry.update({
       where: { id },
-      data: updateData
+      data: updateData,
+      include: {
+        assignedCreator: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            instagram: true
+          }
+        }
+      }
     });
+
+    // When assignedTo is set, automatically create or link Campaign and CampaignCreator collaboration
+    if (assignedTo) {
+      let campaign = await prisma.campaign.findFirst({
+        where: { brandInquiryId: id }
+      });
+
+      if (!campaign) {
+        campaign = await prisma.campaign.create({
+          data: {
+            brandInquiryId: id,
+            title: `${inquiry.brandName} Campaign`,
+            startDate: new Date(),
+            endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+            notes: `Auto-generated campaign for ${inquiry.brandName}`,
+            status: 'active'
+          }
+        });
+      }
+
+      // Check if CampaignCreator collaboration exists
+      let campaignCreator = await prisma.campaignCreator.findFirst({
+        where: {
+          campaignId: campaign.id,
+          creatorId: assignedTo
+        }
+      });
+
+      if (!campaignCreator) {
+        campaignCreator = await prisma.campaignCreator.create({
+          data: {
+            campaignId: campaign.id,
+            creatorId: assignedTo,
+            deliverables: inquiry.message || 'Brand campaign collaboration deliverables.',
+            status: 'confirmed'
+          }
+        });
+      } else {
+        await prisma.campaignCreator.update({
+          where: { id: campaignCreator.id },
+          data: { status: 'confirmed' }
+        });
+      }
+
+      // Check and generate default milestones
+      const existingMilestones = await prisma.milestone.count({
+        where: { campaignCreatorId: campaignCreator.id }
+      });
+
+      if (existingMilestones === 0) {
+        const defaultMilestones = [
+          { type: 'script_approval', title: '1. Script & Concept Approval', description: 'Submit content concept and script outline for brand review', sortOrder: 0, status: 'in_progress' },
+          { type: 'content_draft', title: '2. Draft Content Review', description: 'Upload draft video / photos for review and feedback', sortOrder: 1, status: 'pending' },
+          { type: 'final_post', title: '3. Final Live Post & Metrics', description: 'Publish final content and provide link / performance metrics', sortOrder: 2, status: 'pending' }
+        ];
+
+        for (const m of defaultMilestones) {
+          await prisma.milestone.create({
+            data: {
+              campaignCreatorId: campaignCreator.id,
+              ...m
+            }
+          });
+        }
+      }
+
+      // Send notification to creator
+      const io = req.app.get('io');
+      await createNotification({
+        recipientId: assignedTo,
+        recipientType: 'creator',
+        type: 'collab',
+        title: 'New Collaboration Offer! 💼',
+        message: `You have been selected for a collaboration with ${inquiry.brandName}!`,
+        link: '/dashboard/collabs'
+      }, io);
+    }
 
     res.json({
       success: true,
-      message: 'Inquiry updated successfully',
+      message: 'Inquiry updated and collaboration synced successfully',
       inquiry
     });
   } catch (error) {
+    console.error('Update inquiry error:', error);
     res.status(500).json({
       success: false,
       message: safeErrorMessage(error, process.env.NODE_ENV === 'production')

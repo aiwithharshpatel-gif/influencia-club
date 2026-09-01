@@ -7,39 +7,54 @@ import { sendInquiryNotificationEmail } from '../services/otp_master.js';
 const router = express.Router();
 const prisma = new PrismaClient();
 
+const normalizeBudget = (val) => {
+  if (typeof val === 'string') {
+    return val.replace(/&lt;/g, '<').replace(/&gt;/g, '>').trim();
+  }
+  return val;
+};
+
 const inquirySchema = z.object({
-  brandName: z.string().min(1).max(200),
-  email: z.string().email(),
+  brandName: z.string().min(1, 'Brand name is required').max(200),
+  email: z.string().email('Please enter a valid email address'),
   mobile: z.string().regex(/^\d{10}$/, 'Mobile must be 10 digits'),
-  budgetRange: z.enum(['<5000', '5000-15000', '15000-30000', '30000-50000', '50000+']),
-  categories: z.array(z.string()).min(1),
+  budgetRange: z.preprocess(
+    normalizeBudget,
+    z.enum(['<5000', '5000-15000', '15000-30000', '30000-50000', '50000+'])
+  ),
+  categories: z.array(z.string()).min(1, 'Please select at least one category'),
   message: z.string().max(2000).optional().default('')
 });
 
 // Submit brand inquiry
 router.post('/', async (req, res) => {
   try {
-    const validated = inquirySchema.parse(req.body);
+    const rawBody = {
+      ...req.body,
+      budgetRange: normalizeBudget(req.body.budgetRange)
+    };
+    const validated = inquirySchema.parse(rawBody);
     const { brandName, email, mobile, budgetRange, categories, message } = validated;
+    const normalizedEmail = email.toLowerCase().trim();
 
     const inquiry = await prisma.brandInquiry.create({
       data: {
-        brandName: validator.escape(brandName),
-        email,
+        brandName: validator.unescape(brandName).trim(),
+        email: normalizedEmail,
         mobile,
         budgetRange,
         categories,
-        message: validator.escape(message)
+        message: message ? validator.unescape(message).trim() : ''
       }
     });
 
-    // Send email notification to admin
+    // Send email notification to admin & confirmation to brand
     await sendInquiryNotificationEmail({
-      brandName,
-      email,
+      brandName: inquiry.brandName,
+      email: normalizedEmail,
       mobile,
       budgetRange,
-      categories: categories.join(', '),
+      categories,
       message
     });
 

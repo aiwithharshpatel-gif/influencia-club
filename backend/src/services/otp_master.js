@@ -148,12 +148,82 @@ export const sendPasswordResetEmail = async (email, token, name) => {
 };
 
 export const sendInquiryNotificationEmail = async (inquiryData) => {
-  const { brandName, email } = inquiryData;
-  const html = `<p>New inquiry from ${brandName} (${email})</p>`;
+  const { brandName, email, mobile, budgetRange, categories, message } = inquiryData;
+  const safeBrandName = validator.escape(brandName || 'Brand Partner');
+  const safeEmail = validator.escape(email || '');
+  const safeMobile = validator.escape(mobile || '');
+  const safeBudget = validator.escape(budgetRange || '');
+  const safeCategories = validator.escape(Array.isArray(categories) ? categories.join(', ') : (categories || ''));
+  const safeMessage = validator.escape(message || 'No additional message provided');
 
-  return sendEmail({
-    to: process.env.EMAIL_FROM || 'hello@influenziaclub.com',
-    subject: 'New Brand Inquiry',
-    html
-  });
+  // 1. Send confirmation to the brand
+  const brandHtml = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e5e7eb; border-radius: 12px; background: #ffffff;">
+      <div style="text-align: center; margin-bottom: 24px;">
+        <h2 style="color: #6366f1; margin: 0; font-size: 24px;">Influenzia Club</h2>
+        <p style="color: #6b7280; margin: 4px 0 0 0;">Campaign Inquiry Received</p>
+      </div>
+      <p style="color: #1f2937; font-size: 16px;">Hi <strong>${safeBrandName}</strong>,</p>
+      <p style="color: #4b5563; line-height: 1.6;">
+        Thank you for submitting your campaign inquiry! Our brand partnerships team has received your request and is reviewing creator matches for your budget (<strong>₹${safeBudget}</strong>) and categories (<strong>${safeCategories}</strong>).
+      </p>
+      <div style="background: #f3f4f6; border-radius: 8px; padding: 16px; margin: 20px 0;">
+        <h3 style="margin: 0 0 12px 0; color: #111827; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px;">Inquiry Summary</h3>
+        <p style="margin: 4px 0; color: #4b5563; font-size: 14px;"><strong>Brand:</strong> ${safeBrandName}</p>
+        <p style="margin: 4px 0; color: #4b5563; font-size: 14px;"><strong>Email:</strong> ${safeEmail}</p>
+        <p style="margin: 4px 0; color: #4b5563; font-size: 14px;"><strong>Mobile:</strong> ${safeMobile}</p>
+        <p style="margin: 4px 0; color: #4b5563; font-size: 14px;"><strong>Budget Range:</strong> ₹${safeBudget}</p>
+        <p style="margin: 4px 0; color: #4b5563; font-size: 14px;"><strong>Categories:</strong> ${safeCategories}</p>
+      </div>
+      <p style="color: #4b5563; line-height: 1.6;">
+        You can track your campaigns and assigned creator collaborations at any time by logging into the <strong>Brand Dashboard</strong> using your registered email: <strong>${safeEmail}</strong>.
+      </p>
+      <div style="text-align: center; margin: 28px 0;">
+        <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/brand-dashboard" style="background: #6366f1; color: #ffffff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-block;">
+          Open Brand Dashboard
+        </a>
+      </div>
+      <p style="color: #9ca3af; font-size: 12px; text-align: center; margin-top: 24px; border-top: 1px solid #e5e7eb; padding-top: 16px;">
+        Influenzia Club — Connecting Brands with Top Influencers & Creators
+      </p>
+    </div>
+  `;
+
+  // 2. Send notification to admin
+  const adminHtml = `
+    <div style="font-family: sans-serif; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px;">
+      <h3 style="color: #6366f1;">New Brand Campaign Inquiry</h3>
+      <p><strong>Brand Name:</strong> ${safeBrandName}</p>
+      <p><strong>Email:</strong> ${safeEmail}</p>
+      <p><strong>Mobile:</strong> ${safeMobile}</p>
+      <p><strong>Budget Range:</strong> ₹${safeBudget}</p>
+      <p><strong>Target Categories:</strong> ${safeCategories}</p>
+      <p><strong>Message / Brief:</strong></p>
+      <blockquote style="background: #f9fafb; padding: 10px; border-left: 3px solid #6366f1; margin: 10px 0;">
+        ${safeMessage}
+      </blockquote>
+    </div>
+  `;
+
+  try {
+    // Send to brand
+    await sendEmail({
+      to: email,
+      subject: 'We Received Your Campaign Inquiry - Influenzia Club',
+      html: brandHtml
+    });
+
+    // Send to admin
+    await sendEmail({
+      to: process.env.ADMIN_NOTIFICATION_EMAIL || process.env.EMAIL_FROM || 'admin@influenziaclub.com',
+      subject: `[New Inquiry] ${safeBrandName} - ₹${safeBudget}`,
+      html: adminHtml
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error sending inquiry emails:', error);
+    return { success: false, error: error.message };
+  }
 };
+

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Sparkles, Filter, CheckCircle2, X, ShieldAlert, Award, AlertOctagon } from 'lucide-react';
+import { Search, Sparkles, Filter, CheckCircle2, X, ShieldAlert, Award, AlertOctagon, Trash2 } from 'lucide-react';
 import api from '../../utils/api';
 import toast from 'react-hot-toast';
 
@@ -83,6 +83,20 @@ const AdminCreators = () => {
     } catch (error) {
       console.error('Error suspending creator:', error);
       toast.error(error.response?.data?.message || 'Failed to suspend creator');
+    }
+  };
+
+  const handlePermanentDeleteCreator = async (creatorId, name) => {
+    if (!window.confirm(`Are you sure you want to PERMANENTLY DELETE creator "${name}"?\n\nThis will remove all associated transactions, milestones, collabs, and records permanently.`)) return;
+    try {
+      const response = await api.delete(`/admin/creators/${creatorId}/permanent`);
+      if (response.data.success) {
+        toast.success('Creator permanently deleted');
+        setCreators(creators.filter(c => c.id !== creatorId));
+      }
+    } catch (error) {
+      console.error('Error deleting creator:', error);
+      toast.error(error.response?.data?.message || 'Failed to permanently delete creator');
     }
   };
 
@@ -318,7 +332,8 @@ const AdminCreators = () => {
                         {c.status !== 'suspended' ? (
                           <button
                             onClick={() => handleSuspendCreator(c.id)}
-                            className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/25 px-2.5 py-1 rounded-lg text-[10px] font-bold"
+                            className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/25 px-2.5 py-1 rounded-lg text-[10px] font-bold"
+                            title="Suspend Account"
                           >
                             Suspend
                           </button>
@@ -326,10 +341,18 @@ const AdminCreators = () => {
                           <button
                             onClick={() => handleUpdateCreatorStatus(c.id, { status: 'active' })}
                             className="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/25 px-2.5 py-1 rounded-lg text-[10px] font-bold"
+                            title="Activate Account"
                           >
                             Activate
                           </button>
                         )}
+                        <button
+                          onClick={() => handlePermanentDeleteCreator(c.id, c.name)}
+                          className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/25 p-1 rounded-lg text-[10px] font-bold flex items-center justify-center transition-colors"
+                          title="Permanently Delete Creator"
+                        >
+                          <Trash2 size={13} />
+                        </button>
                       </div>
                     </td>
                   </tr>

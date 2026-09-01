@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FileText, Sparkles, Filter, CheckCircle2, X, AlertTriangle, Plus, HelpCircle, Calendar, MessageSquare, Briefcase, UserPlus } from 'lucide-react';
+import { FileText, Sparkles, Filter, CheckCircle2, X, AlertTriangle, Plus, HelpCircle, Calendar, MessageSquare, Briefcase, UserPlus, Trash2 } from 'lucide-react';
 import api from '../../utils/api';
 import toast from 'react-hot-toast';
 
@@ -25,28 +25,25 @@ const AdminInquiries = () => {
 
   useEffect(() => {
     fetchInquiries();
-  }, [page, status]);
-
-  useEffect(() => {
     fetchCreators();
-  }, []);
+  }, [page, status]);
 
   const fetchInquiries = async () => {
     try {
       setLoading(true);
-      const params = {
-        page,
-        limit: 10,
-        status: status || undefined
-      };
-      const response = await api.get('/admin/inquiries', { params });
+      const params = new URLSearchParams();
+      if (status) params.append('status', status);
+      params.append('page', page);
+      params.append('limit', 10);
+
+      const response = await api.get(`/admin/inquiries?${params.toString()}`);
       if (response.data.success) {
         setInquiries(response.data.data.inquiries);
         setTotalPages(response.data.data.pagination.pages);
       }
     } catch (error) {
-      console.error('Error fetching admin inquiries:', error);
-      toast.error('Failed to load brand inquiries');
+      console.error('Error fetching inquiries:', error);
+      toast.error('Failed to load inquiries');
     } finally {
       setLoading(false);
     }
@@ -54,8 +51,7 @@ const AdminInquiries = () => {
 
   const fetchCreators = async () => {
     try {
-      // Fetch active/approved creators for assignments
-      const response = await api.get('/admin/creators', { params: { limit: 100 } });
+      const response = await api.get('/admin/creators?limit=100');
       if (response.data.success) {
         setCreators(response.data.data.creators);
       }
@@ -80,6 +76,23 @@ const AdminInquiries = () => {
       toast.error(error.response?.data?.message || 'Failed to update inquiry');
     } finally {
       setUpdatingInquiry(false);
+    }
+  };
+
+  const handleDeleteInquiry = async (inquiryId, brandName) => {
+    if (!window.confirm(`Are you sure you want to delete the inquiry from "${brandName}"?\n\nThis will remove all associated campaign tracking and collaboration records.`)) return;
+    try {
+      const response = await api.delete(`/admin/inquiries/${inquiryId}`);
+      if (response.data.success) {
+        toast.success('Inquiry deleted successfully');
+        setInquiries(inquiries.filter(inq => inq.id !== inquiryId));
+        if (selectedInquiry?.id === inquiryId) {
+          setSelectedInquiry(null);
+        }
+      }
+    } catch (error) {
+      console.error('Error deleting inquiry:', error);
+      toast.error(error.response?.data?.message || 'Failed to delete inquiry');
     }
   };
 
@@ -215,17 +228,30 @@ const AdminInquiries = () => {
                           <h3 className="font-display font-bold text-white text-base">{inq.brandName}</h3>
                           <p className="text-muted text-[11px] mt-0.5">Submitted: {new Date(inq.createdAt).toLocaleString()}</p>
                         </div>
-                        <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
-                          inq.status === 'new'
-                            ? 'bg-blue-400/10 text-blue-400 border border-blue-400/20'
-                            : inq.status === 'in_progress'
-                            ? 'bg-amber-400/10 text-amber-400 border border-amber-400/20'
-                            : inq.status === 'completed'
-                            ? 'bg-emerald-400/10 text-emerald-400 border border-emerald-400/20'
-                            : 'bg-red-400/10 text-red-400 border border-red-400/20'
-                        }`}>
-                          {inq.status.replace('_', ' ')}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
+                            inq.status === 'new'
+                              ? 'bg-blue-400/10 text-blue-400 border border-blue-400/20'
+                              : inq.status === 'in_progress'
+                              ? 'bg-amber-400/10 text-amber-400 border border-amber-400/20'
+                              : inq.status === 'completed'
+                              ? 'bg-emerald-400/10 text-emerald-400 border border-emerald-400/20'
+                              : 'bg-red-400/10 text-red-400 border border-red-400/20'
+                          }`}>
+                            {inq.status.replace('_', ' ')}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteInquiry(inq.id, inq.brandName);
+                            }}
+                            className="p-1 rounded-lg text-muted hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                            title="Delete Inquiry"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
                       </div>
 
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4 text-xs text-[#a1a1aa]">
@@ -373,14 +399,21 @@ const AdminInquiries = () => {
                   </div>
                 </div>
 
-                {/* Campaign Action Button */}
-                <div className="pt-2 border-t border-border/30">
+                {/* Campaign Action Button & Delete Inquiry */}
+                <div className="pt-2 border-t border-border/30 space-y-2">
                   <button
                     onClick={() => openCampaignModal(selectedInquiry)}
                     className="w-full bg-primary hover:bg-primary-soft text-black py-2.5 rounded-xl font-bold transition-all shadow-[0_0_15px_rgba(212,175,55,0.1)] flex items-center justify-center gap-1.5 text-xs"
                   >
                     <Plus size={14} className="stroke-[2.5]" />
                     <span>Create Campaign Workspace</span>
+                  </button>
+                  <button
+                    onClick={() => handleDeleteInquiry(selectedInquiry.id, selectedInquiry.brandName)}
+                    className="w-full bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 py-2 rounded-xl font-bold transition-all flex items-center justify-center gap-1.5 text-xs"
+                  >
+                    <Trash2 size={13} />
+                    <span>Delete Inquiry</span>
                   </button>
                 </div>
               </div>

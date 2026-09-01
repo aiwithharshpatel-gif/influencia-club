@@ -199,13 +199,59 @@ router.post('/redeem', async (req, res) => {
 import { z } from 'zod';
 
 const profileUpdateSchema = z.object({
-  name: z.string().min(2).max(100).optional(),
-  bio: z.string().max(200).optional(),
-  city: z.string().max(50).optional(),
-  category: z.enum(['influencer', 'actor', 'model', 'creator', 'public_figure']).optional(),
-  instagram: z.string().max(100).optional(),
-  mobile: z.string().regex(/^\d{10}$/).optional(),
-  photoUrl: z.string().url().optional().or(z.literal(''))
+  name: z.string().min(1).max(100).optional(),
+  bio: z.string().max(500).optional().nullable(),
+  city: z.string().max(100).optional().nullable(),
+  category: z.string().optional().nullable(),
+  instagram: z.string().max(100).optional().nullable(),
+  mobile: z.string().optional().nullable(),
+  photoUrl: z.string().optional().nullable(),
+  followerCount: z.string().optional().nullable()
+});
+
+// Upload profile photo
+router.post('/profile/photo', upload.single('photo'), async (req, res) => {
+  try {
+    const file = req.file;
+    if (!file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No photo uploaded'
+      });
+    }
+
+    const uploadResult = await uploadToCloudinary(
+      file.buffer,
+      'influenzia-creators',
+      'image',
+      file.mimetype
+    );
+
+    const updatedCreator = await prisma.creator.update({
+      where: { id: req.user.id },
+      data: { photoUrl: uploadResult.url },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        photoUrl: true,
+        instagram: true
+      }
+    });
+
+    res.json({
+      success: true,
+      message: 'Profile photo updated successfully',
+      photoUrl: uploadResult.url,
+      creator: updatedCreator
+    });
+  } catch (error) {
+    console.error('Photo upload error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to upload profile photo'
+    });
+  }
 });
 
 // Update profile
@@ -213,14 +259,17 @@ router.put('/profile', async (req, res) => {
   try {
     const validated = profileUpdateSchema.parse(req.body);
     
-    // Explicitly exclude admin-only fields to be safe
-    // But we only use validated data anyway
     const updateData = {};
-    Object.keys(validated).forEach(key => {
-      if (validated[key] !== undefined) {
-        updateData[key] = validated[key];
-      }
-    });
+    if (validated.name !== undefined && validated.name !== null) updateData.name = validated.name;
+    if (validated.bio !== undefined) updateData.bio = validated.bio;
+    if (validated.city !== undefined) updateData.city = validated.city;
+    if (validated.category !== undefined && validated.category !== null) updateData.category = validated.category;
+    if (validated.instagram !== undefined && validated.instagram !== null) {
+      updateData.instagram = validated.instagram.replace(/^@/, '').trim().toLowerCase();
+    }
+    if (validated.mobile !== undefined && validated.mobile !== null) updateData.mobile = validated.mobile;
+    if (validated.photoUrl !== undefined) updateData.photoUrl = validated.photoUrl;
+    if (validated.followerCount !== undefined) updateData.followerCount = validated.followerCount;
 
     const creator = await prisma.creator.update({
       where: { id: req.user.id },
@@ -234,7 +283,12 @@ router.put('/profile', async (req, res) => {
         city: true,
         bio: true,
         photoUrl: true,
-        mobile: true
+        mobile: true,
+        followerCount: true,
+        pointsBalance: true,
+        tier: true,
+        isVerified: true,
+        isFeatured: true
       }
     });
 
@@ -254,6 +308,105 @@ router.put('/profile', async (req, res) => {
     res.status(500).json({
       success: false,
       message: error.message
+    });
+  }
+});
+
+// Accept a collaboration invitation
+router.put('/collabs/:id/accept', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const creatorId = req.user.id;
+
+    const collab = await prisma.campaignCreator.findUnique({
+      where: { id },
+      include: {
+        campaign: {
+          include: { brandInquiry: true }
+        }
+      }
+    });
+
+    if (!collab || collab.creatorId !== creatorId) {
+      return res.status(404).json({
+        success: false,
+        message: 'Collaboration not found'
+      });
+    }
+
+    const updated = await prisma.campaignCreator.update({
+      where: { id },
+      data: { status: 'confirmed' }
+    });
+
+    // Create default milestones if none exist yet
+    const existingMilestones = await prisma.milestone.count({
+      where: { campaignCreatorId: id }
+    });
+
+    if (existingMilestones === 0) {
+      const defaultMilestones = [
+        { type: 'script_approval', title: '1. Script & Concept Approval', description: 'Submit content concept and script outline for brand review', sortOrder: 0, status: 'in_progress' },
+        { type: 'content_draft', title: '2. Draft Content Review', description: 'Upload draft video / photos for review and feedback', sortOrder: 1, status: 'pending' },
+        { type: 'final_post', title: '3. Final Live Post & Metrics', description: 'Publish final content and provide link / performance metrics', sortOrder: 2, status: 'pending' }
+      ];
+
+      for (const m of defaultMilestones) {
+        await prisma.milestone.create({
+          data: {
+            campaignCreatorId: id,
+            ...m
+          }
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      message: 'Collaboration accepted successfully!',
+      collab: updated
+    });
+  } catch (error) {
+    console.error('Accept collab error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to accept collaboration'
+    });
+  }
+});
+
+// Decline a collaboration invitation
+router.put('/collabs/:id/decline', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const creatorId = req.user.id;
+
+    const collab = await prisma.campaignCreator.findUnique({
+      where: { id }
+    });
+
+    if (!collab || collab.creatorId !== creatorId) {
+      return res.status(404).json({
+        success: false,
+        message: 'Collaboration not found'
+      });
+    }
+
+    const updated = await prisma.campaignCreator.update({
+      where: { id },
+      data: { status: 'declined' }
+    });
+
+    res.json({
+      success: true,
+      message: 'Collaboration declined',
+      collab: updated
+    });
+  } catch (error) {
+    console.error('Decline collab error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to decline collaboration'
     });
   }
 });

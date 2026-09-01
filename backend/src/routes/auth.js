@@ -226,7 +226,7 @@ router.post('/verify-otp', otpLimiter, async (req, res) => {
     const accessToken = jwt.sign(
       { id: creator.id, email: creator.email, role: 'creator', version: creator.passwordVersion },
       process.env.JWT_SECRET,
-      { expiresIn: '15m' }
+      { expiresIn: '7d' }
     );
 
     const refreshToken = jwt.sign(
@@ -235,26 +235,30 @@ router.post('/verify-otp', otpLimiter, async (req, res) => {
       { expiresIn: '30d' }
     );
 
-    // Set cookies
-    res.cookie('accessToken', accessToken, {
+    const cookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 15 * 60 * 1000,
-      path: '/api'
+      sameSite: 'lax',
+      path: '/'
+    };
+
+    // Set cookies
+    res.cookie('accessToken', accessToken, {
+      ...cookieOptions,
+      maxAge: 7 * 24 * 60 * 60 * 1000
     });
 
     res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 30 * 24 * 60 * 60 * 1000,
-      path: '/api'
+      ...cookieOptions,
+      maxAge: 30 * 24 * 60 * 60 * 1000
     });
 
     res.json({
       success: true,
       message: 'Registration successful! Welcome to Influenzia Club',
+      token: accessToken,
+      accessToken,
+      role: 'creator',
       creator: {
         id: creator.id,
         name: creator.name,
@@ -277,14 +281,17 @@ router.post('/verify-otp', otpLimiter, async (req, res) => {
 router.post('/login', loginLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
+    const normalizedEmail = email ? email.toLowerCase().trim() : '';
 
     // Find creator
-    const creator = await prisma.creator.findUnique({
-      where: { email }
+    const creator = await prisma.creator.findFirst({
+      where: {
+        email: { equals: normalizedEmail, mode: 'insensitive' }
+      }
     });
 
     if (!creator) {
-      console.warn(`[SECURITY] Failed login attempt for email: ${email} (User not found)`);
+      console.warn(`[SECURITY] Failed login attempt for email: ${normalizedEmail} (User not found)`);
       return res.status(401).json({
         success: false,
         message: 'Invalid credentials'
@@ -295,7 +302,7 @@ router.post('/login', loginLimiter, async (req, res) => {
     const isValidPassword = await bcrypt.compare(password, creator.passwordHash);
 
     if (!isValidPassword) {
-      console.warn(`[SECURITY] Failed login attempt for email: ${email} (Invalid password)`);
+      console.warn(`[SECURITY] Failed login attempt for email: ${normalizedEmail} (Invalid password)`);
       return res.status(401).json({
         success: false,
         message: 'Invalid credentials'
@@ -314,7 +321,7 @@ router.post('/login', loginLimiter, async (req, res) => {
     const accessToken = jwt.sign(
       { id: creator.id, email: creator.email, role: 'creator', version: creator.passwordVersion },
       process.env.JWT_SECRET,
-      { expiresIn: '15m' }
+      { expiresIn: '7d' }
     );
 
     const refreshToken = jwt.sign(
@@ -323,26 +330,30 @@ router.post('/login', loginLimiter, async (req, res) => {
       { expiresIn: '30d' }
     );
 
-    // Set cookies with strict sameSite and path restriction
-    res.cookie('accessToken', accessToken, {
+    const cookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 15 * 60 * 1000,
-      path: '/api'
+      sameSite: 'lax',
+      path: '/'
+    };
+
+    // Set cookies
+    res.cookie('accessToken', accessToken, {
+      ...cookieOptions,
+      maxAge: 7 * 24 * 60 * 60 * 1000
     });
 
     res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 30 * 24 * 60 * 60 * 1000,
-      path: '/api'
+      ...cookieOptions,
+      maxAge: 30 * 24 * 60 * 60 * 1000
     });
 
     res.json({
       success: true,
       message: 'Login successful',
+      token: accessToken,
+      accessToken,
+      role: 'creator',
       creator: {
         id: creator.id,
         name: creator.name,
@@ -351,7 +362,8 @@ router.post('/login', loginLimiter, async (req, res) => {
         category: creator.category,
         city: creator.city,
         pointsBalance: creator.pointsBalance,
-        tier: creator.tier
+        tier: creator.tier,
+        photoUrl: creator.photoUrl
       }
     });
   } catch (error) {
@@ -368,8 +380,8 @@ router.post('/logout', (req, res) => {
   const cookieOptions = {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
-    path: '/api'
+    sameSite: 'lax',
+    path: '/'
   };
 
   res.clearCookie('accessToken', cookieOptions);
@@ -384,7 +396,9 @@ router.post('/logout', (req, res) => {
 // Refresh Token — issues new access token AND rotates the refresh token
 router.post('/refresh', async (req, res) => {
   try {
-    const refreshToken = req.cookies.refreshToken;
+    const authHeader = req.headers.authorization;
+    const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
+    const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken || bearerToken;
 
     if (!refreshToken) {
       return res.status(401).json({
@@ -410,7 +424,7 @@ router.post('/refresh', async (req, res) => {
     const newAccessToken = jwt.sign(
       { id: creator.id, email: creator.email, role: 'creator', version: creator.passwordVersion },
       process.env.JWT_SECRET,
-      { expiresIn: '15m' }
+      { expiresIn: '7d' }
     );
 
     // Rotate refresh token — issue a fresh one, invalidating the old
@@ -420,25 +434,28 @@ router.post('/refresh', async (req, res) => {
       { expiresIn: '30d' }
     );
 
-    res.cookie('accessToken', newAccessToken, {
+    const cookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 15 * 60 * 1000,
-      path: '/api'
+      sameSite: 'lax',
+      path: '/'
+    };
+
+    res.cookie('accessToken', newAccessToken, {
+      ...cookieOptions,
+      maxAge: 7 * 24 * 60 * 60 * 1000
     });
 
     res.cookie('refreshToken', newRefreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 30 * 24 * 60 * 60 * 1000,
-      path: '/api'
+      ...cookieOptions,
+      maxAge: 30 * 24 * 60 * 60 * 1000
     });
 
     res.json({
       success: true,
-      message: 'Token refreshed'
+      message: 'Token refreshed',
+      token: newAccessToken,
+      accessToken: newAccessToken
     });
   } catch (error) {
     res.status(401).json({
@@ -549,16 +566,16 @@ router.post('/reset-password', async (req, res) => {
 router.post('/admin-login', loginLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
+    const normalizedEmail = email ? email.toLowerCase().trim() : '';
 
-    // NOTE: Default admin must be created via a one-time migration script or CLI command.
-    // Do NOT auto-seed admin credentials in the login flow.
-
-    const admin = await prisma.admin.findUnique({
-      where: { email }
+    const admin = await prisma.admin.findFirst({
+      where: {
+        email: { equals: normalizedEmail, mode: 'insensitive' }
+      }
     });
 
     if (!admin) {
-      console.warn(`[SECURITY] Failed ADMIN login attempt for email: ${email} (Admin not found)`);
+      console.warn(`[SECURITY] Failed ADMIN login attempt for email: ${normalizedEmail} (Admin not found)`);
       return res.status(401).json({
         success: false,
         message: 'Invalid admin credentials'
@@ -568,7 +585,7 @@ router.post('/admin-login', loginLimiter, async (req, res) => {
     const isValidPassword = await bcrypt.compare(password, admin.passwordHash);
 
     if (!isValidPassword) {
-      console.warn(`[SECURITY] Failed ADMIN login attempt for email: ${email} (Invalid password)`);
+      console.warn(`[SECURITY] Failed ADMIN login attempt for email: ${normalizedEmail} (Invalid password)`);
       return res.status(401).json({
         success: false,
         message: 'Invalid admin credentials'
@@ -580,20 +597,27 @@ router.post('/admin-login', loginLimiter, async (req, res) => {
     const adminToken = jwt.sign(
       { id: admin.id, email: admin.email, role: 'admin', version: admin.passwordVersion },
       adminSecret,
-      { expiresIn: '2h' }
+      { expiresIn: '7d' }
     );
 
-    res.cookie('adminToken', adminToken, {
+    const cookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 2 * 60 * 60 * 1000,
-      path: '/api'
+      sameSite: 'lax',
+      path: '/'
+    };
+
+    res.cookie('adminToken', adminToken, {
+      ...cookieOptions,
+      maxAge: 7 * 24 * 60 * 60 * 1000
     });
 
     res.json({
       success: true,
       message: 'Admin login successful',
+      token: adminToken,
+      adminToken,
+      role: 'admin',
       admin: {
         id: admin.id,
         name: admin.name,
@@ -681,7 +705,8 @@ router.post('/reset-test-milestones', async (req, res) => {
 // Brand Login - Send OTP
 router.post('/brand-login', otpLimiter, async (req, res) => {
   try {
-    const { email } = req.body;
+    const rawEmail = req.body?.email;
+    const email = rawEmail ? rawEmail.toLowerCase().trim() : '';
 
     if (!email) {
       return res.status(400).json({
@@ -692,7 +717,9 @@ router.post('/brand-login', otpLimiter, async (req, res) => {
 
     // Verify if any BrandInquiry exists for this email
     const inquiryExists = await prisma.brandInquiry.findFirst({
-      where: { email }
+      where: {
+        email: { equals: email, mode: 'insensitive' }
+      }
     });
 
     if (!inquiryExists) {
@@ -757,7 +784,9 @@ router.post('/brand-login', otpLimiter, async (req, res) => {
 // Brand Verify - Validate OTP and Complete Login
 router.post('/brand-verify', otpLimiter, async (req, res) => {
   try {
-    const { email, otp } = req.body;
+    const rawEmail = req.body?.email;
+    const email = rawEmail ? rawEmail.toLowerCase().trim() : '';
+    const otp = req.body?.otp;
 
     if (!email || !otp) {
       return res.status(400).json({
@@ -768,7 +797,9 @@ router.post('/brand-verify', otpLimiter, async (req, res) => {
 
     // Check OTP in database — look up by email first to track attempts
     const storedOTP = await prisma.otpVerification.findFirst({
-      where: { email },
+      where: {
+        email: { equals: email, mode: 'insensitive' }
+      },
       orderBy: { createdAt: 'desc' }
     });
 
@@ -811,11 +842,19 @@ router.post('/brand-verify', otpLimiter, async (req, res) => {
     // Delete OTP from database
     await prisma.otpVerification.deleteMany({ where: { email } });
 
+    // Fetch brand name from inquiries
+    const inquiry = await prisma.brandInquiry.findFirst({
+      where: { email: { equals: email, mode: 'insensitive' } },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    const brandName = inquiry?.brandName || 'Brand Partner';
+
     // Generate tokens
     const accessToken = jwt.sign(
       { id: email, email: email, role: 'brand', version: 1 },
       process.env.JWT_SECRET,
-      { expiresIn: '15m' }
+      { expiresIn: '7d' }
     );
 
     const refreshToken = jwt.sign(
@@ -828,12 +867,14 @@ router.post('/brand-verify', otpLimiter, async (req, res) => {
     const cookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 15 * 60 * 1000,
-      path: '/api'
+      sameSite: 'lax',
+      path: '/'
     };
 
-    res.cookie('accessToken', accessToken, cookieOptions);
+    res.cookie('accessToken', accessToken, {
+      ...cookieOptions,
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    });
 
     res.cookie('refreshToken', refreshToken, {
       ...cookieOptions,
@@ -843,8 +884,16 @@ router.post('/brand-verify', otpLimiter, async (req, res) => {
     res.json({
       success: true,
       message: 'Login successful',
+      token: accessToken,
+      accessToken,
       email,
-      role: 'brand'
+      brandName,
+      role: 'brand',
+      user: {
+        email,
+        brandName,
+        role: 'brand'
+      }
     });
   } catch (error) {
     console.error('Brand verify error:', error);
@@ -858,7 +907,9 @@ router.post('/brand-verify', otpLimiter, async (req, res) => {
 // Get Current User Info
 router.get('/me', async (req, res) => {
   try {
-    const token = req.cookies.accessToken || req.cookies.adminToken;
+    const authHeader = req.headers.authorization;
+    const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
+    const token = bearerToken || req.cookies?.accessToken || req.cookies?.adminToken;
     
     if (!token) {
       return res.status(401).json({
@@ -883,9 +934,14 @@ router.get('/me', async (req, res) => {
             instagram: true,
             category: true,
             city: true,
+            bio: true,
+            photoUrl: true,
+            followerCount: true,
             pointsBalance: true,
             tier: true,
             isApproved: true,
+            isVerified: true,
+            isFeatured: true,
             passwordVersion: true
           }
         });
@@ -907,7 +963,7 @@ router.get('/me', async (req, res) => {
       decoded = jwt.verify(token, process.env.JWT_SECRET);
       if (decoded.role === 'brand') {
         const inquiries = await prisma.brandInquiry.findMany({
-          where: { email: decoded.email }
+          where: { email: { equals: decoded.email, mode: 'insensitive' } }
         });
         if (inquiries.length > 0) {
           return res.json({
@@ -974,7 +1030,7 @@ router.put('/me', protect, async (req, res) => {
     if (bio !== undefined) updateData.bio = bio;
     if (city !== undefined) updateData.city = city;
     if (category) updateData.category = category;
-    if (instagram) updateData.instagram = instagram.replace(/^@/, '').trim();
+    if (instagram) updateData.instagram = instagram.replace(/^@/, '').trim().toLowerCase();
     if (mobile) updateData.mobile = mobile;
     if (photoUrl !== undefined) updateData.photoUrl = photoUrl;
 
@@ -1064,7 +1120,6 @@ router.post('/instagram/authenticate', async (req, res) => {
     const igAccessToken = (isMock || !hasMetaCredentials) ? (code || 'mock_access_token_123') : await getLongLivedAccessToken(code, redirectUri);
     
     // Call Instagram Service (fetches mock or real data)
-    // Real Meta tokens resolve the username automatically via the /me endpoint
     const igData = await fetchInstagramData(igAccessToken, username || '');
 
     if (!igData || !igData.username) {
@@ -1095,7 +1150,7 @@ router.post('/instagram/authenticate', async (req, res) => {
         });
       }
       // Sync InstagramProfile statistics
-      const updatedProfile = await prisma.instagramProfile.upsert({
+      await prisma.instagramProfile.upsert({
         where: { creatorId: creator.id },
         update: {
           username: igData.username,
@@ -1138,7 +1193,7 @@ router.post('/instagram/authenticate', async (req, res) => {
       const accessToken = jwt.sign(
         { id: creator.id, email: creator.email, role: 'creator', version: creator.passwordVersion },
         process.env.JWT_SECRET,
-        { expiresIn: '15m' }
+        { expiresIn: '7d' }
       );
 
       const refreshToken = jwt.sign(
@@ -1151,17 +1206,22 @@ router.post('/instagram/authenticate', async (req, res) => {
       const cookieOptions = {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        maxAge: 15 * 60 * 1000,
-        path: '/api'
+        sameSite: 'lax',
+        path: '/'
       };
 
-      res.cookie('accessToken', accessToken, cookieOptions);
+      res.cookie('accessToken', accessToken, {
+        ...cookieOptions,
+        maxAge: 7 * 24 * 60 * 60 * 1000
+      });
       res.cookie('refreshToken', refreshToken, { ...cookieOptions, maxAge: 30 * 24 * 60 * 60 * 1000 });
 
       return res.json({
         success: true,
         existingUser: true,
+        token: accessToken,
+        accessToken,
+        role: 'creator',
         creator: {
           id: creator.id,
           name: creator.name,
@@ -1188,7 +1248,6 @@ router.post('/instagram/authenticate', async (req, res) => {
     }
   } catch (error) {
     console.error('Instagram Authentication error:', error);
-    // Provide a user-friendly error message instead of raw API errors
     let userMessage = 'Failed to authenticate with Instagram. Please try again.';
     if (error.message?.includes('token exchange')) {
       userMessage = 'Instagram login session expired or was invalid. Please try connecting with Instagram again.';
@@ -1216,10 +1275,11 @@ router.post('/instagram/register-complete', async (req, res) => {
     }
 
     const cleanedUsername = instagram.toLowerCase().replace('@', '').trim();
+    const normalizedEmail = email.toLowerCase().trim();
 
     // Check email uniqueness
-    const existingEmail = await prisma.creator.findUnique({
-      where: { email }
+    const existingEmail = await prisma.creator.findFirst({
+      where: { email: { equals: normalizedEmail, mode: 'insensitive' } }
     });
     if (existingEmail) {
       return res.status(400).json({
@@ -1268,7 +1328,7 @@ router.post('/instagram/register-complete', async (req, res) => {
     const creator = await prisma.creator.create({
       data: {
         name,
-        email,
+        email: normalizedEmail,
         passwordHash,
         mobile,
         instagram: cleanedUsername,
@@ -1308,13 +1368,13 @@ router.post('/instagram/register-complete', async (req, res) => {
     }
 
     // Send welcome email
-    await sendWelcomeEmail(email, name, referralCode);
+    await sendWelcomeEmail(normalizedEmail, name, referralCode);
 
     // Generate tokens
     const accessToken = jwt.sign(
       { id: creator.id, email: creator.email, role: 'creator', version: creator.passwordVersion },
       process.env.JWT_SECRET,
-      { expiresIn: '15m' }
+      { expiresIn: '7d' }
     );
 
     const refreshToken = jwt.sign(
@@ -1327,17 +1387,22 @@ router.post('/instagram/register-complete', async (req, res) => {
     const cookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 15 * 60 * 1000,
-      path: '/api'
+      sameSite: 'lax',
+      path: '/'
     };
 
-    res.cookie('accessToken', accessToken, cookieOptions);
+    res.cookie('accessToken', accessToken, {
+      ...cookieOptions,
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    });
     res.cookie('refreshToken', refreshToken, { ...cookieOptions, maxAge: 30 * 24 * 60 * 60 * 1000 });
 
     res.json({
       success: true,
       message: 'Registration successful! Welcome to Influenzia Club',
+      token: accessToken,
+      accessToken,
+      role: 'creator',
       creator: {
         id: creator.id,
         name: creator.name,

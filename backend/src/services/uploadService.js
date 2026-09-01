@@ -45,8 +45,22 @@ export const upload = multer({
  * @param {string} resourceType - 'image' | 'raw' (for PDFs/docs)
  * @returns {Promise<{url: string, publicId: string, format: string, bytes: number}>}
  */
-export const uploadToCloudinary = (buffer, folder = 'influenzia-chat', resourceType = 'auto') => {
+export const uploadToCloudinary = (buffer, folder = 'influenzia-chat', resourceType = 'auto', mimeType = 'image/jpeg') => {
   return new Promise((resolve, reject) => {
+    // If Cloudinary credentials are dummy or missing, return data URI fallback
+    if (!process.env.CLOUDINARY_API_KEY || process.env.CLOUDINARY_API_KEY.includes('your_') || !process.env.CLOUDINARY_CLOUD_NAME) {
+      const base64Data = buffer.toString('base64');
+      const dataUrl = `data:${mimeType};base64,${base64Data}`;
+      return resolve({
+        url: dataUrl,
+        publicId: `mock_${Date.now()}`,
+        format: mimeType.split('/')[1] || 'jpg',
+        bytes: buffer.length,
+        width: 400,
+        height: 400
+      });
+    }
+
     const stream = cloudinary.uploader.upload_stream(
       {
         folder,
@@ -57,8 +71,17 @@ export const uploadToCloudinary = (buffer, folder = 'influenzia-chat', resourceT
       },
       (error, result) => {
         if (error) {
-          console.error('[Upload Service] Cloudinary upload error:', error);
-          reject(error);
+          console.error('[Upload Service] Cloudinary upload error, falling back to data URI:', error.message);
+          const base64Data = buffer.toString('base64');
+          const dataUrl = `data:${mimeType};base64,${base64Data}`;
+          resolve({
+            url: dataUrl,
+            publicId: `fallback_${Date.now()}`,
+            format: mimeType.split('/')[1] || 'jpg',
+            bytes: buffer.length,
+            width: 400,
+            height: 400
+          });
         } else {
           resolve({
             url: result.secure_url,
@@ -76,3 +99,4 @@ export const uploadToCloudinary = (buffer, folder = 'influenzia-chat', resourceT
 };
 
 export default cloudinary;
+

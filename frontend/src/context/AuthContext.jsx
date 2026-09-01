@@ -12,8 +12,15 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [role, setRole] = useState(null);
+  const [user, setUser] = useState(() => {
+    try {
+      const savedUser = localStorage.getItem('user');
+      return savedUser ? JSON.parse(savedUser) : null;
+    } catch (e) {
+      return null;
+    }
+  });
+  const [role, setRole] = useState(() => localStorage.getItem('role') || null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -26,10 +33,21 @@ export const AuthProvider = ({ children }) => {
       if (response.data.success) {
         setUser(response.data.user);
         setRole(response.data.role);
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+        localStorage.setItem('role', response.data.role);
+      } else {
+        throw new Error('Auth failed');
       }
     } catch (error) {
-      setUser(null);
-      setRole(null);
+      // If no valid session and 401, clear storage
+      if (error.response?.status === 401) {
+        setUser(null);
+        setRole(null);
+        localStorage.removeItem('token');
+        localStorage.removeItem('adminToken');
+        localStorage.removeItem('user');
+        localStorage.removeItem('role');
+      }
     } finally {
       setLoading(false);
     }
@@ -38,6 +56,10 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     const response = await api.post('/auth/login', { email, password });
     if (response.data.success) {
+      const token = response.data.token || response.data.accessToken;
+      if (token) localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(response.data.creator));
+      localStorage.setItem('role', 'creator');
       setUser(response.data.creator);
       setRole('creator');
       return response.data;
@@ -48,6 +70,13 @@ export const AuthProvider = ({ children }) => {
   const adminLogin = async (email, password) => {
     const response = await api.post('/auth/admin-login', { email, password });
     if (response.data.success) {
+      const token = response.data.token || response.data.adminToken;
+      if (token) {
+        localStorage.setItem('token', token);
+        localStorage.setItem('adminToken', token);
+      }
+      localStorage.setItem('user', JSON.stringify(response.data.admin));
+      localStorage.setItem('role', 'admin');
       setUser(response.data.admin);
       setRole('admin');
       return response.data;
@@ -63,6 +92,10 @@ export const AuthProvider = ({ children }) => {
   const verifyOTP = async (email, otp) => {
     const response = await api.post('/auth/verify-otp', { email, otp });
     if (response.data.success) {
+      const token = response.data.token || response.data.accessToken;
+      if (token) localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(response.data.creator));
+      localStorage.setItem('role', 'creator');
       setUser(response.data.creator);
       setRole('creator');
     }
@@ -77,10 +110,27 @@ export const AuthProvider = ({ children }) => {
   const brandVerifyOTP = async (email, otp) => {
     const response = await api.post('/auth/brand-verify', { email, otp });
     if (response.data.success) {
-      setUser({ email, brandName: response.data.brandName || 'Brand Manager', role: 'brand' });
+      const token = response.data.token || response.data.accessToken;
+      if (token) localStorage.setItem('token', token);
+      const brandUser = response.data.user || {
+        email,
+        brandName: response.data.brandName || 'Brand Partner',
+        role: 'brand'
+      };
+      localStorage.setItem('user', JSON.stringify(brandUser));
+      localStorage.setItem('role', 'brand');
+      setUser(brandUser);
       setRole('brand');
     }
     return response.data;
+  };
+
+  const setAuthSession = (sessionUser, sessionRole, sessionToken) => {
+    if (sessionToken) localStorage.setItem('token', sessionToken);
+    if (sessionUser) localStorage.setItem('user', JSON.stringify(sessionUser));
+    if (sessionRole) localStorage.setItem('role', sessionRole);
+    setUser(sessionUser);
+    setRole(sessionRole);
   };
 
   const logout = async () => {
@@ -89,6 +139,10 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
+      localStorage.removeItem('token');
+      localStorage.removeItem('adminToken');
+      localStorage.removeItem('user');
+      localStorage.removeItem('role');
       setUser(null);
       setRole(null);
     }
@@ -104,6 +158,7 @@ export const AuthProvider = ({ children }) => {
     brandVerifyOTP,
     register,
     verifyOTP,
+    setAuthSession,
     logout,
     isAuthenticated: !!user,
     isAdmin: role === 'admin',
@@ -112,3 +167,4 @@ export const AuthProvider = ({ children }) => {
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
+
