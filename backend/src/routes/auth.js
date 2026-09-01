@@ -286,7 +286,7 @@ router.post('/login', loginLimiter, async (req, res) => {
     // Find creator
     const creator = await prisma.creator.findFirst({
       where: {
-        email: { equals: normalizedEmail, mode: 'insensitive' }
+        email: normalizedEmail
       }
     });
 
@@ -570,7 +570,7 @@ router.post('/admin-login', loginLimiter, async (req, res) => {
 
     const admin = await prisma.admin.findFirst({
       where: {
-        email: { equals: normalizedEmail, mode: 'insensitive' }
+        email: normalizedEmail
       }
     });
 
@@ -718,7 +718,7 @@ router.post('/brand-login', otpLimiter, async (req, res) => {
     // Verify if any BrandInquiry exists for this email
     const inquiryExists = await prisma.brandInquiry.findFirst({
       where: {
-        email: { equals: email, mode: 'insensitive' }
+        email
       }
     });
 
@@ -798,7 +798,7 @@ router.post('/brand-verify', otpLimiter, async (req, res) => {
     // Check OTP in database — look up by email first to track attempts
     const storedOTP = await prisma.otpVerification.findFirst({
       where: {
-        email: { equals: email, mode: 'insensitive' }
+        email
       },
       orderBy: { createdAt: 'desc' }
     });
@@ -844,7 +844,7 @@ router.post('/brand-verify', otpLimiter, async (req, res) => {
 
     // Fetch brand name from inquiries
     const inquiry = await prisma.brandInquiry.findFirst({
-      where: { email: { equals: email, mode: 'insensitive' } },
+      where: { email },
       orderBy: { createdAt: 'desc' }
     });
 
@@ -963,7 +963,7 @@ router.get('/me', async (req, res) => {
       decoded = jwt.verify(token, process.env.JWT_SECRET);
       if (decoded.role === 'brand') {
         const inquiries = await prisma.brandInquiry.findMany({
-          where: { email: { equals: decoded.email, mode: 'insensitive' } }
+          where: { email: decoded.email }
         });
         if (inquiries.length > 0) {
           return res.json({
@@ -1279,7 +1279,7 @@ router.post('/instagram/register-complete', async (req, res) => {
 
     // Check email uniqueness
     const existingEmail = await prisma.creator.findFirst({
-      where: { email: { equals: normalizedEmail, mode: 'insensitive' } }
+      where: { email: normalizedEmail }
     });
     if (existingEmail) {
       return res.status(400).json({
