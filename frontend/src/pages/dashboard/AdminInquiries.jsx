@@ -84,15 +84,24 @@ const AdminInquiries = () => {
     try {
       const response = await api.delete(`/admin/inquiries/${inquiryId}`);
       if (response.data.success) {
-        toast.success('Inquiry deleted successfully');
-        setInquiries(inquiries.filter(inq => inq.id !== inquiryId));
+        toast.success(response.data.message || 'Inquiry deleted successfully');
+        setInquiries(prev => prev.filter(inq => inq.id !== inquiryId));
         if (selectedInquiry?.id === inquiryId) {
           setSelectedInquiry(null);
         }
       }
     } catch (error) {
       console.error('Error deleting inquiry:', error);
-      toast.error(error.response?.data?.message || 'Failed to delete inquiry');
+      if (error.response?.status === 404) {
+        // Already deleted or not found on server, remove from UI state
+        setInquiries(prev => prev.filter(inq => inq.id !== inquiryId));
+        if (selectedInquiry?.id === inquiryId) {
+          setSelectedInquiry(null);
+        }
+        toast.info('Inquiry was already removed');
+      } else {
+        toast.error(error.response?.data?.message || 'Failed to delete inquiry');
+      }
     }
   };
 

@@ -13,7 +13,14 @@ const api = axios.create({
 // Request interceptor to attach JWT token from localStorage
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token') || localStorage.getItem('adminToken');
+    let token = null;
+    const isAdminTarget = config.url?.includes('/admin') || (typeof window !== 'undefined' && window.location.pathname.startsWith('/admin'));
+    if (isAdminTarget) {
+      token = localStorage.getItem('adminToken') || localStorage.getItem('token');
+    } else {
+      token = localStorage.getItem('token') || localStorage.getItem('adminToken');
+    }
+
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }

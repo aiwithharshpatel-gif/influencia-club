@@ -345,45 +345,64 @@ router.delete('/inquiries/:id', async (req, res) => {
       include: {
         campaigns: {
           include: {
-            campaignCreators: true
+            campaignCreators: true,
+            campaignApplications: true
           }
         }
       }
     });
 
     if (!inquiry) {
-      return res.status(404).json({
-        success: false,
-        message: 'Inquiry not found'
+      // Idempotent: If already deleted, return success so frontend can cleanly update
+      return res.json({
+        success: true,
+        message: 'Inquiry was already deleted or does not exist'
       });
     }
 
-    // Delete milestones for all campaign creators under this inquiry
-    for (const camp of inquiry.campaigns) {
-      for (const cc of camp.campaignCreators) {
-        await prisma.milestone.deleteMany({
-          where: { campaignCreatorId: cc.id }
+    const campaignIds = inquiry.campaigns.map(c => c.id);
+
+    if (campaignIds.length > 0) {
+      // 1. Delete messages referencing these campaigns
+      await prisma.message.deleteMany({
+        where: { campaignId: { in: campaignIds } }
+      });
+
+      // 2. Delete analytics and reviews
+      await prisma.campaignAnalytics.deleteMany({
+        where: { campaignId: { in: campaignIds } }
+      });
+      await prisma.review.deleteMany({
+        where: { campaignId: { in: campaignIds } }
+      });
+
+      // 3. Delete milestones and applications
+      for (const camp of inquiry.campaigns) {
+        for (const cc of camp.campaignCreators) {
+          await prisma.milestone.deleteMany({
+            where: { campaignCreatorId: cc.id }
+          });
+        }
+        await prisma.campaignCreator.deleteMany({
+          where: { campaignId: camp.id }
+        });
+        await prisma.campaignApplication.deleteMany({
+          where: { campaignId: camp.id }
         });
       }
-      await prisma.campaignCreator.deleteMany({
-        where: { campaignId: camp.id }
-      });
-      await prisma.campaignApplication.deleteMany({
-        where: { campaignId: camp.id }
+
+      // 4. Delete campaigns
+      await prisma.campaign.deleteMany({
+        where: { id: { in: campaignIds } }
       });
     }
 
-    // Delete campaigns
-    await prisma.campaign.deleteMany({
-      where: { brandInquiryId: id }
-    });
-
-    // Delete payments linked to this inquiry
+    // 5. Delete payments linked to this inquiry
     await prisma.payment.deleteMany({
       where: { brandInquiryId: id }
     });
 
-    // Delete inquiry
+    // 6. Delete inquiry
     await prisma.brandInquiry.delete({
       where: { id }
     });
