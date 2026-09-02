@@ -209,14 +209,14 @@ const profileUpdateSchema = z.object({
   followerCount: z.string().optional().nullable()
 });
 
-// Upload profile photo
-router.post('/profile/photo', upload.single('photo'), async (req, res) => {
+// Upload profile photo handler
+const handleProfilePhotoUpload = async (req, res) => {
   try {
     const file = req.file;
     if (!file) {
       return res.status(400).json({
         success: false,
-        message: 'No photo uploaded'
+        message: 'No photo uploaded. Please select an image file.'
       });
     }
 
@@ -252,7 +252,10 @@ router.post('/profile/photo', upload.single('photo'), async (req, res) => {
       message: error.message || 'Failed to upload profile photo'
     });
   }
-});
+};
+
+router.post('/profile/photo', upload.single('photo'), handleProfilePhotoUpload);
+router.put('/profile/photo', upload.single('photo'), handleProfilePhotoUpload);
 
 // Update profile
 router.put('/profile', async (req, res) => {

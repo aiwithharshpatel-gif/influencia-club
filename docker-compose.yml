@@ -11,14 +11,16 @@ services:
       - app-network
 
   backend_final: # RENAMED SERVICE
-    image: influencia-club-backend_final:v1.2.18
+    image: influencia-club-backend_final:v1.2.19
     build: 
       context: ./backend
       args:
-        - CACHEBUST=FORCE-REBUILD-20260901-v38
+        - CACHEBUST=FORCE-REBUILD-20260902-v40
     restart: always
     expose:
       - "5000"
+    volumes:
+      - uploads_data:/app/uploads
     environment:
       - DATABASE_URL=${DATABASE_URL:?Set DATABASE_URL in .env}
       - NODE_ENV=production
@@ -51,12 +53,12 @@ services:
       - app-network
  
   frontend_final: # RENAMED SERVICE
-    image: influencia-club-frontend_final:v1.2.18
+    image: influencia-club-frontend_final:v1.2.19
     build: 
       context: ./frontend
       args:
         - VITE_API_URL=${VITE_API_URL:-/api}
-        - CACHEBUST=FORCE-REBUILD-20260901-v38
+        - CACHEBUST=FORCE-REBUILD-20260902-v40
     restart: always
     expose:
       - "80"
@@ -89,3 +91,5 @@ volumes:
   db_data_v3:
   caddy_data:
   caddy_config:
+  uploads_data:
+

@@ -18,7 +18,7 @@ npx prisma generate --schema=./schema_config/prod.prisma
 
 # 3. Sync Database Schema Safely (adds new fields without data loss)
 echo "Syncing database schema..."
-npx prisma db push --schema=./schema_config/prod.prisma
+npx prisma db push --schema=./schema_config/prod.prisma --accept-data-loss
 
 # 4. Start Server
 echo "Launching Influenzia API..."

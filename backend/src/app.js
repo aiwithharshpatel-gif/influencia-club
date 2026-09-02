@@ -168,6 +168,10 @@ app.use('/api/rewards', rewardsRoutes);
 app.use('/api/milestones', milestonesRoutes);
 app.use('/api/notifications', notificationsRoutes);
 
+// Static file serving for user uploads (avatars, attachments)
+const uploadsPath = path.join(process.cwd(), 'uploads');
+app.use('/api/uploads', express.static(uploadsPath));
+app.use('/uploads', express.static(uploadsPath));
 
 import { createServer } from 'http';
 import { Server } from 'socket.io';

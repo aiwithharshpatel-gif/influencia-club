@@ -1,5 +1,8 @@
 {
     email no-reply@influenziaclub.com
+    servers {
+        protocols h1 h2
+    }
 }
 
 test.influenziaclub.com, www.influenziaclub.com {

@@ -132,8 +132,8 @@ const Profile = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Image size must be less than 5MB');
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('Image size must be less than 10MB');
       return;
     }
 
@@ -142,14 +142,27 @@ const Profile = () => {
       const formData = new FormData();
       formData.append('photo', file);
 
-      const res = await api.post('/dashboard/profile/photo', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      let res;
+      try {
+        res = await api.post('/dashboard/profile/photo', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+      } catch (firstErr) {
+        if (firstErr.response?.status === 404) {
+          res = await api.post('/auth/me/photo', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+          });
+        } else {
+          throw firstErr;
+        }
+      }
 
-      if (res.data.success) {
+      if (res?.data?.success) {
         toast.success('Profile photo updated successfully!');
         setProfile(prev => ({ ...prev, photoUrl: res.data.photoUrl }));
         setValue('photoUrl', res.data.photoUrl);
+      } else {
+        toast.error(res?.data?.message || 'Failed to update photo');
       }
     } catch (err) {
       console.error('Photo upload error:', err);

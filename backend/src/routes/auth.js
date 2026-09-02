@@ -10,6 +10,7 @@ import { creditPoints, processReferral } from '../services/pointsService.js';
 import { validateCreator, safeErrorMessage } from '../middleware/errorHandler.js';
 import { protect } from '../middleware/auth.js';
 import { fetchInstagramData, getLongLivedAccessToken } from '../services/instagramService.js';
+import { upload, uploadToCloudinary } from '../services/uploadService.js';
 
 const router = express.Router();
 
@@ -1062,6 +1063,57 @@ router.put('/me', protect, async (req, res) => {
     });
   }
 });
+
+// Upload Creator Profile Photo (alias for /api/dashboard/profile/photo)
+const handleAuthPhotoUpload = async (req, res) => {
+  try {
+    const file = req.file;
+    if (!file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No photo uploaded. Please select an image file.'
+      });
+    }
+
+    const uploadResult = await uploadToCloudinary(
+      file.buffer,
+      'influenzia-creators',
+      'image',
+      file.mimetype
+    );
+
+    const creator = await prisma.creator.update({
+      where: { id: req.user.id },
+      data: { photoUrl: uploadResult.url },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        photoUrl: true,
+        instagram: true
+      }
+    });
+
+    res.json({
+      success: true,
+      message: 'Profile photo updated successfully',
+      photoUrl: uploadResult.url,
+      creator
+    });
+  } catch (error) {
+    console.error('Photo upload error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to upload profile photo'
+    });
+  }
+};
+
+router.post('/me/photo', protect, upload.single('photo'), handleAuthPhotoUpload);
+router.put('/me/photo', protect, upload.single('photo'), handleAuthPhotoUpload);
+router.post('/profile/photo', protect, upload.single('photo'), handleAuthPhotoUpload);
+router.put('/profile/photo', protect, upload.single('photo'), handleAuthPhotoUpload);
+
 
 // Helper to format follower count beautifully (e.g. 75K, 1.2L, 2.5M)
 const formatFollowers = (count) => {
