@@ -108,7 +108,7 @@ const Navbar = () => {
                   <button
                     onClick={async () => {
                       await logout();
-                      window.location.href = '/';
+                      window.location.href = '/login';
                     }}
                     className="btn-primary text-xs px-6 py-2.5 rounded-full uppercase tracking-wider font-bold"
                   >
@@ -235,7 +235,7 @@ const Navbar = () => {
                       onClick={async () => {
                         setIsOpen(false);
                         await logout();
-                        window.location.href = '/';
+                        window.location.href = '/login';
                       }}
                       className="block w-full btn-primary text-center py-3 rounded-lg font-bold"
                     >

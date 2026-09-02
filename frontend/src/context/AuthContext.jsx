@@ -14,13 +14,19 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
     try {
+      const token = localStorage.getItem('token') || localStorage.getItem('adminToken');
+      if (!token) return null;
       const savedUser = localStorage.getItem('user');
       return savedUser ? JSON.parse(savedUser) : null;
     } catch (e) {
       return null;
     }
   });
-  const [role, setRole] = useState(() => localStorage.getItem('role') || null);
+  const [role, setRole] = useState(() => {
+    const token = localStorage.getItem('token') || localStorage.getItem('adminToken');
+    if (!token) return null;
+    return localStorage.getItem('role') || null;
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -28,26 +34,33 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const checkAuth = async () => {
+    const token = localStorage.getItem('token') || localStorage.getItem('adminToken');
+    if (!token) {
+      setUser(null);
+      setRole(null);
+      localStorage.removeItem('user');
+      localStorage.removeItem('role');
+      setLoading(false);
+      return;
+    }
+
     try {
       const response = await api.get('/auth/me');
-      if (response.data.success) {
+      if (response.data.success && response.data.user) {
         setUser(response.data.user);
         setRole(response.data.role);
         localStorage.setItem('user', JSON.stringify(response.data.user));
         localStorage.setItem('role', response.data.role);
       } else {
-        throw new Error('Auth failed');
+        throw new Error('Auth check failed');
       }
     } catch (error) {
-      // If no valid session and 401, clear storage
-      if (error.response?.status === 401) {
-        setUser(null);
-        setRole(null);
-        localStorage.removeItem('token');
-        localStorage.removeItem('adminToken');
-        localStorage.removeItem('user');
-        localStorage.removeItem('role');
-      }
+      setUser(null);
+      setRole(null);
+      localStorage.removeItem('token');
+      localStorage.removeItem('adminToken');
+      localStorage.removeItem('user');
+      localStorage.removeItem('role');
     } finally {
       setLoading(false);
     }
