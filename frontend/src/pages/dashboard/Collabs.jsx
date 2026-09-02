@@ -32,11 +32,16 @@ const Collaborations = () => {
       const res = await api.put(`/dashboard/collabs/${collabId}/accept`);
       if (res.data.success) {
         toast.success('Collaboration accepted! Milestones workspace is now open.');
-        setCollabs(collabs.map(c => c.id === collabId ? { ...c, status: 'confirmed' } : c));
+        setCollabs(prev => prev.map(c => c.id === collabId ? { ...c, status: 'confirmed' } : c));
       }
     } catch (err) {
       console.error('Error accepting collab:', err);
-      toast.error(err.response?.data?.message || 'Failed to accept collaboration');
+      if (err.response?.status === 404) {
+        setCollabs(prev => prev.filter(c => c.id !== collabId));
+        toast.error('This collaboration offer is no longer available or was removed');
+      } else {
+        toast.error(err.response?.data?.message || 'Failed to accept collaboration');
+      }
     } finally {
       setProcessingId(null);
     }
@@ -49,11 +54,16 @@ const Collaborations = () => {
       const res = await api.put(`/dashboard/collabs/${collabId}/decline`);
       if (res.data.success) {
         toast.success('Collaboration declined');
-        setCollabs(collabs.map(c => c.id === collabId ? { ...c, status: 'declined' } : c));
+        setCollabs(prev => prev.map(c => c.id === collabId ? { ...c, status: 'declined' } : c));
       }
     } catch (err) {
       console.error('Error declining collab:', err);
-      toast.error(err.response?.data?.message || 'Failed to decline collaboration');
+      if (err.response?.status === 404) {
+        setCollabs(prev => prev.filter(c => c.id !== collabId));
+        toast.info('Collaboration offer was already removed');
+      } else {
+        toast.error(err.response?.data?.message || 'Failed to decline collaboration');
+      }
     } finally {
       setProcessingId(null);
     }

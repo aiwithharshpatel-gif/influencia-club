@@ -9,7 +9,12 @@ const prisma = new PrismaClient();
 
 const normalizeBudget = (val) => {
   if (typeof val === 'string') {
-    return val.replace(/&lt;/g, '<').replace(/&gt;/g, '>').trim();
+    let s = val.trim();
+    try {
+      s = validator.unescape(s);
+      s = validator.unescape(s);
+    } catch (e) {}
+    return s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').trim();
   }
   return val;
 };

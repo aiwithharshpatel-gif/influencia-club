@@ -10,6 +10,11 @@ import { upload, uploadToCloudinary } from '../services/uploadService.js';
 const router = express.Router();
 const prisma = new PrismaClient();
 
+const isBrandOwner = (inquiryEmail, brandEmail) => {
+  if (!inquiryEmail || !brandEmail) return false;
+  return inquiryEmail.toLowerCase().trim() === brandEmail.toLowerCase().trim();
+};
+
 // All brand routes require brandProtect middleware
 router.use(brandProtect);
 
@@ -92,7 +97,7 @@ router.get('/inquiries/:id/matches', async (req, res) => {
       where: { id }
     });
 
-    if (!brandInquiry || brandInquiry.email !== req.brand.email) {
+    if (!brandInquiry || !isBrandOwner(brandInquiry.email, req.brand.email)) {
       return res.status(404).json({
         success: false,
         message: 'Campaign inquiry not found'
@@ -211,7 +216,7 @@ router.post('/inquiries/:id/invite', async (req, res) => {
       where: { id }
     });
 
-    if (!brandInquiry || brandInquiry.email !== req.brand.email) {
+    if (!brandInquiry || !isBrandOwner(brandInquiry.email, req.brand.email)) {
       return res.status(404).json({
         success: false,
         message: 'Campaign inquiry not found'
@@ -698,7 +703,7 @@ router.put('/campaigns/:id/recruitment', async (req, res) => {
       include: { brandInquiry: true }
     });
 
-    if (!campaign || campaign.brandInquiry.email !== req.brand.email) {
+    if (!campaign || !isBrandOwner(campaign.brandInquiry.email, req.brand.email)) {
       return res.status(404).json({
         success: false,
         message: 'Campaign not found'
@@ -741,7 +746,7 @@ router.get('/campaigns/:id/applications', async (req, res) => {
       include: { brandInquiry: true }
     });
 
-    if (!campaign || campaign.brandInquiry.email !== req.brand.email) {
+    if (!campaign || !isBrandOwner(campaign.brandInquiry.email, req.brand.email)) {
       return res.status(404).json({
         success: false,
         message: 'Campaign not found'
@@ -808,7 +813,7 @@ router.post('/applications/:id/action', async (req, res) => {
       }
     });
 
-    if (!application || application.campaign.brandInquiry.email !== req.brand.email) {
+    if (!application || !isBrandOwner(application.campaign.brandInquiry.email, req.brand.email)) {
       return res.status(404).json({
         success: false,
         message: 'Application not found'

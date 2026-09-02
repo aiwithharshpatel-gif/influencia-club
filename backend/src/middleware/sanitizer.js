@@ -19,7 +19,10 @@ const SKIP_SANITIZE_KEYS = new Set([
   'token',
   'refreshtoken',
   'accesstoken',
-  'code'
+  'code',
+  'budgetrange',
+  'budget',
+  'range'
 ]);
 
 /**

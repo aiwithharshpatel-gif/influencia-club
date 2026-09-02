@@ -366,9 +366,9 @@ router.put('/collabs/:id/accept', async (req, res) => {
 
     if (existingMilestones === 0) {
       const defaultMilestones = [
-        { type: 'script_approval', title: '1. Script & Concept Approval', description: 'Submit content concept and script outline for brand review', sortOrder: 0, status: 'in_progress' },
-        { type: 'content_draft', title: '2. Draft Content Review', description: 'Upload draft video / photos for review and feedback', sortOrder: 1, status: 'pending' },
-        { type: 'final_post', title: '3. Final Live Post & Metrics', description: 'Publish final content and provide link / performance metrics', sortOrder: 2, status: 'pending' }
+        { type: 'brief_review', title: '1. Script & Concept Approval', description: 'Submit content concept and script outline for brand review', sortOrder: 0, status: 'in_progress' },
+        { type: 'draft_submit', title: '2. Draft Content Review', description: 'Upload draft video / photos for review and feedback', sortOrder: 1, status: 'pending' },
+        { type: 'live_verification', title: '3. Final Live Post & Metrics', description: 'Publish final content and provide link / performance metrics', sortOrder: 2, status: 'pending' }
       ];
 
       for (const m of defaultMilestones) {
@@ -390,7 +390,7 @@ router.put('/collabs/:id/accept', async (req, res) => {
     console.error('Accept collab error:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to accept collaboration'
+      message: error.message || 'Failed to accept collaboration'
     });
   }
 });

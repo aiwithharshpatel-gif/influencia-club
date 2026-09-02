@@ -166,8 +166,26 @@ export async function cleanupTestData() {
 
     // Ensure all existing creators have valid photos (Instagram or branded avatar fallback)
     await syncCreatorPhotos();
+    await normalizeEmails();
   } catch (error) {
     console.error('❌ [Cleanup Service] Error during test data cleanup:', error);
+  }
+}
+
+export async function normalizeEmails() {
+  try {
+    const inquiries = await prisma.brandInquiry.findMany();
+    for (const inq of inquiries) {
+      const lower = inq.email.toLowerCase().trim();
+      if (inq.email !== lower) {
+        await prisma.brandInquiry.update({
+          where: { id: inq.id },
+          data: { email: lower }
+        });
+      }
+    }
+  } catch (err) {
+    console.error('Error normalizing brand emails:', err);
   }
 }
 
