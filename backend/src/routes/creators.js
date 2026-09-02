@@ -38,18 +38,10 @@ router.get('/', async (req, res) => {
 
     const creators = await prisma.creator.findMany({
       where,
-      select: {
-        id: true,
-        name: true,
-        photoUrl: true,
-        category: true,
-        city: true,
-        instagram: true,
-        followerCount: true,
-        isVerified: true,
-        isFeatured: true,
-        bio: true,
-        createdAt: true
+      include: {
+        instagramProfile: {
+          select: { profilePicUrl: true }
+        }
       },
       orderBy: [
         { isFeatured: 'desc' },
@@ -57,10 +49,26 @@ router.get('/', async (req, res) => {
       ]
     });
 
+    const resolvedCreators = creators.map(c => ({
+      id: c.id,
+      name: c.name,
+      photoUrl: (c.photoUrl && c.photoUrl.trim().length > 0)
+        ? c.photoUrl.trim()
+        : (c.instagramProfile?.profilePicUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(c.name)}&background=111&color=D4AF37&size=400`),
+      category: c.category,
+      city: c.city,
+      instagram: c.instagram,
+      followerCount: c.followerCount,
+      isVerified: c.isVerified,
+      isFeatured: c.isFeatured,
+      bio: c.bio,
+      createdAt: c.createdAt
+    }));
+
     res.json({
       success: true,
-      count: creators.length,
-      creators
+      count: resolvedCreators.length,
+      creators: resolvedCreators
     });
   } catch (error) {
     console.error('Get creators error:', error);
@@ -79,16 +87,10 @@ router.get('/leaderboard', async (req, res) => {
         status: 'active',
         isApproved: true
       },
-      select: {
-        id: true,
-        name: true,
-        photoUrl: true,
-        category: true,
-        city: true,
-        isVerified: true,
-        tier: true,
-        pointsBalance: true,
-        referralCode: true,
+      include: {
+        instagramProfile: {
+          select: { profilePicUrl: true }
+        },
         _count: {
           select: { referrals: true }
         }
@@ -104,7 +106,9 @@ router.get('/leaderboard', async (req, res) => {
       rank: index + 1,
       id: item.id,
       name: item.name,
-      photoUrl: item.photoUrl,
+      photoUrl: (item.photoUrl && item.photoUrl.trim().length > 0)
+        ? item.photoUrl.trim()
+        : (item.instagramProfile?.profilePicUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.name)}&background=111&color=D4AF37&size=400`),
       category: item.category,
       city: item.city,
       isVerified: item.isVerified,
@@ -119,7 +123,7 @@ router.get('/leaderboard', async (req, res) => {
       leaderboard
     });
   } catch (error) {
-    console.error('Waitlist leaderboard error:', error);
+    console.error('Leaderboard error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to retrieve waitlist leaderboard'
@@ -132,18 +136,7 @@ router.get('/:id', async (req, res) => {
   try {
     const creator = await prisma.creator.findUnique({
       where: { id: req.params.id },
-      select: {
-        id: true,
-        name: true,
-        photoUrl: true,
-        category: true,
-        city: true,
-        instagram: true,
-        followerCount: true,
-        isVerified: true,
-        isFeatured: true,
-        bio: true,
-        createdAt: true,
+      include: {
         instagramProfile: true
       }
     });
@@ -154,6 +147,10 @@ router.get('/:id', async (req, res) => {
         message: 'Creator not found'
       });
     }
+
+    creator.photoUrl = (creator.photoUrl && creator.photoUrl.trim().length > 0)
+      ? creator.photoUrl.trim()
+      : (creator.instagramProfile?.profilePicUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(creator.name)}&background=111&color=D4AF37&size=400`);
 
     res.json({
       success: true,

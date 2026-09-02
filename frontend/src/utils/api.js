@@ -32,7 +32,8 @@ api.interceptors.response.use(
     const isAuthRequest = originalRequest.url?.includes('/auth/login') || 
                           originalRequest.url?.includes('/auth/admin-login') || 
                           originalRequest.url?.includes('/auth/brand-login') ||
-                          originalRequest.url?.includes('/auth/refresh');
+                          originalRequest.url?.includes('/auth/refresh') ||
+                          originalRequest.url?.includes('/auth/logout');
 
     if (error.response?.status === 401 && !originalRequest._retry && !isAuthRequest) {
       originalRequest._retry = true;
@@ -50,6 +51,10 @@ api.interceptors.response.use(
           return api(originalRequest);
         }
       } catch (refreshError) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('adminToken');
+        localStorage.removeItem('user');
+        localStorage.removeItem('role');
         return Promise.reject(refreshError);
       }
     }

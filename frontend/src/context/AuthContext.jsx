@@ -134,17 +134,18 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('adminToken');
+    localStorage.removeItem('user');
+    localStorage.removeItem('role');
+    sessionStorage.clear();
+    setUser(null);
+    setRole(null);
+
     try {
       await api.post('/auth/logout');
     } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
-      localStorage.removeItem('token');
-      localStorage.removeItem('adminToken');
-      localStorage.removeItem('user');
-      localStorage.removeItem('role');
-      setUser(null);
-      setRole(null);
+      console.warn('Backend logout notification failed or completed:', error.message);
     }
   };
 

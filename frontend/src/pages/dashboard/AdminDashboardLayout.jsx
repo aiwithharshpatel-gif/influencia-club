@@ -29,8 +29,14 @@ const AdminDashboardLayout = () => {
 
   const handleLogout = async () => {
     await logout();
-    navigate('/');
+    window.location.href = '/admin-login';
   };
+
+  useEffect(() => {
+    if (!loading && (!user || role !== 'admin')) {
+      window.location.href = '/admin-login';
+    }
+  }, [user, role, loading]);
 
   if (loading || (!user || role !== 'admin')) {
     return (

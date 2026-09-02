@@ -163,8 +163,35 @@ export async function cleanupTestData() {
     }
 
     console.log('✅ [Cleanup Service] All test profiles and test data successfully cleaned up.');
+
+    // Ensure all existing creators have valid photos (Instagram or branded avatar fallback)
+    await syncCreatorPhotos();
   } catch (error) {
     console.error('❌ [Cleanup Service] Error during test data cleanup:', error);
+  }
+}
+
+export async function syncCreatorPhotos() {
+  try {
+    const creators = await prisma.creator.findMany({
+      include: { instagramProfile: true }
+    });
+
+    for (const creator of creators) {
+      const current = creator.photoUrl?.trim();
+      if (!current || current.length === 0) {
+        let target = creator.instagramProfile?.profilePicUrl?.trim();
+        if (!target) {
+          target = `https://ui-avatars.com/api/?name=${encodeURIComponent(creator.name)}&background=111&color=D4AF37&size=400`;
+        }
+        await prisma.creator.update({
+          where: { id: creator.id },
+          data: { photoUrl: target }
+        });
+      }
+    }
+  } catch (err) {
+    console.error('Error syncing creator photos:', err);
   }
 }
 
@@ -174,3 +201,4 @@ if (process.argv[1]?.endsWith('clean_test_data.js')) {
     prisma.$disconnect();
   });
 }
+

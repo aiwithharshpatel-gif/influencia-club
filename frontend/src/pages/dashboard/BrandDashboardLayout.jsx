@@ -82,8 +82,14 @@ const BrandDashboardLayout = () => {
 
   const handleLogout = async () => {
     await logout();
-    navigate('/');
+    window.location.href = '/brand-login';
   };
+
+  useEffect(() => {
+    if (!loading && (!user || role !== 'brand')) {
+      window.location.href = '/brand-login';
+    }
+  }, [user, role, loading]);
 
   if (loading || (!user || role !== 'brand')) {
     return (

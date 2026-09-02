@@ -16,24 +16,31 @@ router.get('/overview', async (req, res) => {
   try {
     const creator = await prisma.creator.findUnique({
       where: { id: req.user.id },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        pointsBalance: true,
-        tier: true,
-        isVerified: true,
-        isFeatured: true,
-        isApproved: true,
-        photoUrl: true,
-        category: true,
-        city: true,
-        instagram: true,
-        followerCount: true,
-        bio: true,
-        createdAt: true
+      include: {
+        instagramProfile: {
+          select: { profilePicUrl: true, username: true }
+        }
       }
     });
+
+    if (!creator) {
+      return res.status(404).json({ success: false, message: 'Creator not found' });
+    }
+
+    // Auto-resolve effective photo URL
+    const effectivePhotoUrl = (creator.photoUrl && creator.photoUrl.trim().length > 0)
+      ? creator.photoUrl.trim()
+      : (creator.instagramProfile?.profilePicUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(creator.name)}&background=111&color=D4AF37&size=400`);
+
+    // Self-heal creator.photoUrl in db if currently empty
+    if ((!creator.photoUrl || creator.photoUrl.trim().length === 0) && effectivePhotoUrl) {
+      prisma.creator.update({
+        where: { id: creator.id },
+        data: { photoUrl: effectivePhotoUrl }
+      }).catch(err => console.error('Auto-heal creator photoUrl error:', err));
+    }
+
+    creator.photoUrl = effectivePhotoUrl;
 
     // Get referral count
     const referralCount = await prisma.referral.count({
@@ -271,7 +278,17 @@ router.put('/profile', async (req, res) => {
       updateData.instagram = validated.instagram.replace(/^@/, '').trim().toLowerCase();
     }
     if (validated.mobile !== undefined && validated.mobile !== null) updateData.mobile = validated.mobile;
-    if (validated.photoUrl !== undefined) updateData.photoUrl = validated.photoUrl;
+    if (validated.photoUrl !== undefined) {
+      if (typeof validated.photoUrl === 'string' && validated.photoUrl.trim().length > 0) {
+        updateData.photoUrl = validated.photoUrl.trim();
+      } else {
+        const ig = await prisma.instagramProfile.findUnique({
+          where: { creatorId: req.user.id },
+          select: { profilePicUrl: true }
+        });
+        updateData.photoUrl = ig?.profilePicUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(validated.name || 'Creator')}&background=111&color=D4AF37&size=400`;
+      }
+    }
     if (validated.followerCount !== undefined) updateData.followerCount = validated.followerCount;
 
     const creator = await prisma.creator.update({

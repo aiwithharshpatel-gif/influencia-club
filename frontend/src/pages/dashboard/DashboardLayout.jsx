@@ -10,13 +10,19 @@ import { subscribeUserToPush } from '../../services/pushNotification';
 import NotificationInbox from '../../components/NotificationInbox';
 
 const DashboardLayout = () => {
-  const { user, logout } = useAuth();
+  const { user, loading, logout } = useAuth();
   const { isDark, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
 
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showInstallBtn, setShowInstallBtn] = useState(false);
+
+  useEffect(() => {
+    if (!loading && !user) {
+      window.location.href = '/login';
+    }
+  }, [user, loading]);
 
   useEffect(() => {
     const handler = (e) => {
@@ -80,8 +86,16 @@ const DashboardLayout = () => {
 
   const handleLogout = async () => {
     await logout();
-    navigate('/');
+    window.location.href = '/login';
   };
+
+  if (loading || !user) {
+    return (
+      <div className="min-h-screen bg-bg flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-bg">
@@ -95,10 +109,14 @@ const DashboardLayout = () => {
               <div className="bg-bg-card rounded-2xl p-6 border border-border sticky top-24">
                 {/* User Info */}
                 <div className="flex items-center space-x-3 mb-6 pb-6 border-b border-border">
-                  <div className="w-12 h-12 bg-purple-glow rounded-full flex items-center justify-center">
-                    <span className="text-white font-bold">
-                      {user?.name?.charAt(0).toUpperCase() || 'U'}
-                    </span>
+                  <div className="w-12 h-12 bg-purple-glow rounded-full flex items-center justify-center overflow-hidden border border-border flex-shrink-0">
+                    {user?.photoUrl ? (
+                      <img src={user.photoUrl} alt={user.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-white font-bold">
+                        {user?.name?.charAt(0).toUpperCase() || 'U'}
+                      </span>
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="font-display text-lg font-semibold text-white truncate">

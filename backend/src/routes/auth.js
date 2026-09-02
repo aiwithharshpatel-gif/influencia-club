@@ -288,6 +288,11 @@ router.post('/login', loginLimiter, async (req, res) => {
     const creator = await prisma.creator.findFirst({
       where: {
         email: normalizedEmail
+      },
+      include: {
+        instagramProfile: {
+          select: { profilePicUrl: true }
+        }
       }
     });
 
@@ -349,6 +354,10 @@ router.post('/login', loginLimiter, async (req, res) => {
       maxAge: 30 * 24 * 60 * 60 * 1000
     });
 
+    const effectivePhotoUrl = (creator.photoUrl && creator.photoUrl.trim().length > 0)
+      ? creator.photoUrl.trim()
+      : (creator.instagramProfile?.profilePicUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(creator.name)}&background=111&color=D4AF37&size=400`);
+
     res.json({
       success: true,
       message: 'Login successful',
@@ -364,7 +373,7 @@ router.post('/login', loginLimiter, async (req, res) => {
         city: creator.city,
         pointsBalance: creator.pointsBalance,
         tier: creator.tier,
-        photoUrl: creator.photoUrl
+        photoUrl: effectivePhotoUrl
       }
     });
   } catch (error) {
@@ -928,26 +937,18 @@ router.get('/me', async (req, res) => {
       if (decoded.role === 'creator') {
         user = await prisma.creator.findUnique({
           where: { id: decoded.id },
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            instagram: true,
-            category: true,
-            city: true,
-            bio: true,
-            photoUrl: true,
-            followerCount: true,
-            pointsBalance: true,
-            tier: true,
-            isApproved: true,
-            isVerified: true,
-            isFeatured: true,
-            passwordVersion: true
+          include: {
+            instagramProfile: {
+              select: { profilePicUrl: true }
+            }
           }
         });
         
         if (user && user.passwordVersion === decoded.version) {
+          const effectivePhotoUrl = (user.photoUrl && user.photoUrl.trim().length > 0)
+            ? user.photoUrl.trim()
+            : (user.instagramProfile?.profilePicUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=111&color=D4AF37&size=400`);
+          user.photoUrl = effectivePhotoUrl;
           return res.json({
             success: true,
             role: 'creator',
