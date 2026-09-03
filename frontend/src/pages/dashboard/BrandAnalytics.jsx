@@ -7,6 +7,7 @@ const BrandAnalytics = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState({});
+  const [exporting, setExporting] = useState({});
 
   useEffect(() => {
     fetchAnalytics();
@@ -46,10 +47,90 @@ const BrandAnalytics = () => {
     }
   };
 
-  const handleExport = (campaignId) => {
-    // Open report in a new tab. Cookies will be sent automatically.
-    const url = `${API_URL}/brand/analytics/${campaignId}/report`;
-    window.open(url, '_blank');
+  const handleExport = async (campaignId) => {
+    setExporting(prev => ({ ...prev, [campaignId]: true }));
+    const toastId = toast.loading('Generating campaign report...');
+
+    // Synchronously open window to avoid popup blockers in modern browsers
+    const reportWindow = window.open('', '_blank');
+    if (reportWindow) {
+      reportWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>Generating Campaign Report...</title>
+            <style>
+              body {
+                background: #09090b;
+                color: #e4e4e7;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                height: 100vh;
+                margin: 0;
+              }
+              .loader {
+                text-align: center;
+              }
+              .spinner {
+                width: 44px;
+                height: 44px;
+                border: 3px solid #27272a;
+                border-top: 3px solid #a78bfa;
+                border-radius: 50%;
+                animation: spin 0.8s linear infinite;
+                margin: 0 auto 16px;
+              }
+              @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+            </style>
+          </head>
+          <body>
+            <div class="loader">
+              <div class="spinner"></div>
+              <h3 style="margin-bottom:6px;">Generating Campaign Report</h3>
+              <p style="color:#71717a; font-size:13px; margin:0;">Please wait while we compile your analytics...</p>
+            </div>
+          </body>
+        </html>
+      `);
+    }
+
+    try {
+      const token = localStorage.getItem('token') || localStorage.getItem('adminToken');
+      const response = await api.get(`/brand/analytics/${campaignId}/report`, {
+        params: token ? { token } : {},
+        responseType: 'text'
+      });
+
+      if (reportWindow && !reportWindow.closed) {
+        reportWindow.document.open();
+        reportWindow.document.write(response.data);
+        reportWindow.document.close();
+      } else {
+        // Fallback for pop-up blocked: create blob and open/download
+        const blob = new Blob([response.data], { type: 'text/html' });
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = `campaign-report-${campaignId}.html`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+      }
+
+      toast.success('Report generated successfully!', { id: toastId });
+    } catch (error) {
+      if (reportWindow && !reportWindow.closed) {
+        reportWindow.close();
+      }
+      console.error('Error exporting report:', error);
+      const errorMsg = error.response?.data?.message || 'Failed to generate campaign report';
+      toast.error(errorMsg, { id: toastId });
+    } finally {
+      setExporting(prev => ({ ...prev, [campaignId]: false }));
+    }
   };
 
   if (loading) {
@@ -205,11 +286,12 @@ const BrandAnalytics = () => {
                     {hasAnalytics && (
                       <button
                         onClick={() => handleExport(campaign.id)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 border border-primary/20 text-xs text-primary transition-all font-semibold"
+                        disabled={exporting[campaign.id]}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 border border-primary/20 text-xs text-primary transition-all font-semibold disabled:opacity-50"
                         title="Download/Export Campaign Report PDF"
                       >
-                        <Download size={12} />
-                        Export Report
+                        <Download size={12} className={exporting[campaign.id] ? 'animate-bounce' : ''} />
+                        {exporting[campaign.id] ? 'Exporting...' : 'Export Report'}
                       </button>
                     )}
                   </div>

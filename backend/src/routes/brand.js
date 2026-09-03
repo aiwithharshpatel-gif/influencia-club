@@ -913,18 +913,28 @@ router.get('/analytics/:campaignId/report', async (req, res) => {
     const { campaignId } = req.params;
 
     // Verify this campaign belongs to the brand
-    const campaign = await prisma.campaign.findFirst({
-      where: {
-        id: campaignId,
-        brandInquiry: { email: req.brand.email }
+    const campaign = await prisma.campaign.findUnique({
+      where: { id: campaignId },
+      include: {
+        brandInquiry: true,
+        analytics: true
       }
     });
 
-    if (!campaign) {
+    if (!campaign || !isBrandOwner(campaign.brandInquiry?.email, req.brand.email)) {
       return res.status(404).json({
         success: false,
         message: 'Campaign not found'
       });
+    }
+
+    // Auto-calculate analytics if none exist yet so the report is not blank
+    if (!campaign.analytics) {
+      try {
+        await refreshCampaignAnalytics(campaignId);
+      } catch (analyticsErr) {
+        console.warn('Auto-refresh analytics warning:', analyticsErr.message);
+      }
     }
 
     const reportHtml = await generateCampaignReport(campaignId);
@@ -948,14 +958,12 @@ router.post('/analytics/:campaignId/refresh', async (req, res) => {
     const { campaignId } = req.params;
 
     // Verify this campaign belongs to the brand
-    const campaign = await prisma.campaign.findFirst({
-      where: {
-        id: campaignId,
-        brandInquiry: { email: req.brand.email }
-      }
+    const campaign = await prisma.campaign.findUnique({
+      where: { id: campaignId },
+      include: { brandInquiry: true }
     });
 
-    if (!campaign) {
+    if (!campaign || !isBrandOwner(campaign.brandInquiry?.email, req.brand.email)) {
       return res.status(404).json({
         success: false,
         message: 'Campaign not found'

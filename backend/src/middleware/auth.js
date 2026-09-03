@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 
 export const protect = async (req, res, next) => {
   try {
-    const token = req.cookies?.accessToken || req.headers.authorization?.split(' ')[1];
+    const token = req.cookies?.accessToken || req.headers.authorization?.split(' ')[1] || req.query?.token;
 
     if (!token) {
       return res.status(401).json({
@@ -71,7 +71,7 @@ export const protect = async (req, res, next) => {
 
 export const adminProtect = async (req, res, next) => {
   try {
-    const token = req.cookies?.adminToken || req.headers.authorization?.split(' ')[1];
+    const token = req.cookies?.adminToken || req.headers.authorization?.split(' ')[1] || req.query?.token;
 
     if (!token) {
       return res.status(401).json({
@@ -129,7 +129,7 @@ export const adminProtect = async (req, res, next) => {
 
 export const anyProtect = async (req, res, next) => {
   try {
-    const token = req.cookies?.accessToken || req.cookies?.adminToken || req.headers.authorization?.split(' ')[1];
+    const token = req.cookies?.accessToken || req.cookies?.adminToken || req.headers.authorization?.split(' ')[1] || req.query?.token;
 
     if (!token) {
       return res.status(401).json({
@@ -185,7 +185,7 @@ export const anyProtect = async (req, res, next) => {
 
 export const brandProtect = async (req, res, next) => {
   try {
-    const token = req.cookies?.accessToken || req.headers.authorization?.split(' ')[1];
+    const token = req.cookies?.accessToken || req.headers.authorization?.split(' ')[1] || req.query?.token;
 
     if (!token) {
       return res.status(401).json({
