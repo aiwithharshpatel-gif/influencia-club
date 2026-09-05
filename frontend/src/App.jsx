@@ -127,6 +127,7 @@ function App() {
               <Route path="messages" element={<CreatorMessages />} />
               <Route path="explore" element={<ExploreCampaigns />} />
               <Route path="milestones" element={<CollabMilestones />} />
+              <Route path="milestones/:collabId" element={<CollabMilestones />} />
             </Route>
 
             {/* Brand Login Route */}

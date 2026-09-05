@@ -297,10 +297,13 @@ const BrandMatchmaking = () => {
                                     <span className="text-muted">{title}</span>
                                     <span className="text-white font-medium">{val.points} / {val.max} pts</span>
                                   </div>
-                                  <div className="w-full bg-border/40 h-1.5 rounded-full overflow-hidden">
+                                  <div className="w-full bg-white/10 progress-track h-2 rounded-full overflow-hidden">
                                     <div 
-                                      className="bg-primary-gradient h-full rounded-full transition-all duration-500" 
-                                      style={{ width: `${percent}%` }}
+                                      className="h-full bg-gradient-to-r from-amber-400 via-gold to-emerald-400 rounded-full transition-all duration-500 shadow-[0_0_8px_rgba(212,175,55,0.4)]" 
+                                      style={{
+                                        width: `${Math.min(Math.max(percent || 0, 0), 100)}%`,
+                                        backgroundColor: '#D4AF37'
+                                      }}
                                     />
                                   </div>
                                 </div>

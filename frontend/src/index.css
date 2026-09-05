@@ -474,3 +474,15 @@ h1, h2, h3, h4, h5, h6 {
   40%, 80% { transform: translateX(6px); }
 }
 
+/* Progress bar vibrant luxury styling */
+.progress-bar-gradient {
+  background: linear-gradient(90deg, #F4D06F 0%, #D4AF37 40%, #10B981 100%);
+}
+
+.progress-track {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="light"] .progress-track {
+  background-color: #E2E8F0;
+}

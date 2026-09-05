@@ -461,7 +461,10 @@ const Points = () => {
               <div className="relative w-full h-3 bg-slate-900 rounded-full overflow-hidden border border-white/5">
                 <div
                   className={`absolute top-0 left-0 h-full rounded-full bg-gradient-to-r ${currentTierStyles.barColor} transition-all duration-1000 ease-out`}
-                  style={{ width: `${progression?.progressPercent}%` }}
+                  style={{
+                    width: `${Math.min(Math.max(progression?.progressPercent || 0, 0), 100)}%`,
+                    backgroundColor: '#D4AF37'
+                  }}
                 />
               </div>
 

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import {
   CheckCircle2, Clock, Upload, AlertCircle, ChevronRight,
   ExternalLink, FileText, Send, RotateCcw, Target, Loader2
@@ -232,6 +233,7 @@ const MilestoneCard = ({ milestone, onSubmit }) => {
 };
 
 const CollabMilestones = () => {
+  const { collabId } = useParams();
   const [collaborations, setCollaborations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCollab, setSelectedCollab] = useState(null);
@@ -244,10 +246,18 @@ const CollabMilestones = () => {
     try {
       const response = await api.get('/milestones/creator');
       if (response.data.success) {
-        setCollaborations(response.data.collaborations);
-        // Auto-select first collab that has milestones
-        const first = response.data.collaborations.find(c => c.milestones.length > 0);
-        if (first) setSelectedCollab(first.campaignCreatorId);
+        const collabs = response.data.collaborations;
+        setCollaborations(collabs);
+        setSelectedCollab(prev => {
+          if (collabId && collabs.some(c => c.campaignCreatorId === collabId)) {
+            return collabId;
+          }
+          if (prev && collabs.some(c => c.campaignCreatorId === prev)) {
+            return prev;
+          }
+          const first = collabs.find(c => c.milestones.length > 0);
+          return first ? first.campaignCreatorId : collabs[0]?.campaignCreatorId || null;
+        });
       }
     } catch (error) {
       console.error('Error fetching milestones:', error);
@@ -255,6 +265,12 @@ const CollabMilestones = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (collabId && collaborations.some(c => c.campaignCreatorId === collabId)) {
+      setSelectedCollab(collabId);
+    }
+  }, [collabId, collaborations]);
 
   const handleSubmitMilestone = async (milestoneId, data) => {
     await api.put(`/milestones/creator/${milestoneId}/submit`, data);
@@ -326,16 +342,22 @@ const CollabMilestones = () => {
                       {/* Progress bar */}
                       <div className="flex items-center justify-between text-xs mb-1.5">
                         <span className="text-muted">Progress</span>
-                        <span className="text-primary font-semibold">{collab.milestoneProgress}%</span>
+                        <span className="text-primary font-bold">{collab.milestoneProgress}%</span>
                       </div>
-                      <div className="h-1.5 bg-border rounded-full overflow-hidden">
+                      <div className="h-2 bg-white/10 progress-track rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-gradient-to-r from-primary to-green-400 rounded-full transition-all duration-500"
-                          style={{ width: `${collab.milestoneProgress}%` }}
+                          className="h-full bg-gradient-to-r from-amber-400 via-gold to-emerald-400 rounded-full transition-all duration-500 shadow-[0_0_10px_rgba(212,175,55,0.4)]"
+                          style={{
+                            width: `${Math.min(Math.max(collab.milestoneProgress || 0, 0), 100)}%`,
+                            backgroundColor: '#D4AF37'
+                          }}
                         />
                       </div>
-                      <div className="text-xs text-muted mt-1.5">
-                        {collab.approvedMilestones}/{collab.totalMilestones} completed
+                      <div className="text-xs text-muted mt-1.5 flex justify-between items-center">
+                        <span>{collab.approvedMilestones}/{collab.totalMilestones} completed</span>
+                        {collab.milestoneProgress === 100 && (
+                          <span className="text-emerald-400 font-semibold text-[10px] uppercase">All Done</span>
+                        )}
                       </div>
                     </div>
                   )}
@@ -354,7 +376,7 @@ const CollabMilestones = () => {
           <div className="lg:col-span-2">
             {activeCollab && activeCollab.milestones.length > 0 ? (
               <div>
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center justify-between mb-4">
                   <h3 className="font-display text-lg font-semibold text-white">
                     {activeCollab.campaignTitle}
                   </h3>
@@ -365,6 +387,31 @@ const CollabMilestones = () => {
                   }`}>
                     {activeCollab.status}
                   </span>
+                </div>
+
+                {/* Active Campaign Deliverables Progress Banner */}
+                <div className="mb-6 p-4 rounded-xl bg-bg-card border border-border">
+                  <div className="flex items-center justify-between text-xs mb-2">
+                    <span className="text-muted font-medium flex items-center gap-1.5">
+                      <Target size={14} className="text-primary" /> Deliverables Progress
+                    </span>
+                    <span className="text-primary font-bold text-sm">
+                      {activeCollab.milestoneProgress}%
+                    </span>
+                  </div>
+                  <div className="h-2.5 bg-white/10 progress-track rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-amber-400 via-gold to-emerald-400 rounded-full transition-all duration-500 shadow-[0_0_12px_rgba(212,175,55,0.4)]"
+                      style={{
+                        width: `${Math.min(Math.max(activeCollab.milestoneProgress || 0, 0), 100)}%`,
+                        backgroundColor: '#D4AF37'
+                      }}
+                    />
+                  </div>
+                  <div className="flex justify-between items-center text-xs text-muted mt-2">
+                    <span>{activeCollab.approvedMilestones} of {activeCollab.totalMilestones} deliverables completed</span>
+                    <span>{activeCollab.totalMilestones - activeCollab.approvedMilestones} remaining</span>
+                  </div>
                 </div>
 
                 {/* Timeline */}

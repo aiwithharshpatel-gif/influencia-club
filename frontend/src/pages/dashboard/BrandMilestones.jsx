@@ -382,14 +382,18 @@ const BrandMilestones = () => {
                   <div className="flex items-center gap-4 flex-shrink-0">
                     {/* Progress or Create CTA */}
                     {hasMilestones ? (
-                      <div className="text-right hidden sm:block">
-                        <div className="text-xs text-muted mb-1">
-                          {collab.approvedMilestones}/{collab.totalMilestones} done
+                      <div className="text-right">
+                        <div className="text-xs text-muted mb-1 flex items-center justify-end gap-1.5">
+                          <span>{collab.approvedMilestones}/{collab.totalMilestones} done</span>
+                          <span className="text-primary font-bold">({collab.milestoneProgress}%)</span>
                         </div>
-                        <div className="w-24 h-1.5 bg-border rounded-full overflow-hidden">
+                        <div className="w-24 sm:w-28 h-2 bg-white/10 progress-track rounded-full overflow-hidden">
                           <div
-                            className="h-full bg-gradient-to-r from-primary to-green-400 rounded-full"
-                            style={{ width: `${collab.milestoneProgress}%` }}
+                            className="h-full bg-gradient-to-r from-amber-400 via-gold to-emerald-400 rounded-full transition-all duration-500 shadow-[0_0_8px_rgba(212,175,55,0.4)]"
+                            style={{
+                              width: `${Math.min(Math.max(collab.milestoneProgress || 0, 0), 100)}%`,
+                              backgroundColor: '#D4AF37'
+                            }}
                           />
                         </div>
                       </div>
@@ -500,8 +504,30 @@ const BrandMilestones = () => {
                         </button>
                       </div>
                     ) : (
-                      <div className="space-y-3">
-                        {milestones.map((ms, idx) => {
+                      <div className="space-y-4">
+                        {/* Overall Deliverables Progress Banner */}
+                        <div className="p-4 rounded-xl bg-bg/50 border border-border">
+                          <div className="flex items-center justify-between text-xs mb-2">
+                            <span className="font-semibold text-white flex items-center gap-1.5">
+                              <Target size={14} className="text-primary" /> Deliverables Milestone Progress
+                            </span>
+                            <span className="text-primary font-bold text-sm">
+                              {collab.milestoneProgress}% ({collab.approvedMilestones}/{collab.totalMilestones} Approved)
+                            </span>
+                          </div>
+                          <div className="w-full h-2.5 bg-white/10 progress-track rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-gradient-to-r from-amber-400 via-gold to-emerald-400 rounded-full transition-all duration-500 shadow-[0_0_10px_rgba(212,175,55,0.4)]"
+                              style={{
+                                width: `${Math.min(Math.max(collab.milestoneProgress || 0, 0), 100)}%`,
+                                backgroundColor: '#D4AF37'
+                              }}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-3">
+                          {milestones.map((ms, idx) => {
                           const cfg = statusConfig[ms.status] || statusConfig.pending;
 
                           return (
@@ -557,7 +583,8 @@ const BrandMilestones = () => {
                           );
                         })}
                       </div>
-                    )}
+                    </div>
+                  )}
                   </div>
                 )}
               </div>
