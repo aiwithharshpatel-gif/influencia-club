@@ -34,7 +34,7 @@ const BrandMilestones = () => {
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(null);
-  const [reviewAction, setReviewAction] = useState('approve');
+  const [reviewAction, setReviewAction] = useState(null);
   const [reviewFeedback, setReviewFeedback] = useState('');
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
 
@@ -583,7 +583,7 @@ const BrandMilestones = () => {
                                   <button
                                     onClick={() => {
                                       setShowReviewModal(ms);
-                                      setReviewAction('approve');
+                                      setReviewAction(null);
                                       setReviewFeedback('');
                                     }}
                                     className="flex items-center gap-1.5 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
@@ -694,75 +694,143 @@ const BrandMilestones = () => {
               </div>
             )}
 
-            {/* Action select */}
-            <div className="grid grid-cols-2 gap-3 mb-5">
-              <button
-                onClick={() => setReviewAction('approve')}
-                className={`p-3 rounded-xl border text-center text-sm font-semibold transition-all ${
-                  reviewAction === 'approve'
-                    ? 'bg-green-500/10 border-green-500/30 text-green-400'
-                    : 'border-border text-muted hover:border-green-500/20'
-                }`}
-              >
-                <CheckCircle2 size={20} className="mx-auto mb-1" />
-                Approve
-              </button>
-              <button
-                onClick={() => setReviewAction('revision')}
-                className={`p-3 rounded-xl border text-center text-sm font-semibold transition-all ${
-                  reviewAction === 'revision'
-                    ? 'bg-orange-500/10 border-orange-500/30 text-orange-400'
-                    : 'border-border text-muted hover:border-orange-500/20'
-                }`}
-              >
-                <MessageCircle size={20} className="mx-auto mb-1" />
-                Request Revision
-              </button>
-            </div>
+            {/* Review Actions */}
+            {!reviewAction ? (
+              <div className="space-y-4 pt-1">
+                <div className="text-xs font-semibold text-muted uppercase tracking-wider">
+                  Review Decision
+                </div>
 
-            {/* Feedback */}
-            <div className="mb-5">
-              <label className="block text-xs text-muted mb-1.5 font-medium">
-                Feedback {reviewAction === 'revision' ? '(required)' : '(optional)'}
-              </label>
-              <textarea
-                value={reviewFeedback}
-                onChange={(e) => setReviewFeedback(e.target.value)}
-                placeholder={reviewAction === 'approve'
-                  ? 'Great work! Content looks perfect.'
-                  : 'Please adjust the caption to include...'
-                }
-                rows={3}
-                className="w-full bg-bg border border-border rounded-lg px-3 py-2.5 text-sm text-white placeholder-muted/50 focus:border-primary focus:ring-1 focus:ring-primary/30 outline-none transition-colors resize-none"
-              />
-            </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    onClick={() => setReviewAction('approve')}
+                    className="flex flex-col items-start p-4 rounded-xl border border-green-500/30 bg-green-500/10 hover:bg-green-500/20 text-left transition-all group"
+                  >
+                    <div className="flex items-center gap-2 text-green-400 font-bold text-sm mb-1">
+                      <CheckCircle2 size={18} />
+                      Approve Deliverable
+                    </div>
+                    <p className="text-[11px] text-gray-300 group-hover:text-white transition-colors">
+                      Work meets requirements. Mark milestone as completed.
+                    </p>
+                  </button>
 
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowReviewModal(null)}
-                className="flex-1 border border-border text-muted hover:text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleReview}
-                disabled={reviewSubmitting || (reviewAction === 'revision' && !reviewFeedback.trim())}
-                className={`flex-1 flex items-center justify-center gap-2 font-semibold px-4 py-2.5 rounded-lg text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                  reviewAction === 'approve'
-                    ? 'bg-green-500 hover:bg-green-600 text-white'
-                    : 'bg-orange-500 hover:bg-orange-600 text-white'
-                }`}
-              >
-                {reviewSubmitting ? (
-                  <Loader2 size={16} className="animate-spin" />
-                ) : reviewAction === 'approve' ? (
-                  <CheckCircle2 size={16} />
-                ) : (
-                  <MessageCircle size={16} />
-                )}
-                {reviewSubmitting ? 'Processing...' : reviewAction === 'approve' ? 'Approve' : 'Request Revision'}
-              </button>
-            </div>
+                  <button
+                    onClick={() => setReviewAction('revision')}
+                    className="flex flex-col items-start p-4 rounded-xl border border-orange-500/30 bg-orange-500/10 hover:bg-orange-500/20 text-left transition-all group"
+                  >
+                    <div className="flex items-center gap-2 text-orange-400 font-bold text-sm mb-1">
+                      <MessageCircle size={18} />
+                      Request Revision
+                    </div>
+                    <p className="text-[11px] text-gray-300 group-hover:text-white transition-colors">
+                      Ask the creator to make edits, re-record, or adjust content.
+                    </p>
+                  </button>
+                </div>
+
+                <div className="pt-2">
+                  <button
+                    onClick={() => {
+                      setShowReviewModal(null);
+                      setReviewAction(null);
+                    }}
+                    className="w-full border border-border text-muted hover:text-white py-2.5 rounded-lg text-sm font-medium transition-colors"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4 pt-1">
+                {/* Decision Header */}
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-muted uppercase tracking-wider">
+                    Selected Decision:
+                  </span>
+                  <button
+                    onClick={() => setReviewAction(null)}
+                    className="text-xs text-primary hover:underline font-medium"
+                  >
+                    ← Change decision
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => setReviewAction('approve')}
+                    className={`p-3 rounded-xl border text-center text-sm font-semibold transition-all ${
+                      reviewAction === 'approve'
+                        ? 'bg-green-500/20 border-green-500/50 text-green-400 ring-1 ring-green-500/40'
+                        : 'border-border text-muted hover:border-green-500/20'
+                    }`}
+                  >
+                    <CheckCircle2 size={18} className="mx-auto mb-1" />
+                    Approve
+                  </button>
+                  <button
+                    onClick={() => setReviewAction('revision')}
+                    className={`p-3 rounded-xl border text-center text-sm font-semibold transition-all ${
+                      reviewAction === 'revision'
+                        ? 'bg-orange-500/20 border-orange-500/50 text-orange-400 ring-1 ring-orange-500/40'
+                        : 'border-border text-muted hover:border-orange-500/20'
+                    }`}
+                  >
+                    <MessageCircle size={18} className="mx-auto mb-1" />
+                    Request Revision
+                  </button>
+                </div>
+
+                {/* Feedback */}
+                <div>
+                  <label className="block text-xs text-muted mb-1.5 font-medium">
+                    {reviewAction === 'revision' ? 'Revision Instructions (required)' : 'Approval Notes (optional)'}
+                  </label>
+                  <textarea
+                    value={reviewFeedback}
+                    onChange={(e) => setReviewFeedback(e.target.value)}
+                    placeholder={
+                      reviewAction === 'approve'
+                        ? 'Great work! Content looks perfect and approved.'
+                        : 'Please adjust the caption, tag the brand account, or re-record...'
+                    }
+                    rows={3}
+                    className="w-full bg-bg border border-border rounded-lg px-3 py-2.5 text-sm text-white placeholder-muted/50 focus:border-primary focus:ring-1 focus:ring-primary/30 outline-none transition-colors resize-none"
+                  />
+                </div>
+
+                <div className="flex gap-3 pt-1">
+                  <button
+                    onClick={() => setReviewAction(null)}
+                    className="flex-1 border border-border text-muted hover:text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
+                  >
+                    Back
+                  </button>
+                  <button
+                    onClick={handleReview}
+                    disabled={reviewSubmitting || (reviewAction === 'revision' && !reviewFeedback.trim())}
+                    className={`flex-1 flex items-center justify-center gap-2 font-semibold px-4 py-2.5 rounded-lg text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                      reviewAction === 'approve'
+                        ? 'bg-green-500 hover:bg-green-600 text-white'
+                        : 'bg-orange-500 hover:bg-orange-600 text-white'
+                    }`}
+                  >
+                    {reviewSubmitting ? (
+                      <Loader2 size={16} className="animate-spin" />
+                    ) : reviewAction === 'approve' ? (
+                      <CheckCircle2 size={16} />
+                    ) : (
+                      <MessageCircle size={16} />
+                    )}
+                    {reviewSubmitting
+                      ? 'Processing...'
+                      : reviewAction === 'approve'
+                      ? 'Confirm Approval'
+                      : 'Send Revision Request'}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
