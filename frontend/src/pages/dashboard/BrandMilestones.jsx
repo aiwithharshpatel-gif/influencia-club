@@ -284,7 +284,8 @@ const BrandMilestones = () => {
     if (!showReviewModal) return;
     setReviewSubmitting(true);
     try {
-      await api.put(`/milestones/brand/${showReviewModal}/review`, {
+      const milestoneId = typeof showReviewModal === 'object' ? showReviewModal.id : showReviewModal;
+      await api.put(`/milestones/brand/${milestoneId}/review`, {
         action: reviewAction,
         feedback: reviewFeedback || undefined
       });
@@ -309,7 +310,9 @@ const BrandMilestones = () => {
     );
   }
 
-  const activeReviewMs = showReviewModal ? milestones.find(m => m.id === showReviewModal) : null;
+  const activeReviewMs = showReviewModal && typeof showReviewModal === 'object'
+    ? showReviewModal
+    : (showReviewModal ? milestones.find(m => m.id === showReviewModal) : null);
 
   return (
     <div>
@@ -561,11 +564,25 @@ const BrandMilestones = () => {
                               </div>
 
                               <div className="flex items-center gap-2 flex-shrink-0">
+                                {/* Show submission link if available */}
+                                {ms.submissionUrl && (
+                                  <a
+                                    href={formatDeliverableUrl(ms.submissionUrl)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-xs text-primary hover:underline flex items-center gap-1 font-medium bg-primary/10 hover:bg-primary/20 border border-primary/20 px-2.5 py-1.5 rounded-lg transition-colors"
+                                    title="Open Submitted Deliverable"
+                                  >
+                                    View
+                                    <ExternalLink size={11} />
+                                  </a>
+                                )}
+
                                 {/* Submitted — show review button */}
                                 {ms.status === 'submitted' && (
                                   <button
                                     onClick={() => {
-                                      setShowReviewModal(ms.id);
+                                      setShowReviewModal(ms);
                                       setReviewAction('approve');
                                       setReviewFeedback('');
                                     }}
@@ -574,19 +591,6 @@ const BrandMilestones = () => {
                                     <Eye size={14} />
                                     Review
                                   </button>
-                                )}
-
-                                {/* Show submission link if available */}
-                                {ms.submissionUrl && ms.status !== 'submitted' && (
-                                  <a
-                                    href={formatDeliverableUrl(ms.submissionUrl)}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-xs text-primary hover:underline flex items-center gap-1 font-medium"
-                                  >
-                                    View
-                                    <ExternalLink size={12} />
-                                  </a>
                                 )}
                               </div>
                             </div>
@@ -606,8 +610,8 @@ const BrandMilestones = () => {
       {/* Review Modal */}
       {showReviewModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-bg-card border border-border rounded-2xl max-w-md w-full p-6 shadow-2xl">
-            <div className="flex items-center justify-between mb-6">
+          <div className="bg-bg-card border border-border rounded-2xl max-w-md w-full p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-5">
               <h3 className="font-display text-lg font-bold text-white">Review Submission</h3>
               <button
                 onClick={() => setShowReviewModal(null)}
@@ -617,34 +621,76 @@ const BrandMilestones = () => {
               </button>
             </div>
 
-            {/* Submitted Deliverable Details */}
-            {activeReviewMs && (activeReviewMs.submissionUrl || activeReviewMs.submissionNote) && (
-              <div className="bg-bg/60 border border-border/80 rounded-xl p-3.5 mb-5 space-y-2">
-                <div className="text-xs font-semibold text-muted flex items-center gap-1.5">
-                  <FileText size={13} />
-                  Submitted Deliverable
-                </div>
-                {activeReviewMs.submissionUrl && (
-                  <a
-                    href={formatDeliverableUrl(activeReviewMs.submissionUrl)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-primary hover:underline flex items-center gap-1.5 font-medium break-all"
-                  >
-                    <span>{activeReviewMs.submissionUrl}</span>
-                    <ExternalLink size={13} className="flex-shrink-0" />
-                  </a>
-                )}
-                {activeReviewMs.submissionNote && (
-                  <p className="text-xs text-gray-300 italic bg-bg/40 p-2 rounded border border-border/40">
-                    "{activeReviewMs.submissionNote}"
-                  </p>
-                )}
-                {activeReviewMs.submittedAt && (
-                  <div className="text-[11px] text-muted">
-                    Submitted on {new Date(activeReviewMs.submittedAt).toLocaleString()}
+            {/* Submitted Deliverable Details Card */}
+            {activeReviewMs && (
+              <div className="bg-bg/80 border border-border rounded-xl p-4 mb-5 space-y-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="text-[11px] font-semibold text-primary uppercase tracking-wider">
+                      Milestone Deliverable
+                    </div>
+                    <h4 className="text-sm font-bold text-white truncate mt-0.5">
+                      {activeReviewMs.title}
+                    </h4>
+                    {activeReviewMs.description && (
+                      <p className="text-xs text-muted mt-0.5 line-clamp-2">
+                        {activeReviewMs.description}
+                      </p>
+                    )}
                   </div>
-                )}
+                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 flex-shrink-0">
+                    Pending Review
+                  </span>
+                </div>
+
+                <div className="border-t border-border/60 pt-3 space-y-2.5">
+                  <div className="text-xs font-semibold text-white/90 flex items-center gap-1.5">
+                    <FileText size={13} className="text-primary" />
+                    Submitted Content
+                  </div>
+
+                  {activeReviewMs.submissionUrl ? (
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 rounded-lg bg-bg-card border border-border">
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[10px] text-muted uppercase font-medium">Deliverable Link</div>
+                        <div className="text-xs font-medium text-white truncate">
+                          {activeReviewMs.submissionUrl}
+                        </div>
+                      </div>
+                      <a
+                        href={formatDeliverableUrl(activeReviewMs.submissionUrl)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-shrink-0 inline-flex items-center gap-1.5 bg-primary hover:bg-primary-soft text-black font-bold text-xs px-3 py-1.5 rounded-lg transition-colors shadow-sm"
+                      >
+                        <span>Open Deliverable</span>
+                        <ExternalLink size={12} />
+                      </a>
+                    </div>
+                  ) : null}
+
+                  {activeReviewMs.submissionNote ? (
+                    <div className="p-2.5 rounded-lg bg-bg-card/80 border border-border/60">
+                      <div className="text-[10px] text-muted uppercase font-medium mb-1">Creator's Note</div>
+                      <p className="text-xs text-gray-200 italic whitespace-pre-wrap leading-relaxed">
+                        "{activeReviewMs.submissionNote}"
+                      </p>
+                    </div>
+                  ) : null}
+
+                  {!activeReviewMs.submissionUrl && !activeReviewMs.submissionNote && (
+                    <div className="p-2.5 rounded-lg bg-yellow-500/5 border border-yellow-500/20 text-xs text-yellow-400/90 italic">
+                      No URL or note provided by creator for this submission.
+                    </div>
+                  )}
+
+                  {activeReviewMs.submittedAt && (
+                    <div className="text-[11px] text-muted flex items-center gap-1 pt-1">
+                      <Clock size={12} />
+                      Submitted on {new Date(activeReviewMs.submittedAt).toLocaleString()}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
