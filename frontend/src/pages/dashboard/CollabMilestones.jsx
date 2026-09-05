@@ -147,7 +147,19 @@ const MilestoneCard = ({ milestone, onSubmit }) => {
                   href={formatDeliverableUrl(milestone.submissionUrl)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-sm text-primary hover:underline flex items-center gap-1 font-medium break-all"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const targetUrl = formatDeliverableUrl(milestone.submissionUrl);
+                    if (!targetUrl || targetUrl === '#') {
+                      e.preventDefault();
+                      toast.error('No valid deliverable URL found');
+                      return;
+                    }
+                    window.open(targetUrl, '_blank', 'noopener,noreferrer');
+                    e.preventDefault();
+                  }}
+                  className="text-sm text-primary hover:underline flex items-center gap-1 font-medium break-all cursor-pointer"
+                  title="Open Submitted Deliverable"
                 >
                   <span>{milestone.submissionUrl}</span>
                   <ExternalLink size={12} className="flex-shrink-0" />

@@ -570,7 +570,18 @@ const BrandMilestones = () => {
                                     href={formatDeliverableUrl(ms.submissionUrl)}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="text-xs text-primary hover:underline flex items-center gap-1 font-medium bg-primary/10 hover:bg-primary/20 border border-primary/20 px-2.5 py-1.5 rounded-lg transition-colors"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      const targetUrl = formatDeliverableUrl(ms.submissionUrl);
+                                      if (!targetUrl || targetUrl === '#') {
+                                        e.preventDefault();
+                                        toast.error('No valid deliverable URL found');
+                                        return;
+                                      }
+                                      window.open(targetUrl, '_blank', 'noopener,noreferrer');
+                                      e.preventDefault();
+                                    }}
+                                    className="text-xs text-primary hover:underline flex items-center gap-1 font-medium bg-primary/10 hover:bg-primary/20 border border-primary/20 px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer"
                                     title="Open Submitted Deliverable"
                                   >
                                     View
@@ -661,7 +672,18 @@ const BrandMilestones = () => {
                         href={formatDeliverableUrl(activeReviewMs.submissionUrl)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex-shrink-0 inline-flex items-center gap-1.5 bg-primary hover:bg-primary-soft text-black font-bold text-xs px-3 py-1.5 rounded-lg transition-colors shadow-sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const targetUrl = formatDeliverableUrl(activeReviewMs.submissionUrl);
+                          if (!targetUrl || targetUrl === '#') {
+                            e.preventDefault();
+                            toast.error('No valid deliverable URL found');
+                            return;
+                          }
+                          window.open(targetUrl, '_blank', 'noopener,noreferrer');
+                          e.preventDefault();
+                        }}
+                        className="flex-shrink-0 inline-flex items-center gap-1.5 bg-primary hover:bg-primary-soft text-black font-bold text-xs px-3 py-1.5 rounded-lg transition-colors shadow-sm cursor-pointer"
                       >
                         <span>Open Deliverable</span>
                         <ExternalLink size={12} />

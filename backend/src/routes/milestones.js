@@ -8,6 +8,46 @@ import { createNotification } from '../services/notificationInboxService.js';
 const router = express.Router();
 const prisma = new PrismaClient();
 
+/**
+ * Normalizes deliverable URLs (e.g. "@username", "instagram.com/p/...", "drive.google.com/...")
+ * into an absolute, safe URL.
+ */
+function normalizeSubmissionUrl(url) {
+  if (!url || typeof url !== 'string') return null;
+  const trimmed = url.trim();
+  if (!trimmed || trimmed === '#' || trimmed.toLowerCase() === 'n/a' || trimmed.toLowerCase() === 'none') {
+    return null;
+  }
+  if (trimmed.startsWith('@')) {
+    const handle = trimmed.slice(1).trim().replace(/^@+/, '');
+    return handle ? `https://instagram.com/${handle}` : null;
+  }
+  if (/^https?:\/\//i.test(trimmed)) {
+    return trimmed;
+  }
+  if (/^(?:www\.)?(?:instagram\.com|facebook\.com|youtube\.com|youtu\.be|tiktok\.com|drive\.google\.com|dropbox\.com|linkedin\.com|twitter\.com|x\.com)\//i.test(trimmed)) {
+    return `https://${trimmed.replace(/^https?:\/\//i, '')}`;
+  }
+  if (/^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(?:\/[^\s]*)?$/.test(trimmed)) {
+    return `https://${trimmed}`;
+  }
+  if (/^[a-zA-Z0-9._]{3,30}$/.test(trimmed)) {
+    return `https://instagram.com/${trimmed}`;
+  }
+  if (trimmed.includes('.') && !trimmed.includes(' ')) {
+    return `https://${trimmed}`;
+  }
+  return `https://${trimmed}`;
+}
+
+const sanitizeMilestone = (m) => {
+  if (!m) return m;
+  return {
+    ...m,
+    submissionUrl: normalizeSubmissionUrl(m.submissionUrl) || m.submissionUrl
+  };
+};
+
 // ═══════════════════════════════════════════════════════════════════
 // BRAND-SIDE MILESTONE ROUTES (brand auth)
 // ═══════════════════════════════════════════════════════════════════
@@ -125,7 +165,7 @@ router.get('/brand/:campaignCreatorId', brandProtect, async (req, res) => {
           status: cc.campaign.status
         }
       },
-      milestones: cc.milestones
+      milestones: (cc.milestones || []).map(sanitizeMilestone)
     });
   } catch (error) {
     console.error('Fetch brand milestones error:', error);
@@ -315,7 +355,7 @@ router.get('/brand', brandProtect, async (req, res) => {
             totalMilestones: totalMs,
             approvedMilestones: approvedMs,
             pendingReviewCount: pendingReview,
-            milestones: cc.milestones
+            milestones: (cc.milestones || []).map(sanitizeMilestone)
           });
         }
       }
@@ -383,7 +423,7 @@ router.get('/creator', protect, async (req, res) => {
         milestoneProgress: totalMs > 0 ? Math.round((approvedMs / totalMs) * 100) : 0,
         totalMilestones: totalMs,
         approvedMilestones: approvedMs,
-        milestones: cc.milestones
+        milestones: (cc.milestones || []).map(sanitizeMilestone)
       };
     });
 
@@ -446,27 +486,13 @@ router.put('/creator/:milestoneId/submit', protect, async (req, res) => {
       });
     }
 
-    let normalizedUrl = null;
-    if (submissionUrl && typeof submissionUrl === 'string') {
-      const trimmed = submissionUrl.trim();
-      if (trimmed.startsWith('@')) {
-        normalizedUrl = `https://instagram.com/${trimmed.slice(1).trim()}`;
-      } else if (/^https?:\/\//i.test(trimmed)) {
-        normalizedUrl = trimmed;
-      } else if (trimmed.includes('.') && !trimmed.includes(' ')) {
-        normalizedUrl = `https://${trimmed}`;
-      } else if (/^[a-zA-Z0-9._]{3,30}$/.test(trimmed)) {
-        normalizedUrl = `https://instagram.com/${trimmed}`;
-      } else if (trimmed) {
-        normalizedUrl = `https://${trimmed}`;
-      }
-    }
+    const normalizedUrl = submissionUrl ? normalizeSubmissionUrl(submissionUrl) : null;
 
     const updated = await prisma.milestone.update({
       where: { id: milestoneId },
       data: {
         status: 'submitted',
-        submissionUrl: normalizedUrl || milestone.submissionUrl,
+        submissionUrl: normalizedUrl || (milestone.submissionUrl ? normalizeSubmissionUrl(milestone.submissionUrl) : null),
         submissionNote: submissionNote ? submissionNote.trim() : milestone.submissionNote,
         submittedAt: new Date()
       }
