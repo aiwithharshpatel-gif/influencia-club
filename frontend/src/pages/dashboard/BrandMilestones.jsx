@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import {
   CheckCircle2, Clock, Upload, AlertCircle, ChevronRight, ChevronDown,
-  Plus, Send, Target, Loader2, Eye, MessageCircle, Trash2, X, FileText, Download
+  Plus, Send, Target, Loader2, Eye, MessageCircle, Trash2, X, FileText, Download,
+  ExternalLink
 } from 'lucide-react';
 import api from '../../utils/api';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
+import { formatDeliverableUrl } from '../../utils/url';
 
 const MILESTONE_TEMPLATES = [
   { type: 'brief_review', title: 'Brief Review', description: 'Creator reviews campaign brief and confirms understanding of deliverables.' },
@@ -307,6 +309,8 @@ const BrandMilestones = () => {
     );
   }
 
+  const activeReviewMs = showReviewModal ? milestones.find(m => m.id === showReviewModal) : null;
+
   return (
     <div>
       <div className="flex items-center justify-between mb-8">
@@ -548,6 +552,11 @@ const BrandMilestones = () => {
                                     {idx + 1}. {ms.title}
                                   </div>
                                   <div className={`text-xs ${cfg.color} mt-0.5`}>{cfg.label}</div>
+                                  {ms.submissionNote && (
+                                    <div className="text-xs text-muted/80 mt-1 italic break-words line-clamp-1">
+                                      "{ms.submissionNote}"
+                                    </div>
+                                  )}
                                 </div>
                               </div>
 
@@ -570,12 +579,13 @@ const BrandMilestones = () => {
                                 {/* Show submission link if available */}
                                 {ms.submissionUrl && ms.status !== 'submitted' && (
                                   <a
-                                    href={ms.submissionUrl}
+                                    href={formatDeliverableUrl(ms.submissionUrl)}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="text-xs text-primary hover:underline"
+                                    className="text-xs text-primary hover:underline flex items-center gap-1 font-medium"
                                   >
                                     View
+                                    <ExternalLink size={12} />
                                   </a>
                                 )}
                               </div>
@@ -606,6 +616,37 @@ const BrandMilestones = () => {
                 <X size={20} />
               </button>
             </div>
+
+            {/* Submitted Deliverable Details */}
+            {activeReviewMs && (activeReviewMs.submissionUrl || activeReviewMs.submissionNote) && (
+              <div className="bg-bg/60 border border-border/80 rounded-xl p-3.5 mb-5 space-y-2">
+                <div className="text-xs font-semibold text-muted flex items-center gap-1.5">
+                  <FileText size={13} />
+                  Submitted Deliverable
+                </div>
+                {activeReviewMs.submissionUrl && (
+                  <a
+                    href={formatDeliverableUrl(activeReviewMs.submissionUrl)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-primary hover:underline flex items-center gap-1.5 font-medium break-all"
+                  >
+                    <span>{activeReviewMs.submissionUrl}</span>
+                    <ExternalLink size={13} className="flex-shrink-0" />
+                  </a>
+                )}
+                {activeReviewMs.submissionNote && (
+                  <p className="text-xs text-gray-300 italic bg-bg/40 p-2 rounded border border-border/40">
+                    "{activeReviewMs.submissionNote}"
+                  </p>
+                )}
+                {activeReviewMs.submittedAt && (
+                  <div className="text-[11px] text-muted">
+                    Submitted on {new Date(activeReviewMs.submittedAt).toLocaleString()}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Action select */}
             <div className="grid grid-cols-2 gap-3 mb-5">

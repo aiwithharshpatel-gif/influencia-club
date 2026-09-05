@@ -446,12 +446,28 @@ router.put('/creator/:milestoneId/submit', protect, async (req, res) => {
       });
     }
 
+    let normalizedUrl = null;
+    if (submissionUrl && typeof submissionUrl === 'string') {
+      const trimmed = submissionUrl.trim();
+      if (trimmed.startsWith('@')) {
+        normalizedUrl = `https://instagram.com/${trimmed.slice(1).trim()}`;
+      } else if (/^https?:\/\//i.test(trimmed)) {
+        normalizedUrl = trimmed;
+      } else if (trimmed.includes('.') && !trimmed.includes(' ')) {
+        normalizedUrl = `https://${trimmed}`;
+      } else if (/^[a-zA-Z0-9._]{3,30}$/.test(trimmed)) {
+        normalizedUrl = `https://instagram.com/${trimmed}`;
+      } else if (trimmed) {
+        normalizedUrl = `https://${trimmed}`;
+      }
+    }
+
     const updated = await prisma.milestone.update({
       where: { id: milestoneId },
       data: {
         status: 'submitted',
-        submissionUrl: submissionUrl || milestone.submissionUrl,
-        submissionNote: submissionNote || milestone.submissionNote,
+        submissionUrl: normalizedUrl || milestone.submissionUrl,
+        submissionNote: submissionNote ? submissionNote.trim() : milestone.submissionNote,
         submittedAt: new Date()
       }
     });

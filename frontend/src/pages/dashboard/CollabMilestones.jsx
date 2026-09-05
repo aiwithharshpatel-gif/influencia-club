@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import api from '../../utils/api';
 import toast from 'react-hot-toast';
+import { formatDeliverableUrl } from '../../utils/url';
 
 const statusConfig = {
   pending: {
@@ -63,13 +64,16 @@ const MilestoneCard = ({ milestone, onSubmit }) => {
   const canSubmit = ['in_progress', 'revision_requested'].includes(milestone.status);
 
   const handleSubmit = async () => {
-    if (!submissionUrl.trim() && !submissionNote.trim()) {
+    const trimmedUrl = submissionUrl.trim();
+    const trimmedNote = submissionNote.trim();
+    if (!trimmedUrl && !trimmedNote) {
       toast.error('Please provide a submission URL or note');
       return;
     }
+    const formattedUrl = trimmedUrl ? formatDeliverableUrl(trimmedUrl) : '';
     setSubmitting(true);
     try {
-      await onSubmit(milestone.id, { submissionUrl, submissionNote });
+      await onSubmit(milestone.id, { submissionUrl: formattedUrl, submissionNote: trimmedNote });
       toast.success('Deliverable submitted for review!');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to submit');
@@ -140,13 +144,13 @@ const MilestoneCard = ({ milestone, onSubmit }) => {
                   <FileText size={12} /> Submitted Deliverable
                 </div>
                 <a
-                  href={milestone.submissionUrl}
+                  href={formatDeliverableUrl(milestone.submissionUrl)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-sm text-primary hover:underline flex items-center gap-1"
+                  className="text-sm text-primary hover:underline flex items-center gap-1 font-medium break-all"
                 >
-                  {milestone.submissionUrl}
-                  <ExternalLink size={12} />
+                  <span>{milestone.submissionUrl}</span>
+                  <ExternalLink size={12} className="flex-shrink-0" />
                 </a>
                 {milestone.submissionNote && (
                   <p className="text-xs text-muted mt-2">"{milestone.submissionNote}"</p>
