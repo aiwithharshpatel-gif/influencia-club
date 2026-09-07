@@ -46,15 +46,18 @@ api.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        const token = localStorage.getItem('token') || localStorage.getItem('adminToken');
         const response = await axios.post(`${API_URL}/auth/refresh`, null, {
-          withCredentials: true,
-          headers: token ? { Authorization: `Bearer ${token}` } : {}
+          withCredentials: true
         });
 
         if (response.data.success && response.data.token) {
-          localStorage.setItem('token', response.data.token);
-          originalRequest.headers.Authorization = `Bearer ${response.data.token}`;
+          const newToken = response.data.token;
+          if (response.data.role === 'admin' || localStorage.getItem('adminToken')) {
+            localStorage.setItem('adminToken', newToken);
+          } else {
+            localStorage.setItem('token', newToken);
+          }
+          originalRequest.headers.Authorization = `Bearer ${newToken}`;
           return api(originalRequest);
         }
       } catch (refreshError) {

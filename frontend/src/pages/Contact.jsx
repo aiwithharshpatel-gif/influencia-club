@@ -4,6 +4,7 @@ import { Mail, Phone, MapPin, Clock, CheckCircle } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import api from '../utils/api';
+import toast from 'react-hot-toast';
 
 const Contact = () => {
   const [submitted, setSubmitted] = useState(false);
@@ -18,9 +19,9 @@ const Contact = () => {
     },
     {
       icon: Phone,
-      label: 'WhatsApp',
-      value: '+91 XXXXX XXXXX',
-      href: 'https://wa.me/91XXXXX XXXXX'
+      label: 'WhatsApp Support',
+      value: 'Direct WhatsApp Chat',
+      href: 'https://wa.me/?text=Hello%20Influenzia%20Club%20Team,%20I%20have%20an%20inquiry'
     },
     {
       icon: MapPin,
@@ -39,10 +40,11 @@ const Contact = () => {
     try {
       const response = await api.post('/contact', data);
       if (response.data.success) {
+        toast.success('Message sent! We will respond within 24 hours.');
         setSubmitted(true);
       }
     } catch (error) {
-      alert(error.response?.data?.message || 'Failed to send message');
+      toast.error(error.response?.data?.message || 'Failed to send message. Please try again.');
     }
   };
 

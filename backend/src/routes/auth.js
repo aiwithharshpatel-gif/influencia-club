@@ -419,6 +419,100 @@ router.post('/refresh', async (req, res) => {
 
     const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
 
+    // Support Brand Token Refresh
+    if (decoded.role === 'brand') {
+      const email = decoded.id || decoded.email;
+      const inquiry = await prisma.brandInquiry.findFirst({
+        where: { email }
+      });
+
+      if (!inquiry) {
+        return res.status(401).json({
+          success: false,
+          message: 'Invalid brand session'
+        });
+      }
+
+      const newAccessToken = jwt.sign(
+        { id: email, email: email, role: 'brand', version: 1 },
+        process.env.JWT_SECRET,
+        { expiresIn: '7d' }
+      );
+
+      const newRefreshToken = jwt.sign(
+        { id: email, email: email, role: 'brand', version: 1 },
+        process.env.JWT_REFRESH_SECRET,
+        { expiresIn: '30d' }
+      );
+
+      const cookieOptions = {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/'
+      };
+
+      res.cookie('accessToken', newAccessToken, {
+        ...cookieOptions,
+        maxAge: 7 * 24 * 60 * 60 * 1000
+      });
+
+      res.cookie('refreshToken', newRefreshToken, {
+        ...cookieOptions,
+        maxAge: 30 * 24 * 60 * 60 * 1000
+      });
+
+      return res.json({
+        success: true,
+        message: 'Token refreshed',
+        token: newAccessToken,
+        accessToken: newAccessToken,
+        role: 'brand'
+      });
+    }
+
+    // Support Admin Token Refresh
+    if (decoded.role === 'admin') {
+      const admin = await prisma.admin.findUnique({
+        where: { id: decoded.id }
+      });
+
+      if (!admin || admin.passwordVersion !== decoded.version) {
+        return res.status(401).json({
+          success: false,
+          message: 'Invalid admin refresh token'
+        });
+      }
+
+      const adminSecret = process.env.JWT_ADMIN_SECRET;
+      const newAdminToken = jwt.sign(
+        { id: admin.id, email: admin.email, role: 'admin', version: admin.passwordVersion },
+        adminSecret,
+        { expiresIn: '7d' }
+      );
+
+      const cookieOptions = {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/'
+      };
+
+      res.cookie('adminToken', newAdminToken, {
+        ...cookieOptions,
+        maxAge: 7 * 24 * 60 * 60 * 1000
+      });
+
+      return res.json({
+        success: true,
+        message: 'Token refreshed',
+        token: newAdminToken,
+        accessToken: newAdminToken,
+        role: 'admin'
+      });
+    }
+
+    // Default: Creator Token Refresh
     const creator = await prisma.creator.findUnique({
       where: { id: decoded.id }
     });
@@ -868,7 +962,7 @@ router.post('/brand-verify', otpLimiter, async (req, res) => {
     );
 
     const refreshToken = jwt.sign(
-      { id: email, version: 1 },
+      { id: email, email: email, role: 'brand', version: 1 },
       process.env.JWT_REFRESH_SECRET,
       { expiresIn: '30d' }
     );

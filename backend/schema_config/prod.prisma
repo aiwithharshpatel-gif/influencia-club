@@ -76,6 +76,7 @@ enum CampaignCreatorStatus {
   invited
   confirmed
   completed
+  declined
 }
 
 enum MilestoneType {

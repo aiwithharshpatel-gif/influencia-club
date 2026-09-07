@@ -791,11 +791,9 @@ const SuccessMessage = ({ mobile }) => {
         Welcome to Influenzia Club!
       </h2>
       <div className="bg-primary/10 border border-primary/20 rounded-xl p-6 mb-8">
-        <p className="text-white font-medium mb-2">Registration Successful!</p>
+        <p className="text-white font-medium mb-2">Registration Successful! 🎉</p>
         <p className="text-muted text-sm leading-relaxed">
-          Your default password is your registered mobile number:
-          <br />
-          <span className="text-primary font-bold text-lg">{mobile}</span>
+          Your account is active. You can log in anytime using your registered email and the password you created during sign up.
         </p>
       </div>
       <p className="text-muted mb-8">

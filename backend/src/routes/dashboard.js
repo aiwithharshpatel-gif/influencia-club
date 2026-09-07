@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import { protect } from '../middleware/auth.js';
 import { getPointsHistory, getReferralStats } from '../services/pointsService.js';
 import { sendPushNotification } from '../services/pushService.js';
+import { createNotification } from '../services/notificationInboxService.js';
 import { upload, uploadToCloudinary } from '../services/uploadService.js';
 
 const router = express.Router();
@@ -166,28 +167,55 @@ router.get('/collabs', async (req, res) => {
   }
 });
 
-// Submit redemption request
+// Submit redemption request (Atomic transaction to prevent double spending)
 router.post('/redeem', async (req, res) => {
   try {
-    const { rewardType, pointsCost } = req.body;
+    const { rewardType, pointsCost: rawPointsCost } = req.body;
+    const creatorId = req.user.id;
+    const pointsCost = Math.abs(parseInt(rawPointsCost, 10));
 
-    const creator = await prisma.creator.findUnique({
-      where: { id: req.user.id }
-    });
-
-    if (creator.pointsBalance < pointsCost) {
+    if (!pointsCost || isNaN(pointsCost) || pointsCost <= 0) {
       return res.status(400).json({
         success: false,
-        message: 'Insufficient points'
+        message: 'Invalid points cost'
       });
     }
 
-    const redemption = await prisma.redemptionRequest.create({
-      data: {
-        creatorId: req.user.id,
-        rewardType,
-        pointsCost
+    const redemption = await prisma.$transaction(async (tx) => {
+      const creator = await tx.creator.findUnique({
+        where: { id: creatorId },
+        select: { pointsBalance: true }
+      });
+
+      if (!creator || creator.pointsBalance < pointsCost) {
+        throw new Error('Insufficient points');
       }
+
+      await tx.creator.update({
+        where: { id: creatorId },
+        data: {
+          pointsBalance: { decrement: pointsCost }
+        }
+      });
+
+      await tx.pointsTransaction.create({
+        data: {
+          creatorId,
+          type: 'redeem',
+          reason: 'redemption',
+          points: -pointsCost,
+          note: `Redeemed ${rewardType || 'Reward'}`
+        }
+      });
+
+      return await tx.redemptionRequest.create({
+        data: {
+          creatorId,
+          rewardType: rewardType || 'custom',
+          pointsCost,
+          status: 'pending'
+        }
+      });
     });
 
     res.json({
@@ -196,9 +224,9 @@ router.post('/redeem', async (req, res) => {
       redemption
     });
   } catch (error) {
-    res.status(500).json({
+    res.status(400).json({
       success: false,
-      message: error.message
+      message: error.message || 'Failed to submit redemption request'
     });
   }
 });
@@ -273,7 +301,15 @@ router.put('/profile', async (req, res) => {
     if (validated.name !== undefined && validated.name !== null) updateData.name = validated.name;
     if (validated.bio !== undefined) updateData.bio = validated.bio;
     if (validated.city !== undefined) updateData.city = validated.city;
-    if (validated.category !== undefined && validated.category !== null) updateData.category = validated.category;
+    if (validated.category !== undefined && validated.category !== null) {
+      const validCategories = ['influencer', 'actor', 'model', 'creator', 'public_figure'];
+      const raw = validated.category.toLowerCase().trim();
+      let normCat = raw.replace(/[\s&-]+/g, '_');
+      if (!validCategories.includes(normCat)) {
+        normCat = validCategories.includes(raw) ? raw : 'creator';
+      }
+      updateData.category = normCat;
+    }
     if (validated.instagram !== undefined && validated.instagram !== null) {
       updateData.instagram = validated.instagram.replace(/^@/, '').trim().toLowerCase();
     }
@@ -412,10 +448,20 @@ router.put('/collabs/:id/decline', async (req, res) => {
       });
     }
 
-    const updated = await prisma.campaignCreator.update({
-      where: { id },
-      data: { status: 'declined' }
-    });
+    let updated;
+    try {
+      updated = await prisma.campaignCreator.update({
+        where: { id },
+        data: { status: 'declined' }
+      });
+    } catch (updateErr) {
+      console.warn('Decline update failed, applying fallback delete:', updateErr.message);
+      await prisma.campaignCreator.delete({ where: { id } }).catch(() => {});
+      return res.json({
+        success: true,
+        message: 'Collaboration declined'
+      });
+    }
 
     res.json({
       success: true,
@@ -738,7 +784,12 @@ router.post('/campaigns/:id/apply', async (req, res) => {
 
     // Verify campaign exists and is public
     const campaign = await prisma.campaign.findUnique({
-      where: { id }
+      where: { id },
+      include: {
+        brandInquiry: {
+          select: { id: true, brandName: true, email: true }
+        }
+      }
     });
 
     if (!campaign || !campaign.isPublic) {
@@ -773,6 +824,28 @@ router.post('/campaigns/:id/apply', async (req, res) => {
         status: 'pending'
       }
     });
+
+    // Notify brand owner
+    if (campaign?.brandInquiry?.email) {
+      const brandEmail = campaign.brandInquiry.email;
+      const io = req.app.get('io');
+      createNotification({
+        recipientId: brandEmail,
+        recipientType: 'brand',
+        type: 'campaign',
+        title: 'New Campaign Application 📝',
+        message: `${req.user.name || 'A creator'} applied to your campaign "${campaign.title}". Pitch: "${pitch.trim().slice(0, 80)}..."`,
+        link: `/brand/dashboard/inquiries/${campaign.brandInquiry.id}/matches`
+      }, io).catch(err => console.error('Error creating app notification:', err));
+
+      sendPushNotification(brandEmail, 'brand', {
+        title: 'New Campaign Application 📝',
+        body: `${req.user.name || 'A creator'} applied to your campaign "${campaign.title}".`,
+        data: {
+          url: `/brand/dashboard/inquiries/${campaign.brandInquiry.id}/matches`
+        }
+      }).catch(err => console.error('Error sending push notification:', err));
+    }
 
     res.json({
       success: true,

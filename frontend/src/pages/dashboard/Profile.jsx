@@ -451,20 +451,10 @@ const Profile = () => {
                 {...register('category')}
                 className="w-full bg-bg border border-border rounded-lg px-4 py-3 text-white focus:outline-none focus:border-primary"
               >
-                <option value="Fashion & Lifestyle">Fashion & Lifestyle</option>
-                <option value="Beauty & Makeup">Beauty & Makeup</option>
-                <option value="Travel & Tourism">Travel & Tourism</option>
-                <option value="Food & Cooking">Food & Cooking</option>
-                <option value="Tech & Gadgets">Tech & Gadgets</option>
-                <option value="Fitness & Health">Fitness & Health</option>
-                <option value="Entertainment & Comedy">Entertainment & Comedy</option>
-                <option value="Business & Finance">Business & Finance</option>
-                <option value="Gaming">Gaming</option>
-                <option value="Music & Dance">Music & Dance</option>
+                <option value="creator">Content Creator</option>
                 <option value="influencer">Influencer</option>
                 <option value="actor">Actor</option>
                 <option value="model">Model</option>
-                <option value="creator">Content Creator</option>
                 <option value="public_figure">Public Figure</option>
               </select>
             </div>

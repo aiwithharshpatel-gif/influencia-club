@@ -9,6 +9,7 @@ import toast from 'react-hot-toast';
 
 const Brands = () => {
   const [submitted, setSubmitted] = useState(false);
+  const [selectedPackage, setSelectedPackage] = useState('Growth');
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm();
 
   const reasons = [
@@ -84,6 +85,7 @@ const Brands = () => {
     try {
       const payload = {
         ...data,
+        packageType: selectedPackage.toLowerCase(),
         email: data.email ? data.email.toLowerCase().trim() : '',
         categories: Array.isArray(data.categories) ? data.categories : [data.categories]
       };
@@ -149,7 +151,10 @@ const Brands = () => {
               <PricingCard
                 key={index}
                 {...tier}
-                onSelect={() => document.getElementById('inquiry-form')?.scrollIntoView({ behavior: 'smooth' })}
+                onSelect={() => {
+                  setSelectedPackage(tier.tier);
+                  document.getElementById('inquiry-form')?.scrollIntoView({ behavior: 'smooth' });
+                }}
               />
             ))}
           </div>
@@ -169,6 +174,29 @@ const Brands = () => {
               </p>
 
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                {/* Selected Package Indicator */}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-primary/10 border border-primary/30 rounded-xl p-4">
+                  <div>
+                    <span className="text-[11px] uppercase font-bold text-primary tracking-wider">Selected Package</span>
+                    <h4 className="text-base font-bold text-white">{selectedPackage} Package</h4>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {['Basic', 'Growth', 'Premium'].map((pkg) => (
+                      <button
+                        key={pkg}
+                        type="button"
+                        onClick={() => setSelectedPackage(pkg)}
+                        className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                          selectedPackage === pkg
+                            ? 'bg-primary text-black shadow-md'
+                            : 'bg-white/5 text-muted hover:text-white border border-white/10'
+                        }`}
+                      >
+                        {pkg}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <div>
                   <label className="block text-sm font-medium text-muted mb-2">
                     Brand / Company Name *

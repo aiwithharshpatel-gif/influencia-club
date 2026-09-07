@@ -49,9 +49,15 @@ export const validateCreator = async (req, res, next) => {
     });
   }
 
-  // Check if Instagram handle already exists
+  // Check if Instagram handle already exists (strip leading @ and normalize)
+  const cleanInstagram = (instagram || '').replace(/^@+/, '').trim().toLowerCase();
   const existingInstagram = await prisma.creator.findFirst({
-    where: { instagram: instagram.toLowerCase() }
+    where: {
+      OR: [
+        { instagram: cleanInstagram },
+        { instagram: `@${cleanInstagram}` }
+      ]
+    }
   });
 
   if (existingInstagram) {

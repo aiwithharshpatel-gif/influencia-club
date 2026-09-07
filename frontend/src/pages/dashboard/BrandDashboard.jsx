@@ -157,13 +157,19 @@ const BrandDashboard = () => {
                     </p>
                   </div>
 
-                  <div className="flex flex-col sm:flex-row md:flex-col gap-3 min-w-[180px]">
+                  <div className="flex flex-col sm:flex-row md:flex-col gap-2.5 min-w-[190px]">
                     <Link
                       to={`/brand/dashboard/inquiries/${inq.id}/matches`}
-                      className="btn-primary py-3 px-4 text-sm flex items-center justify-center space-x-2"
+                      className="btn-primary py-2.5 px-4 text-sm flex items-center justify-center space-x-2"
                     >
                       <Sparkles size={16} className="text-white animate-pulse" />
                       <span>AI Matchmaker</span>
+                    </Link>
+                    <Link
+                      to={`/brand/dashboard/inquiries/${inq.id}/matches`}
+                      className="py-2 px-3 text-xs rounded-lg border border-border/60 hover:border-primary/50 text-muted hover:text-white flex items-center justify-center transition-all bg-white/[0.02] hover:bg-white/[0.05]"
+                    >
+                      <span>Review Applications</span>
                     </Link>
                   </div>
                 </div>

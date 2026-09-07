@@ -109,7 +109,7 @@ app.use(cors({
     if (!origin || allowedOrigins.includes(origin) || allowedOrigins.some(o => origin.startsWith(o))) {
       return callback(null, true);
     }
-    return callback(null, true);
+    return callback(new Error('Blocked by CORS policy'));
   },
   credentials: true
 }));
@@ -266,8 +266,10 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log(`Influenzia Club API with WebSockets running on port ${PORT} at 0.0.0.0`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
   
-  // Clean up any test/demo profiles and inquiries
-  cleanupTestData();
+  // Clean up test data only when explicitly enabled in non-production
+  if (process.env.NODE_ENV !== 'production' && process.env.RUN_CLEANUP === 'true') {
+    cleanupTestData();
+  }
 
   // Start the Instagram Profile statistics daily auto-sync background task
   startInstagramSyncScheduler();

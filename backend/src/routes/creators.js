@@ -30,9 +30,11 @@ router.get('/', async (req, res) => {
     }
 
     if (search) {
+      const cleanSearch = search.replace(/^@+/, '').trim();
       where.OR = [
         { name: { contains: search } },
-        { city: { contains: search } }
+        { city: { contains: search } },
+        { instagram: { contains: cleanSearch } }
       ];
     }
 

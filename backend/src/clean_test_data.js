@@ -15,8 +15,7 @@ export async function cleanupTestData() {
           { email: { contains: 'sso_ig_test_' } },
           { instagram: { startsWith: 'theme_insta_' } },
           { instagram: { startsWith: 'ig_sso_creator_' } },
-          { instagram: { startsWith: 'test_ig_' } },
-          { instagram: 'aria.sen.lifestyle' }
+          { instagram: { startsWith: 'test_ig_' } }
         ]
       }
     });

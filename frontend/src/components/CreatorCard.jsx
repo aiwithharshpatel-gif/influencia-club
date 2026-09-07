@@ -90,7 +90,7 @@ const CreatorCard = ({ creator }) => {
 
           <div className="flex items-center justify-between pt-1 gap-2">
             <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider ${categoryColors[category] || 'bg-white/5'}`}>
-              {category.replace('_', ' ')}
+              {(category || 'creator').replace(/_/g, ' ')}
             </span>
             <a
               href={`https://instagram.com/${instagram}`}
